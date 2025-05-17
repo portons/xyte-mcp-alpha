@@ -8,6 +8,17 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 2. Create a virtualenv and install the project: `pip install -e .`.
 3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` (and optional `XYTE_USER_TOKEN`).
 4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
+## Setup
+
+### Development
+1. Install extra dev dependencies with `pip install -e .[dev]`.
+2. Start the server using `mcp dev src/xyte_mcp_alpha/server.py` to get the interactive inspector.
+
+### Production
+1. Build the Docker image or install the package on your host.
+2. Set environment variables such as `XYTE_API_KEY` and `XYTE_BASE_URL`.
+3. Run `python -m xyte_mcp_alpha.http` under a process manager.
+
 
 ## Features
 
@@ -70,6 +81,12 @@ cp .env.example .env
 ```
 XYTE_API_KEY=your-actual-api-key-here
 ```
+
+3. Configure optional variables as needed:
+   - `XYTE_BASE_URL` - override the Xyte API base URL.
+   - `XYTE_USER_TOKEN` - user-scoped token if acting on behalf of a specific user.
+   - `XYTE_RATE_LIMIT` - requests per minute limit (defaults to 60).
+   - `XYTE_PLUGINS` - comma-separated list of plugin modules to load.
 
 ## Usage
 
@@ -134,8 +151,26 @@ Alternatively, with a Python virtual environment:
 ```
 
 ## Example Usage
+## API Usage Examples
+
+Python:
+```python
+import os, requests
+resp = requests.get("http://localhost:8080/devices", headers={"Authorization": os.getenv("XYTE_API_KEY")})
+print(resp.json())
+```
+
+Curl:
+```bash
+curl -H "Authorization: $XYTE_API_KEY" http://localhost:8080/devices
+```
 
 ![mcp dev demo](docs/mcp-dev.gif)
+## Architecture Overview
+The server is built on [FastMCP](https://github.com/anthropics/fastmcp) and organizes functionality into **resources** for read-only data and **tools** for actions.
+Events emitted by the Xyte API are queued internally and can trigger plugins.
+The plugin system loads modules listed in `XYTE_PLUGINS`, allowing hooks on events and logs.
+
 
 ## Development
 
