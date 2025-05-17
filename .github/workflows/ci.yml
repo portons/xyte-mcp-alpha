@@ -24,12 +24,14 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .
-          pip install ruff mypy pytest pytest-cov coverage
+          pip install ruff mypy pytest pytest-cov coverage bandit
           pip install types-cachetools types-certifi
       - name: Check code formatting and lint with ruff
         run: ruff check src tests
       - name: Type checks
         run: mypy src || true
+      - name: Run Bandit security scan
+        run: bandit -r src -ll
       - name: Run tests with coverage
         run: pytest --cov=src --cov-report=xml
       - name: Upload coverage
@@ -40,6 +42,13 @@ jobs:
         run: docker build -t xyte-mcp-alpha:${{ github.sha }} .
       - name: Security scan
         run: scripts/security_scan.sh || true
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.23.0
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          exit-code: 1
 
   publish:
     if: github.event_name == 'release'

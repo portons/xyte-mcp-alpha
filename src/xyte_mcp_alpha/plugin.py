@@ -9,6 +9,8 @@ import os
 from typing import Iterable, List, Protocol
 from .logging_utils import log_json
 
+PLUGIN_API_VERSION = "1.0"
+
 class MCPPlugin(Protocol):
     """Plugin interface for AI agent integration."""
 

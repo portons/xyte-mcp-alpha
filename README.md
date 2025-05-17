@@ -290,3 +290,11 @@ MIT
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+See [SUPPORT.md](SUPPORT.md) for our support policy and how to responsibly disclose security issues.
+
+## Plugin API
+
+Plugins should declare `PLUGIN_API_VERSION` to match the version exposed by the server. See [docs/plugin_api_version.md](docs/plugin_api_version.md) for details.
