@@ -34,3 +34,15 @@ def get_settings() -> Settings:
 def reload_settings() -> None:
     """Clear cached settings so they will be reloaded on next access."""
     get_settings.cache_clear()
+
+
+def validate_settings(settings: Settings) -> None:
+    """Validate critical configuration values and raise ``ValueError`` if invalid."""
+    if not (settings.xyte_api_key or settings.xyte_oauth_token):
+        raise ValueError("XYTE_API_KEY or XYTE_OAUTH_TOKEN must be set")
+    if settings.rate_limit_per_minute <= 0:
+        raise ValueError("XYTE_RATE_LIMIT must be positive")
+    if settings.xyte_cache_ttl <= 0:
+        raise ValueError("XYTE_CACHE_TTL must be positive")
+    if not settings.xyte_base_url:
+        raise ValueError("XYTE_BASE_URL must not be empty")
