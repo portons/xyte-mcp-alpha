@@ -45,13 +45,13 @@
 
 ## 🔒 **Security**
 
-* [ ] Add a `SECURITY.md` with:
+* [x] Add a `SECURITY.md` with:
 
-    * [ ] Security best practices
-    * [ ] How to report vulnerabilities
-    * [ ] Token/secret management
-* [ ] Review Dockerfile for security (run as non-root user, minimize layers)
-* [ ] Document recommended .env practices and secrets rotation
+    * [x] Security best practices
+    * [x] How to report vulnerabilities
+    * [x] Token/secret management
+* [x] Review Dockerfile for security (run as non-root user, minimize layers)
+* [x] Document recommended .env practices and secrets rotation
 
 ## 🚀 **CI/CD & Automation**
 
