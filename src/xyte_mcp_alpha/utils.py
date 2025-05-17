@@ -70,3 +70,17 @@ async def handle_api(name: str, coro: Awaitable[Dict[str, Any]]) -> Dict[str, An
         raise MCPError(code="xyte_api_error", message=str(e))
     finally:
         REQUEST_LATENCY.labels(name).observe(asyncio.get_event_loop().time() - start)
+
+
+# Per-session storage for advanced context management
+SESSION_STATE: Dict[int, Dict[str, Any]] = {}
+
+
+def get_session_state(ctx: "Context") -> Dict[str, Any]:
+    """Return mutable session-specific state for the given context."""
+    from mcp.server.fastmcp.server import Context  # local import to avoid cycles
+
+    if not isinstance(ctx, Context):  # pragma: no cover - type check safeguard
+        raise TypeError("ctx must be a FastMCP Context")
+
+    return SESSION_STATE.setdefault(id(ctx.session), {})

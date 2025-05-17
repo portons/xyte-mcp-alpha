@@ -1,7 +1,8 @@
 from typing import Any, Dict
 
 from .deps import get_client
-from .utils import handle_api
+from .utils import handle_api, get_session_state
+from mcp.server.fastmcp.server import Context
 from .client import (
     ClaimDeviceRequest,
     UpdateDeviceRequest,
@@ -39,7 +40,10 @@ async def update_device(data: UpdateDeviceArgs) -> Dict[str, Any]:
         )
 
 
-async def send_command(data: SendCommandRequest) -> Dict[str, Any]:
+async def send_command(
+    data: SendCommandRequest,
+    ctx: Context | None = None,
+) -> Dict[str, Any]:
     async with get_client() as client:
         req = CommandRequest(
             name=data.name,
@@ -47,9 +51,19 @@ async def send_command(data: SendCommandRequest) -> Dict[str, Any]:
             file_id=data.file_id,
             extra_params=data.extra_params or {},
         )
-        return await handle_api(
+        if ctx:
+            state = get_session_state(ctx)
+            state["last_command"] = data.name
+            await ctx.info(
+                f"Sending command {data.name} to device {data.device_id}"
+            )
+            await ctx.report_progress(0.0, 1.0, "sending")
+        result = await handle_api(
             "send_command", client.send_command(data.device_id, req)
         )
+        if ctx:
+            await ctx.report_progress(1.0, 1.0, "done")
+        return result
 
 
 async def cancel_command(data: CancelCommandRequest) -> Dict[str, Any]:
@@ -88,12 +102,23 @@ async def send_ticket_message(data: SendTicketMessageRequest) -> Dict[str, Any]:
             "send_ticket_message", client.send_ticket_message(data.ticket_id, req)
         )
 
-async def search_device_histories(params: SearchDeviceHistoriesRequest) -> Dict[str, Any]:
+async def search_device_histories(
+    params: SearchDeviceHistoriesRequest,
+    ctx: Context | None = None,
+) -> Dict[str, Any]:
     async with get_client() as client:
         from datetime import datetime
-        from_dt = datetime.fromisoformat(params.from_date) if params.from_date else None
+
+        from_dt = (
+            datetime.fromisoformat(params.from_date) if params.from_date else None
+        )
         to_dt = datetime.fromisoformat(params.to_date) if params.to_date else None
-        return await handle_api(
+
+        if ctx:
+            await ctx.info("Fetching device histories")
+            await ctx.report_progress(0.0, 1.0)
+
+        result = await handle_api(
             "search_device_histories",
             client.get_device_histories(
                 status=params.status,
@@ -104,3 +129,8 @@ async def search_device_histories(params: SearchDeviceHistoriesRequest) -> Dict[
                 name=params.name,
             ),
         )
+
+        if ctx:
+            await ctx.report_progress(1.0, 1.0)
+
+        return result

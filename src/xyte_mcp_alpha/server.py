@@ -9,7 +9,7 @@ from starlette.responses import Response
 
 from mcp.server.fastmcp import FastMCP
 
-from . import resources, tools
+from . import resources, tools, prompts
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,6 +56,10 @@ mcp.tool()(tools.update_ticket)
 mcp.tool()(tools.mark_ticket_resolved)
 mcp.tool()(tools.send_ticket_message)
 mcp.tool()(tools.search_device_histories)
+
+# Prompt registrations
+mcp.prompt()(prompts.reboot_device_workflow)
+mcp.prompt()(prompts.check_projectors_health)
 
 
 def get_server() -> Any:
