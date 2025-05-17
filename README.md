@@ -180,14 +180,11 @@ resources and underlying API calls.
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
 - `MCP_INSPECTOR_PORT` (optional) - Port for the MCP inspector to use (default 6277)
-<<<<<<< HEAD
 - `XYTE_EXPERIMENTAL_APIS` (optional) - Enable registration of experimental tools
-=======
 - `XYTE_API_MAPPING` (optional) - Path to JSON file overriding API endpoint mapping
 - `XYTE_HOOKS_MODULE` (optional) - Python module providing request/response hooks
 
 These variables can also be configured when deploying via Helm. See `helm/values.yaml` for defaults.
->>>>>>> 027fe7871d9911d28c1c81ba6df3bed5fa10b5cd
 
 ### Security Considerations
 

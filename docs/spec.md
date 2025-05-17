@@ -110,12 +110,8 @@
 
 ## Future-Ready
 
-<<<<<<< HEAD
 * [x] Prepare hooks for AI agent integration (eventing/logging/plugin interfaces)
 * [x] Allow feature flags for experimental APIs
-=======
-* [ ] Prepare hooks for AI agent integration (eventing/logging/plugin interfaces)
-* [ ] Allow feature flags for experimental APIs
 
 ### OpenAPI Specification
 
@@ -126,4 +122,3 @@ curl http://localhost:8080/openapi.json > docs/openapi.json
 ```
 
 The source specification is stored in `registry.yaml` for reference.
->>>>>>> 027fe7871d9911d28c1c81ba6df3bed5fa10b5cd
