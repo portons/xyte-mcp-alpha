@@ -167,6 +167,7 @@ This opens an interactive UI where you can test tools and resources.
 
 - `XYTE_API_KEY` (required) - Your Xyte organization API key
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
+- `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 
 ### Error Handling
 
