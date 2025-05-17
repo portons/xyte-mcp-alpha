@@ -3,6 +3,7 @@
 import logging
 import sys
 import os
+import json
 from typing import Any, Dict
 
 # Import the GetNextEventRequest class directly
@@ -71,17 +72,29 @@ async def metrics(_: Request) -> Response:
 
 
 @mcp.custom_route("/webhook", methods=["POST"])
-async def webhook(request: Request) -> Response:
-    """Receive a webhook event and enqueue it."""
-    payload = await request.json()
-    await events.push_event(events.Event(**payload))
-    return Response(status_code=200)
+async def webhook(req: Request) -> JSONResponse:
+    """Receive external events and enqueue them for streaming."""
+    payload = await req.json()
+    event = events.Event(type=payload.get("type", "unknown"), data=payload.get("data", {}))
+    await events.push_event(event)
+    return JSONResponse({"queued": True})
+
+
+@mcp.custom_route("/events", methods=["GET"])
+async def stream_events(_: Request) -> Response:
+    """Stream events to clients using Server-Sent Events."""
+    async def event_gen():
+        while True:
+            ev = await events.get_next_event(events.GetNextEventRequest())
+            yield f"event: {ev['type']}\ndata: {json.dumps(ev['data'])}\n\n"
+
+    return Response(event_gen(), media_type="text/event-stream")
 
 
 @mcp.custom_route("/tools", methods=["GET"])
 async def list_tools(_: Request) -> JSONResponse:
     """List available tools."""
-    tools = await mcp.list_tools()
+    tool_infos = await mcp.list_tools()
     tools_list = [
         {
             "name": t.name,
@@ -89,7 +102,7 @@ async def list_tools(_: Request) -> JSONResponse:
             "readOnlyHint": t.annotations.readOnlyHint if t.annotations else True,
             "destructiveHint": t.annotations.destructiveHint if t.annotations else False,
         }
-        for t in tools
+        for t in tool_infos
     ]
     return JSONResponse(tools_list)
 
@@ -215,6 +228,13 @@ mcp.tool(
     description="Get status of an asynchronous task",
     annotations=ToolAnnotations(readOnlyHint=True),
 )(tasks.get_task_status)
+
+
+@mcp.custom_route("/task/{task_id}", methods=["GET"])
+async def task_status(task_id: str) -> JSONResponse:
+    """Expose async task status via HTTP."""
+    result = await tasks.get_task_status(task_id)
+    return JSONResponse(result)
 # Create a wrapper function with explicit type annotation
 async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
     """Wrapper for get_next_event with explicit type annotation."""

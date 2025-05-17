@@ -1,30 +1,57 @@
-"""HTTP entrypoint for the MCP server."""
+"""HTTP entrypoint for the MCP server with versioned routing."""
+
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.responses import JSONResponse, HTMLResponse
 
 from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
 from .config import get_settings
-from starlette.responses import JSONResponse, HTMLResponse
-from starlette.requests import Request
-
-# Expose ASGI app for Uvicorn or other ASGI servers
-app = get_server().streamable_http_app()
-app.add_middleware(RequestLoggingMiddleware)
 
 
-async def openapi_spec(_: Request) -> JSONResponse:
-    """Return a minimal OpenAPI schema."""
-    schema = {"openapi": "3.0.0", "info": {"title": "Xyte MCP API", "version": "1.0"}}
+def build_openapi(app: Starlette) -> Dict[str, Any]:
+    """Return a minimal OpenAPI schema describing the mounted routes."""
+
+    paths: Dict[str, Any] = {}
+    for route in app.routes:
+        if hasattr(route, "path"):
+            paths["/v1" + route.path] = {}
+    return {
+        "openapi": "3.0.0",
+        "info": {"title": "Xyte MCP API", "version": "1.0"},
+        "paths": paths,
+    }
+
+
+internal_app = get_server().streamable_http_app()
+internal_app.add_middleware(RequestLoggingMiddleware)
+
+routes = [Mount("/v1", app=internal_app)]
+
+app = Starlette(routes=routes)
+
+
+@app.route("/v1/openapi.json")
+async def openapi_spec(request) -> JSONResponse:
+    schema = build_openapi(internal_app)
     return JSONResponse(schema)
 
 
-async def api_docs(_: Request) -> HTMLResponse:
-    """Return a very small HTML docs placeholder."""
-    html = "<html><body><pre>Xyte MCP API Docs</pre></body></html>"
+@app.route("/v1/docs")
+async def api_docs(request) -> HTMLResponse:
+    html = """
+    <html>
+      <body>
+        <h1>Xyte MCP API</h1>
+        <p>OpenAPI specification available at <a href='/v1/openapi.json'>/v1/openapi.json</a></p>
+      </body>
+    </html>
+    """
     return HTMLResponse(html)
-
-
-app.add_route("/openapi.json", openapi_spec, methods=["GET"])
-app.add_route("/api/docs", api_docs, methods=["GET"])
 
 
 def main():
@@ -37,3 +64,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

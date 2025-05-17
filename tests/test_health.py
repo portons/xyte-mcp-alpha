@@ -8,12 +8,15 @@ class HealthEndpointTestCase(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
-    def test_endpoints(self):
-        for path in ['/healthz', '/readyz']:
-            with self.subTest(path=path):
-                resp = self.client.get(path)
-                self.assertEqual(resp.status_code, 200)
-                self.assertEqual(resp.text, 'ok')
+    def test_health_endpoint(self):
+        resp = self.client.get('/v1/healthz')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.text, 'ok')
+
+    def test_ready_endpoint(self):
+        resp = self.client.get('/v1/readyz')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.text, 'ok')
 
 
 if __name__ == '__main__':

@@ -16,19 +16,19 @@ class DiscoveryEventTestCase(unittest.TestCase):
             events._event_queue.get_nowait()
 
     def test_tool_and_resource_listing(self):
-        resp = self.client.get('/tools')
+        resp = self.client.get('/v1/tools')
         self.assertEqual(resp.status_code, 200)
         tools = resp.json()
         self.assertTrue(any(t['name'] == 'claim_device' for t in tools))
 
-        resp = self.client.get('/resources')
+        resp = self.client.get('/v1/resources')
         self.assertEqual(resp.status_code, 200)
         resources_list = resp.json()
         self.assertTrue(any(r['uri'] == 'devices://' for r in resources_list))
 
     def test_event_flow(self):
         payload = {"type": "device_offline", "data": {"id": "abc"}}
-        resp = self.client.post('/webhook', json=payload)
+        resp = self.client.post('/v1/webhook', json=payload)
         self.assertEqual(resp.status_code, 200)
 
         async def wait_event():
