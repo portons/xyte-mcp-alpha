@@ -3,6 +3,8 @@
 import logging
 from typing import Any
 
+from .logging_utils import configure_logging, instrument, RequestLoggingMiddleware
+
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
 from starlette.responses import Response
@@ -11,8 +13,10 @@ from mcp.server.fastmcp import FastMCP
 
 from . import resources, tools
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure structured logging
+configure_logging()
+audit_logger = logging.getLogger("audit")
+audit_logger.setLevel(logging.INFO)
 
 # Initialize MCP server
 mcp = FastMCP("Xyte Organization MCP Server")
@@ -38,24 +42,24 @@ async def metrics(_: Request) -> Response:
 
 
 # Resource registrations
-mcp.resource("devices://")(resources.list_devices)
-mcp.resource("device://{device_id}/commands")(resources.list_device_commands)
-mcp.resource("device://{device_id}/histories")(resources.list_device_histories)
-mcp.resource("organization://info/{device_id}")(resources.organization_info)
-mcp.resource("incidents://")(resources.list_incidents)
-mcp.resource("tickets://")(resources.list_tickets)
-mcp.resource("ticket://{ticket_id}")(resources.get_ticket)
+mcp.resource("devices://")(instrument("resource", "list_devices")(resources.list_devices))
+mcp.resource("device://{device_id}/commands")(instrument("resource", "list_device_commands")(resources.list_device_commands))
+mcp.resource("device://{device_id}/histories")(instrument("resource", "list_device_histories")(resources.list_device_histories))
+mcp.resource("organization://info/{device_id}")(instrument("resource", "organization_info")(resources.organization_info))
+mcp.resource("incidents://")(instrument("resource", "list_incidents")(resources.list_incidents))
+mcp.resource("tickets://")(instrument("resource", "list_tickets")(resources.list_tickets))
+mcp.resource("ticket://{ticket_id}")(instrument("resource", "get_ticket")(resources.get_ticket))
 
 # Tool registrations
-mcp.tool()(tools.claim_device)
-mcp.tool()(tools.delete_device)
-mcp.tool()(tools.update_device)
-mcp.tool()(tools.send_command)
-mcp.tool()(tools.cancel_command)
-mcp.tool()(tools.update_ticket)
-mcp.tool()(tools.mark_ticket_resolved)
-mcp.tool()(tools.send_ticket_message)
-mcp.tool()(tools.search_device_histories)
+mcp.tool()(instrument("tool", "claim_device")(tools.claim_device))
+mcp.tool()(instrument("tool", "delete_device")(tools.delete_device))
+mcp.tool()(instrument("tool", "update_device")(tools.update_device))
+mcp.tool()(instrument("tool", "send_command")(tools.send_command))
+mcp.tool()(instrument("tool", "cancel_command")(tools.cancel_command))
+mcp.tool()(instrument("tool", "update_ticket")(tools.update_ticket))
+mcp.tool()(instrument("tool", "mark_ticket_resolved")(tools.mark_ticket_resolved))
+mcp.tool()(instrument("tool", "send_ticket_message")(tools.send_ticket_message))
+mcp.tool()(instrument("tool", "search_device_histories")(tools.search_device_histories))
 
 
 def get_server() -> Any:

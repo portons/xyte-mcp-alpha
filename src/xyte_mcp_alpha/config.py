@@ -13,6 +13,9 @@ class Settings(BaseSettings):
         "https://hub.xyte.io/core/v1/organization", alias="XYTE_BASE_URL"
     )
     xyte_user_token: str | None = Field(default=None, alias="XYTE_USER_TOKEN")
+    xyte_cache_ttl: int = Field(60, alias="XYTE_CACHE_TTL")
+    environment: str = Field("prod", alias="XYTE_ENV")
+    rate_limit_per_minute: int = Field(60, alias="XYTE_RATE_LIMIT")
 
 
 @lru_cache()

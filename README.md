@@ -143,6 +143,13 @@ mcp dev src/xyte_mcp_alpha/server.py
 
 This opens an interactive UI where you can test tools and resources.
 
+## Logging and Monitoring
+
+Structured JSON logs are produced for every HTTP request and Xyte API call. Each
+log entry includes a unique `request_id` for easy tracing. Prometheus metrics are
+available at the `/metrics` endpoint, including latency histograms for tools,
+resources and underlying API calls.
+
 ## API Reference
 
 ### Environment Variables
@@ -151,6 +158,14 @@ This opens an interactive UI where you can test tools and resources.
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
 - `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
+- `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
+- `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
+
+### Security Considerations
+
+Ensure the value provided for `XYTE_API_KEY` has only the permissions required
+for the tools you expose. Avoid logging this key or any per-user token. Run
+`scripts/security_scan.sh` regularly to check dependencies for vulnerabilities.
 
 ### Error Handling
 
