@@ -6,6 +6,8 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 This MCP server exposes the following capabilities:
 
+All resources and tools return structured JSON objects rather than plain strings.
+
 ### Resources (Read-only)
 - `devices://` - List all devices in the organization
 - `device://{device_id}/commands` - List commands for a specific device
@@ -76,6 +78,11 @@ python -m xyte_mcp_alpha
 3. Using MCP CLI for development:
 ```bash
 mcp dev src/xyte_mcp_alpha/server.py
+```
+
+4. Running over HTTP with Uvicorn:
+```bash
+python -m xyte_mcp_alpha.http
 ```
 
 ### Connecting to Claude Desktop
@@ -163,7 +170,9 @@ This opens an interactive UI where you can test tools and resources.
 
 ### Error Handling
 
-The server handles errors gracefully and returns structured error messages. All errors are logged for debugging purposes.
+Errors are surfaced to clients using `MCPError` exceptions. XYTE API status codes are translated to
+meaningful MCP error codes like `unauthorized`, `not_found` and `rate_limited`.
+All errors are logged for debugging purposes.
 
 ## License
 
