@@ -3,11 +3,9 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
 
-from mcp.server.stdio import stdio_server
 
 from xyte_mcp_alpha.server import get_server
 

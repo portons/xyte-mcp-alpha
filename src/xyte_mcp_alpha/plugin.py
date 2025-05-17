@@ -6,7 +6,7 @@ import importlib
 import importlib.metadata
 import logging
 import os
-from typing import Iterable, List, Protocol, Any
+from typing import Iterable, List, Protocol
 from .logging_utils import log_json
 
 class MCPPlugin(Protocol):
