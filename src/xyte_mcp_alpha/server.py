@@ -41,7 +41,6 @@ else:
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
-from .config import get_settings
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations

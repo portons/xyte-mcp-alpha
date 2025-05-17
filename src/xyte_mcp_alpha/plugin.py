@@ -1,7 +1,7 @@
 import importlib
 import logging
 import os
-from typing import Any, List, Protocol
+from typing import List, Protocol
 
 class MCPPlugin(Protocol):
     """Plugin interface for AI agent integration."""

@@ -9,15 +9,10 @@ from functools import wraps
 from prometheus_client import Histogram, Counter
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-<<<<<<< HEAD
 from opentelemetry.sdk.trace.export import (
     ConsoleSpanExporter,
     SimpleSpanProcessor,
-    SpanExporter,
 )
-=======
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
->>>>>>> 027fe7871d9911d28c1c81ba6df3bed5fa10b5cd
 from opentelemetry.sdk.trace import ReadableSpan
 from typing import Sequence
 
