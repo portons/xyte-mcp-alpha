@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     )
     xyte_api_mapping: str | None = Field(default=None, alias="XYTE_API_MAPPING")
     xyte_hooks_module: str | None = Field(default=None, alias="XYTE_HOOKS_MODULE")
+    log_level: str = Field(default="INFO", alias="XYTE_LOG_LEVEL")
 
 
 @lru_cache()

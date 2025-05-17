@@ -54,18 +54,23 @@ Directory Structure
   dependabot.yml
 docs/
   capabilities.json
-  spec.md
+  curl_examples.md
+  postman_collection.json
   wrappers.md
 examples/
   basic_usage.py
 helm/
   templates/
+    configmap.yaml
     deployment.yaml
+    secret.yaml
     service.yaml
   Chart.yaml
   values.yaml
 k8s/
+  configmap.yaml
   deployment.yaml
+  secret.yaml
   service.yaml
 scripts/
   generate_capabilities.py
@@ -74,15 +79,22 @@ scripts/
   security_scan.sh
 src/
   xyte_mcp_alpha/
+    plugins/
+      sample.py
     __init__.py
     __main__.py
     client.py
     config.py
     deps.py
     events.py
+    experimental.py
+    hooks.py
+    http_utils.py
     http.py
     logging_utils.py
+    mapping.py
     models.py
+    plugin.py
     prompts.py
     resources.py
     server.py
@@ -91,12 +103,14 @@ src/
     user.py
     utils.py
 tests/
+  helper_plugin.py
+  test_config_endpoint.py
   test_config.py
   test_discovery_and_events.py
   test_errors.py
   test_health.py
   test_metrics.py
-  test_rate_limit.py
+  test_plugin_integration.py
   test_validation.py
 .env.example
 .gitignore
@@ -107,6 +121,7 @@ pyproject.toml
 README.md
 registry.yaml
 requirements.txt
+run_mcp_dev.py
 uv.lock
 
 ================================================================
@@ -147,7 +162,15 @@ File: .claude/settings.local.json
       "Bash(/usr/bin/git -C /Users/porton/Projects/xyte-mcp-alpha add src/xyte_mcp_alpha/tools.py)",
       "Bash(/usr/bin/git -C /Users/porton/Projects/xyte-mcp-alpha commit -m \"Fix linting errors: remove unused import and add missing logger\")",
       "Bash(/usr/bin/git -C /Users/porton/Projects/xyte-mcp-alpha push)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(/usr/bin/git commit -m \"Merge branch 'main' and resolve conflicts in http.py\")",
+      "Bash(/usr/bin/git push origin codex/implement-and-integrate-extensibility-and-authentication-tas)",
+      "Bash(/usr/bin/git diff --name-only --diff-filter=U)",
+      "Bash(/usr/bin/git add tests/test_metrics.py)",
+      "Bash(/usr/bin/git commit -m \"Merge branch 'main' and resolve conflicts in test_metrics.py\")",
+      "Bash(/usr/bin/git push origin codex/implement-observability-ops-tasks)",
+      "Bash(/usr/bin/git add src/xyte_mcp_alpha/logging_utils.py)",
+      "Bash(/usr/bin/git commit -m \"Fix ruff linting error: add nonlocal declaration for status_code\")"
     ],
     "deny": []
   }
@@ -1321,6 +1344,54 @@ File: docs/capabilities.json
 }
 
 ================
+File: docs/curl_examples.md
+================
+# Curl Examples
+
+List devices:
+```bash
+curl -H "Authorization: $XYTE_API_KEY" http://localhost:8080/devices
+```
+
+Send command:
+```bash
+curl -X POST -H "Authorization: $XYTE_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"name":"reboot","friendly_name":"Reboot"}' \
+     http://localhost:8080/devices/<DEVICE_ID>/commands
+```
+
+================
+File: docs/postman_collection.json
+================
+{
+  "info": {
+    "name": "Xyte MCP API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Devices",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/devices"
+      }
+    },
+    {
+      "name": "Send Command",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/devices/{{device_id}}/commands",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"reboot\",\n  \"friendly_name\": \"Reboot\"\n}"
+        }
+      }
+    }
+  ]
+}
+
+================
 File: examples/basic_usage.py
 ================
 """Example usage of the Xyte MCP server using mcp-client."""
@@ -1342,6 +1413,54 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+================
+File: helm/templates/configmap.yaml
+================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xyte-config
+data:
+  XYTE_BASE_URL: {{ .Values.env.XYTE_BASE_URL | quote }}
+  XYTE_CACHE_TTL: {{ .Values.env.XYTE_CACHE_TTL | quote }}
+  XYTE_ENV: {{ .Values.env.XYTE_ENV | quote }}
+  XYTE_RATE_LIMIT: {{ .Values.env.XYTE_RATE_LIMIT | quote }}
+  MCP_INSPECTOR_PORT: {{ .Values.env.MCP_INSPECTOR_PORT | quote }}
+
+================
+File: helm/templates/secret.yaml
+================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xyte-secrets
+stringData:
+  api_key: {{ .Values.env.XYTE_API_KEY | quote }}
+
+================
+File: k8s/configmap.yaml
+================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xyte-config
+data:
+  XYTE_BASE_URL: "https://hub.xyte.io/core/v1/organization"
+  XYTE_CACHE_TTL: "60"
+  XYTE_ENV: "prod"
+  XYTE_RATE_LIMIT: "60"
+  MCP_INSPECTOR_PORT: "8080"
+
+================
+File: k8s/secret.yaml
+================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xyte-secrets
+stringData:
+  api_key: "REPLACE_ME"
 
 ================
 File: scripts/generate_capabilities.py
@@ -1465,18 +1584,148 @@ if __name__ == "__main__":
     main()
 
 ================
-File: src/xyte_mcp_alpha/__main__.py
+File: src/xyte_mcp_alpha/plugins/sample.py
 ================
-"""Main entry point for xyte-mcp-alpha."""
+from typing import Any, Dict
+from ..utils import register_payload_transform
+
+def add_transformed_flag(payload: Dict[str, Any]) -> Dict[str, Any]:
+    payload["transformed"] = True
+    return payload
+
+register_payload_transform(add_transformed_flag)
+
+================
+File: src/xyte_mcp_alpha/experimental.py
+================
+from typing import Dict
+
+async def echo(message: str) -> Dict[str, str]:
+    """Simple experimental echo tool."""
+    return {"echo": message}
+
+================
+File: src/xyte_mcp_alpha/hooks.py
+================
+import importlib
+import os
+from typing import Any
+
+_hooks = None
 
 
-def main():
-    """Main function."""
-    print("Hello from xyte-mcp-alpha!")
+def _load_hooks():
+    global _hooks
+    if _hooks is not None:
+        return _hooks
+    module_path = os.getenv("XYTE_HOOKS_MODULE")
+    if not module_path:
+        _hooks = None
+        return None
+    try:
+        _hooks = importlib.import_module(module_path)
+    except Exception:
+        _hooks = None
+    return _hooks
 
 
-if __name__ == "__main__":
-    main()
+def transform_request(name: str, payload: Any) -> Any:
+    hooks = _load_hooks()
+    if hooks and hasattr(hooks, "transform_request"):
+        try:
+            return hooks.transform_request(name, payload)
+        except Exception:
+            return payload
+    return payload
+
+
+def transform_response(name: str, payload: Any) -> Any:
+    hooks = _load_hooks()
+    if hooks and hasattr(hooks, "transform_response"):
+        try:
+            return hooks.transform_response(name, payload)
+        except Exception:
+            return payload
+    return payload
+
+================
+File: src/xyte_mcp_alpha/http_utils.py
+================
+from collections import deque
+import time
+from typing import Callable
+from starlette.responses import Response
+
+class RateLimitMiddleware:
+    """Simple in-memory rate limiting middleware."""
+
+    def __init__(self, app: Callable, limit_per_minute: int) -> None:
+        self.app = app
+        self.limit = limit_per_minute
+        self.timestamps: deque[float] = deque()
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        now = time.time()
+        while self.timestamps and self.timestamps[0] < now - 60:
+            self.timestamps.popleft()
+        if len(self.timestamps) >= self.limit:
+            resp = Response("Rate limit exceeded", status_code=429)
+            await resp(scope, receive, send)
+            return
+        self.timestamps.append(now)
+        await self.app(scope, receive, send)
+
+================
+File: src/xyte_mcp_alpha/mapping.py
+================
+import json
+import os
+from pathlib import Path
+from typing import Dict
+
+DEFAULT_MAPPING: Dict[str, str] = {
+    "get_devices": "/devices",
+    "claim_device": "/devices/claim",
+    "get_device": "/devices/{device_id}",
+    "delete_device": "/devices/{device_id}",
+    "update_device": "/devices/{device_id}",
+    "get_device_histories": "/devices/histories",
+    "get_device_analytics": "/devices/{device_id}/analytics",
+    "send_command": "/devices/{device_id}/commands",
+    "cancel_command": "/devices/{device_id}/commands/{command_id}",
+    "get_commands": "/devices/{device_id}/commands",
+    "get_organization_info": "/info",
+    "get_incidents": "/incidents",
+    "get_tickets": "/tickets",
+    "get_ticket": "/tickets/{ticket_id}",
+    "update_ticket": "/tickets/{ticket_id}",
+    "mark_ticket_resolved": "/tickets/{ticket_id}/resolved",
+    "send_ticket_message": "/tickets/{ticket_id}/message",
+}
+
+
+_def_mapping = None
+
+
+def load_mapping() -> Dict[str, str]:
+    """Load API mapping from JSON file if provided."""
+    global _def_mapping
+    if _def_mapping is not None:
+        return _def_mapping
+    mapping = DEFAULT_MAPPING.copy()
+    path = os.getenv("XYTE_API_MAPPING")
+    if path:
+        try:
+            data = json.loads(Path(path).read_text())
+            if isinstance(data, dict):
+                mapping.update({k: str(v) for k, v in data.items()})
+        except Exception:
+            pass
+    _def_mapping = mapping
+    return mapping
 
 ================
 File: src/xyte_mcp_alpha/tasks.py
@@ -1559,52 +1808,49 @@ def get_preferences(user_token: str) -> UserPreferences:
     return USER_PREFERENCES.get(user_token, UserPreferences())
 
 ================
-File: tests/test_discovery_and_events.py
+File: tests/helper_plugin.py
 ================
-import asyncio
+received_events = []
+received_logs = []
+
+class TestPlugin:
+    def on_event(self, event):
+        received_events.append(event)
+
+    def on_log(self, message, level):
+        received_logs.append((message, level))
+
+plugin = TestPlugin()
+
+================
+File: tests/test_config_endpoint.py
+================
+import os
 import unittest
 from starlette.testclient import TestClient
 
 from xyte_mcp_alpha.http import app
-from xyte_mcp_alpha import events
+from xyte_mcp_alpha.config import get_settings
 
 
-class DiscoveryEventTestCase(unittest.TestCase):
+class ConfigEndpointTestCase(unittest.TestCase):
     def setUp(self):
-        import os
-        os.environ.setdefault("XYTE_API_KEY", "test")
+        os.environ.setdefault("XYTE_API_KEY", "secret")
+        get_settings.cache_clear()
         self.client = TestClient(app)
-        # Clear event queue
-        while not events._event_queue.empty():
-            events._event_queue.get_nowait()
 
-    def test_tool_and_resource_listing(self):
-        resp = self.client.get('/tools')
+    def test_config_unauthorized(self):
+        resp = self.client.get("/config")
+        self.assertEqual(resp.status_code, 401)
+
+    def test_config_authorized(self):
+        resp = self.client.get("/config", headers={"X-API-Key": "secret"})
         self.assertEqual(resp.status_code, 200)
-        tools = resp.json()
-        self.assertTrue(any(t['name'] == 'claim_device' for t in tools))
-
-        resp = self.client.get('/resources')
-        self.assertEqual(resp.status_code, 200)
-        resources_list = resp.json()
-        self.assertTrue(any(r['uri'] == 'devices://' for r in resources_list))
-
-    def test_event_flow(self):
-        payload = {"type": "device_offline", "data": {"id": "abc"}}
-        resp = self.client.post('/webhook', json=payload)
-        self.assertEqual(resp.status_code, 200)
-
-        async def wait_event():
-            return await asyncio.wait_for(
-                events.get_next_event(events.GetNextEventRequest(event_type="device_offline")),
-                1,
-            )
-
-        event = asyncio.run(wait_event())
-        self.assertEqual(event['data']['id'], 'abc')
+        data = resp.json()["config"]
+        self.assertEqual(data["xyte_api_key"], "***")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
 
 ================
@@ -2397,69 +2643,26 @@ File: requirements.txt
 # For production dependencies, see pyproject.toml
 
 ================
-File: docs/wrappers.md
+File: run_mcp_dev.py
 ================
-# XYTE API Wrappers
+#!/usr/bin/env python
+"""Helper script to run the MCP server with proper imports."""
 
-## Tools
+import sys
+import os
 
-| Name | Parameters |
-| ---- | ---------- |
-| `claim_device` | name, space_id, mac, sn, cloud_id |
-| `delete_device` | device_id |
-| `update_device` | device_id, configuration |
-| `send_command` | name, friendly_name, file_id, extra_params, device_id |
-| `cancel_command` | name, friendly_name, file_id, extra_params, device_id, command_id |
-| `update_ticket` | ticket_id, title, description |
-| `mark_ticket_resolved` | ticket_id |
-| `send_ticket_message` | ticket_id, message |
-| `search_device_histories` | status, from_date, to_date, device_id, space_id, name |
-| `send_command_async` | name, friendly_name, file_id, extra_params, device_id |
-| `get_task_status` | task_id |
+# Add the src directory to the path
+src_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src')
+sys.path.insert(0, src_dir)
 
-## Resources
+# Import the server
+from xyte_mcp_alpha.server import get_server
 
-| URI | Name |
-| --- | ---- |
-| `devices://` | list_devices |
-| `incidents://` | list_incidents |
-| `tickets://` | list_tickets |
-| `device://{device_id}/commands` | list_device_commands |
-| `device://{device_id}/histories` | list_device_histories |
-| `organization://info/{device_id}` | organization_info |
-| `ticket://{ticket_id}` | get_ticket |
-| `user://{user_token}/preferences` | get_user_preferences |
-| `user://{user_token}/devices` | list_user_devices |
+# Export the server to be used by mcp dev
+server = get_server()
 
-================
-File: helm/templates/deployment.yaml
-================
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: xyte-mcp
-spec:
-  replicas: {{ .Values.replicaCount }}
-  selector:
-    matchLabels:
-      app: xyte-mcp
-  template:
-    metadata:
-      labels:
-        app: xyte-mcp
-    spec:
-      containers:
-      - name: xyte-mcp
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        env:
-        - name: XYTE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: xyte-secrets
-              key: api_key
-        ports:
-        - containerPort: 8080
+if __name__ == "__main__":
+    print("Use 'mcp dev run_mcp_dev.py' to start the server", file=sys.stderr)
 
 ================
 File: helm/templates/service.yaml
@@ -2485,59 +2688,6 @@ version: 0.1.0
 appVersion: "0.1.0"
 
 ================
-File: helm/values.yaml
-================
-replicaCount: 1
-image:
-  repository: xyte-mcp
-  tag: latest
-  pullPolicy: IfNotPresent
-service:
-  type: ClusterIP
-  port: 80
-
-================
-File: k8s/deployment.yaml
-================
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: xyte-mcp
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: xyte-mcp
-  template:
-    metadata:
-      labels:
-        app: xyte-mcp
-    spec:
-      containers:
-      - name: xyte-mcp
-        image: xyte-mcp:latest
-        env:
-        - name: XYTE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: xyte-secrets
-              key: api_key
-        ports:
-        - containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
-
-================
 File: k8s/service.yaml
 ================
 apiVersion: v1
@@ -2553,50 +2703,58 @@ spec:
   type: ClusterIP
 
 ================
-File: src/xyte_mcp_alpha/events.py
+File: src/xyte_mcp_alpha/plugin.py
 ================
-"""Event handling utilities for asynchronous automation."""
+import importlib
+import logging
+import os
+from typing import List, Protocol
 
-from __future__ import annotations
+class MCPPlugin(Protocol):
+    """Plugin interface for AI agent integration."""
 
-import asyncio
-from typing import Any, Dict, Optional
+    def on_event(self, event: dict) -> None:
+        ...
 
-from pydantic import BaseModel, Field
+    def on_log(self, message: str, level: int) -> None:
+        ...
 
-
-class Event(BaseModel):
-    """Simple event model used for incoming webhooks."""
-
-    type: str = Field(..., description="Event type")
-    data: Dict[str, Any] = Field(default_factory=dict, description="Event payload")
-
-
-# Global queue storing incoming events
-_event_queue: asyncio.Queue[Event] = asyncio.Queue()
+_PLUGINS: List[MCPPlugin] = []
 
 
-async def push_event(event: Event) -> None:
-    """Add an event to the queue."""
-    await _event_queue.put(event)
+def load_plugins() -> None:
+    """Load plugins specified in the ``XYTE_PLUGINS`` environment variable."""
+    paths = os.getenv("XYTE_PLUGINS", "")
+    for path in [p.strip() for p in paths.split(",") if p.strip()]:
+        try:
+            module = importlib.import_module(path)
+            plugin = getattr(module, "plugin", module)
+            if hasattr(plugin, "on_event") or hasattr(plugin, "on_log"):
+                _PLUGINS.append(plugin)  # type: ignore[arg-type]
+        except Exception:  # pragma: no cover - plugin loading should not fail tests
+            logging.exception("Failed to load plugin %s", path)
 
 
-class GetNextEventRequest(BaseModel):
-    """Arguments for ``get_next_event`` tool."""
+def fire_event(event: dict) -> None:
+    """Dispatch an event to all loaded plugins."""
+    for plugin in list(_PLUGINS):
+        hook = getattr(plugin, "on_event", None)
+        if hook:
+            try:
+                hook(event)
+            except Exception:
+                logging.exception("Plugin error in on_event")
 
-    event_type: Optional[str] = Field(
-        None, description="Only return events matching this type if provided"
-    )
 
-
-async def get_next_event(params: GetNextEventRequest) -> Dict[str, Any]:
-    """Return the next queued event matching the optional type."""
-    while True:
-        event = await _event_queue.get()
-        if params.event_type is None or event.type == params.event_type:
-            return event.model_dump()
-        # Otherwise, put it back at the end of the queue and continue searching
-        await _event_queue.put(event)
+def fire_log(message: str, level: int) -> None:
+    """Dispatch a log message to all loaded plugins."""
+    for plugin in list(_PLUGINS):
+        hook = getattr(plugin, "on_log", None)
+        if hook:
+            try:
+                hook(message, level)
+            except Exception:
+                logging.exception("Plugin error in on_log")
 
 ================
 File: src/xyte_mcp_alpha/prompts.py
@@ -2663,99 +2821,83 @@ def troubleshoot_offline_device_workflow(device_id: str, room_name: str) -> List
     ]
 
 ================
-File: tests/test_errors.py
+File: tests/test_discovery_and_events.py
 ================
+import asyncio
 import unittest
-import httpx
+from starlette.testclient import TestClient
 
-from xyte_mcp_alpha.utils import handle_api, MCPError
+from xyte_mcp_alpha.http import app
+from xyte_mcp_alpha import events
 
-class ErrorMappingTestCase(unittest.IsolatedAsyncioTestCase):
-    async def test_http_status_error_mapping_invalid_params(self):
-        request = httpx.Request("GET", "http://example.com")
-        response = httpx.Response(400, request=request, text="bad")
-        exc = httpx.HTTPStatusError("bad", request=request, response=response)
 
-        async def failing():
-            raise exc
+class DiscoveryEventTestCase(unittest.TestCase):
+    def setUp(self):
+        import os
+        os.environ.setdefault("XYTE_API_KEY", "test")
+        self.client = TestClient(app)
+        # Clear event queue
+        while not events._event_queue.empty():
+            events._event_queue.get_nowait()
 
-        with self.assertRaises(MCPError) as cm:
-            await handle_api("test", failing())
-        self.assertEqual(cm.exception.code, "invalid_params")
+    def test_tool_and_resource_listing(self):
+        resp = self.client.get('/v1/tools')
+        self.assertEqual(resp.status_code, 200)
+        tools = resp.json()
+        self.assertTrue(any(t['name'] == 'claim_device' for t in tools))
 
-    async def test_request_error_mapping_network_error(self):
-        request = httpx.Request("GET", "http://example.com")
-        exc = httpx.ConnectError("boom", request=request)
+        resp = self.client.get('/v1/resources')
+        self.assertEqual(resp.status_code, 200)
+        resources_list = resp.json()
+        self.assertTrue(any(r['uri'] == 'devices://' for r in resources_list))
 
-        async def failing():
-            raise exc
+    def test_event_flow(self):
+        payload = {"type": "device_offline", "data": {"id": "abc"}}
+        resp = self.client.post('/v1/webhook', json=payload)
+        self.assertEqual(resp.status_code, 200)
 
-        with self.assertRaises(MCPError) as cm:
-            await handle_api("test", failing())
-        self.assertEqual(cm.exception.code, "network_error")
+        async def wait_event():
+            return await asyncio.wait_for(
+                events.get_next_event(events.GetNextEventRequest(event_type="device_offline")),
+                1,
+            )
 
-    async def test_http_status_device_not_found(self):
-        request = httpx.Request("GET", "http://example.com")
-        response = httpx.Response(404, request=request, text="not found")
-        exc = httpx.HTTPStatusError("missing", request=request, response=response)
+        event = asyncio.run(wait_event())
+        self.assertEqual(event['data']['id'], 'abc')
 
-        async def failing():
-            raise exc
 
-        with self.assertRaises(MCPError) as cm:
-            await handle_api("get_device", failing())
-        self.assertEqual(cm.exception.code, "device_not_found")
+if __name__ == '__main__':
+    unittest.main()
+
+================
+File: tests/test_plugin_integration.py
+================
+import os
+import logging
+import unittest
+
+from xyte_mcp_alpha import plugin, events
+from xyte_mcp_alpha.logging_utils import log_json
+
+class PluginHookTestCase(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        os.environ["XYTE_PLUGINS"] = "tests.helper_plugin"
+        plugin._PLUGINS.clear()  # type: ignore[attr-defined]
+        plugin.load_plugins()
+        # clear state
+        import tests.helper_plugin as helper
+        helper.received_events.clear()
+        helper.received_logs.clear()
+
+    async def test_event_and_log_hooks(self):
+        await events.push_event(events.Event(type="test", data={"a": 1}))
+        log_json(logging.INFO, test="log")
+
+        import tests.helper_plugin as helper
+        self.assertTrue(helper.received_events)
+        self.assertTrue(helper.received_logs)
 
 if __name__ == "__main__":
-    unittest.main()
-
-================
-File: tests/test_health.py
-================
-import unittest
-from starlette.testclient import TestClient
-
-from xyte_mcp_alpha.http import app
-
-
-class HealthEndpointTestCase(unittest.TestCase):
-    def setUp(self):
-        self.client = TestClient(app)
-
-    def test_health_endpoint(self):
-        resp = self.client.get('/healthz')
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.text, 'ok')
-
-    def test_ready_endpoint(self):
-        resp = self.client.get('/readyz')
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.text, 'ok')
-
-
-if __name__ == '__main__':
-    unittest.main()
-
-================
-File: tests/test_metrics.py
-================
-import unittest
-from starlette.testclient import TestClient
-
-from xyte_mcp_alpha.http import app
-
-
-class MetricsEndpointTestCase(unittest.TestCase):
-    def setUp(self):
-        self.client = TestClient(app)
-
-    def test_metrics_endpoint(self):
-        resp = self.client.get('/metrics')
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(resp.text)
-
-
-if __name__ == '__main__':
     unittest.main()
 
 ================
@@ -2778,15 +2920,6 @@ File: CHANGELOG.md
 - `log_automation_attempt` for feedback collection.
 - Dry run support for `send_command` and `delete_device`.
 - Prompts for proactive projector maintenance and offline device troubleshooting.
-
-================
-File: Dockerfile
-================
-FROM python:3.11-slim
-WORKDIR /app
-COPY . .
-RUN pip install .
-CMD ["serve"]
 
 ================
 File: .github/workflows/ci.yml
@@ -2818,6 +2951,172 @@ jobs:
         run: scripts/security_scan.sh || true
 
 ================
+File: docs/wrappers.md
+================
+# XYTE API Wrappers
+
+## Tools
+
+| Name | Parameters |
+| ---- | ---------- |
+| `claim_device` | name, space_id, mac, sn, cloud_id |
+| `delete_device` | device_id |
+| `update_device` | device_id, configuration |
+| `send_command` | name, friendly_name, file_id, extra_params, device_id |
+| `cancel_command` | name, friendly_name, file_id, extra_params, device_id, command_id |
+| `update_ticket` | ticket_id, title, description |
+| `mark_ticket_resolved` | ticket_id |
+| `send_ticket_message` | ticket_id, message |
+| `search_device_histories` | status, from_date, to_date, device_id, space_id, name |
+| `send_command_async` | name, friendly_name, file_id, extra_params, device_id |
+| `get_task_status` | task_id |
+| `echo_command` | device_id, message |
+
+## Resources
+
+| URI | Name |
+| --- | ---- |
+| `devices://` | list_devices |
+| `incidents://` | list_incidents |
+| `tickets://` | list_tickets |
+| `device://{device_id}/commands` | list_device_commands |
+| `device://{device_id}/histories` | list_device_histories |
+| `organization://info/{device_id}` | organization_info |
+| `ticket://{ticket_id}` | get_ticket |
+| `user://{user_token}/preferences` | get_user_preferences |
+| `user://{user_token}/devices` | list_user_devices |
+| `device://{device_id}/logs` | device_logs |
+
+================
+File: helm/templates/deployment.yaml
+================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyte-mcp
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: xyte-mcp
+  template:
+    metadata:
+      labels:
+        app: xyte-mcp
+    spec:
+      containers:
+      - name: xyte-mcp
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: XYTE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: api_key
+        envFrom:
+        - configMapRef:
+            name: xyte-config
+        ports:
+        - containerPort: 8080
+
+================
+File: helm/values.yaml
+================
+replicaCount: 1
+image:
+  repository: xyte-mcp
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+
+env:
+  XYTE_API_KEY: ""
+  XYTE_BASE_URL: "https://hub.xyte.io/core/v1/organization"
+  XYTE_USER_TOKEN: ""
+  XYTE_CACHE_TTL: "60"
+  XYTE_ENV: "prod"
+  XYTE_RATE_LIMIT: "60"
+  MCP_INSPECTOR_PORT: "8080"
+
+================
+File: k8s/deployment.yaml
+================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyte-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xyte-mcp
+  template:
+    metadata:
+      labels:
+        app: xyte-mcp
+    spec:
+      containers:
+      - name: xyte-mcp
+        image: xyte-mcp:latest
+        env:
+        - name: XYTE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: api_key
+        envFrom:
+        - configMapRef:
+            name: xyte-config
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+================
+File: src/xyte_mcp_alpha/__main__.py
+================
+"""Main entry point for xyte-mcp-alpha."""
+
+import sys
+import asyncio
+import os
+
+# Add the parent directory to the path to help with imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from xyte_mcp_alpha.server import get_server
+
+def main():
+    """Main function."""
+    print("Starting Xyte MCP server...", file=sys.stderr)
+    
+    # Set up the server
+    server = get_server()
+    
+    # Run the MCP server
+    from mcp.server.stdio import stdio_server
+    asyncio.run(stdio_server(server))
+
+
+if __name__ == "__main__":
+    main()
+
+================
 File: src/xyte_mcp_alpha/deps.py
 ================
 from contextlib import asynccontextmanager
@@ -2843,123 +3142,101 @@ async def get_client(user_token: Optional[str] = None) -> AsyncIterator[XyteAPIC
         await client.close()
 
 ================
-File: src/xyte_mcp_alpha/logging_utils.py
+File: src/xyte_mcp_alpha/events.py
 ================
-import json
-import logging
-import time
-import uuid
-from contextvars import ContextVar
-from typing import Any, Callable, Awaitable
-from functools import wraps
-from prometheus_client import Histogram
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
+"""Event handling utilities for asynchronous automation."""
 
-# Context variable to store request ID for each incoming request
-request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+from __future__ import annotations
+
+import asyncio
+from typing import Any, Dict, Optional
+
+from . import plugin
+
+from pydantic import BaseModel, Field
 
 
-def configure_logging(level: int = logging.INFO) -> None:
-    """Configure application-wide structured logging."""
-    logging.basicConfig(level=level, format="%(message)s")
-    provider = TracerProvider()
-    provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
-    trace.set_tracer_provider(provider)
+class Event(BaseModel):
+    """Simple event model used for incoming webhooks."""
+
+    type: str = Field(..., description="Event type")
+    data: Dict[str, Any] = Field(default_factory=dict, description="Event payload")
 
 
-def log_json(level: int, **fields: Any) -> None:
-    """Log a JSON-formatted message, injecting the request ID if present."""
-    request_id = request_id_var.get()
-    if request_id is not None:
-        fields.setdefault("request_id", request_id)
-    logging.getLogger("xyte_mcp_alpha").log(level, json.dumps(fields))
+# Global queue storing incoming events
+_event_queue: asyncio.Queue[Event] = asyncio.Queue()
 
 
-class RequestLoggingMiddleware:
-    """ASGI middleware that logs requests and responses."""
-
-    def __init__(self, app: Callable):
-        self.app = app
-
-    async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
-        if scope.get("type") != "http":
-            await self.app(scope, receive, send)
-            return
-
-        request_id = str(uuid.uuid4())
-        token = request_id_var.set(request_id)
-        method = scope.get("method")
-        path = scope.get("path")
-        start = time.monotonic()
-
-        log_json(
-            logging.INFO, event="request_start", method=method, path=path, request_id=request_id
-        )
-
-        async def send_wrapper(message: dict) -> None:
-            if message["type"] == "http.response.start":
-                status = message["status"]
-                log_json(logging.INFO, event="response_start", status=status, request_id=request_id)
-            if message["type"] == "http.response.body" and not message.get("more_body", False):
-                duration_ms = (time.monotonic() - start) * 1000
-                log_json(
-                    logging.INFO,
-                    event="request_complete",
-                    duration_ms=round(duration_ms),
-                    request_id=request_id,
-                )
-            await send(message)
-
-        try:
-            await self.app(scope, receive, send_wrapper)
-        finally:
-            request_id_var.reset(token)
+async def push_event(event: Event) -> None:
+    """Add an event to the queue."""
+    await _event_queue.put(event)
+    # Notify plugins about the new event
+    plugin.fire_event(event.model_dump())
 
 
-# Prometheus metrics for tools and resources
+class GetNextEventRequest(BaseModel):
+    """Arguments for ``get_next_event`` tool."""
 
-TOOL_LATENCY = Histogram("xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"])
-RESOURCE_LATENCY = Histogram(
-    "xyte_resource_latency_seconds", "Latency of resource handlers", ["resource"]
-)
+    event_type: Optional[str] = Field(
+        None, description="Only return events matching this type if provided"
+    )
 
 
-def instrument(kind: str, name: str):
-    """Decorator to log and measure execution of tools and resources."""
+async def get_next_event(params: GetNextEventRequest) -> Dict[str, Any]:
+    """Return the next queued event matching the optional type."""
+    while True:
+        event = await _event_queue.get()
+        if params.event_type is None or event.type == params.event_type:
+            return event.model_dump()
+        # Otherwise, put it back at the end of the queue and continue searching
+        await _event_queue.put(event)
 
-    def decorator(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
-        @wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            start = time.monotonic()
-            log_json(logging.INFO, event=f"{kind}_start", name=name)
-            tracer = trace.get_tracer(__name__)
-            with tracer.start_as_current_span(f"{kind}:{name}"):
-                try:
-                    return await func(*args, **kwargs)
-                except Exception:
-                    log_json(logging.ERROR, event=f"{kind}_error", name=name)
-                    raise
-                finally:
-                    duration = time.monotonic() - start
-                    log_json(
-                        logging.INFO,
-                        event=f"{kind}_complete",
-                        name=name,
-                        duration_ms=round(duration * 1000),
-                    )
-                    if kind == "tool":
-                        TOOL_LATENCY.labels(name).observe(duration)
-                    else:
-                        RESOURCE_LATENCY.labels(name).observe(duration)
+================
+File: tests/test_errors.py
+================
+import unittest
+import httpx
 
-        from inspect import signature
+from xyte_mcp_alpha.utils import handle_api, MCPError
 
-        wrapper.__signature__ = getattr(func, "__signature__", signature(func))
-        return wrapper
+class ErrorMappingTestCase(unittest.IsolatedAsyncioTestCase):
+    async def test_http_status_error_mapping_invalid_params(self):
+        request = httpx.Request("GET", "http://example.com")
+        response = httpx.Response(400, request=request, text="bad")
+        exc = httpx.HTTPStatusError("bad", request=request, response=response)
 
-    return decorator
+        async def failing():
+            raise exc
+
+        with self.assertRaises(MCPError) as cm:
+            await handle_api("test", failing())
+        self.assertEqual(cm.exception.code, "http_400")
+
+    async def test_request_error_mapping_network_error(self):
+        request = httpx.Request("GET", "http://example.com")
+        exc = httpx.ConnectError("boom", request=request)
+
+        async def failing():
+            raise exc
+
+        with self.assertRaises(MCPError) as cm:
+            await handle_api("test", failing())
+        self.assertEqual(cm.exception.code, "network_error")
+
+    async def test_http_status_device_not_found(self):
+        request = httpx.Request("GET", "http://example.com")
+        response = httpx.Response(404, request=request, text="not found")
+        exc = httpx.HTTPStatusError("missing", request=request, response=response)
+
+        async def failing():
+            raise exc
+
+        with self.assertRaises(MCPError) as cm:
+            await handle_api("get_device", failing())
+        self.assertEqual(cm.exception.code, "device_not_found")
+
+if __name__ == "__main__":
+    unittest.main()
 
 ================
 File: tests/test_validation.py
@@ -2976,6 +3253,89 @@ class ValidationTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(cm.exception.code, "invalid_params")
 
 if __name__ == "__main__":
+    unittest.main()
+
+================
+File: Dockerfile
+================
+# Build stage
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY pyproject.toml README.md CHANGELOG.md ./
+COPY src ./src
+RUN pip install --upgrade pip && \
+    pip wheel --no-deps --wheel-dir /wheels .
+
+# Runtime stage
+FROM python:3.11-slim
+WORKDIR /app
+
+# Create non-root user
+RUN useradd -m appuser
+
+# Install application wheel only
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+
+COPY src ./src
+COPY README.md CHANGELOG.md ./
+
+USER appuser
+
+CMD ["serve"]
+
+================
+File: tests/test_health.py
+================
+import unittest
+from starlette.testclient import TestClient
+
+from xyte_mcp_alpha.http import app
+
+
+class HealthEndpointTestCase(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def test_health_endpoint(self):
+        resp = self.client.get('/v1/healthz')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.text, 'ok')
+
+    def test_ready_endpoint(self):
+        resp = self.client.get('/v1/readyz')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.text, 'ok')
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+================
+File: tests/test_metrics.py
+================
+import unittest
+from starlette.testclient import TestClient
+
+from xyte_mcp_alpha.http import app
+
+
+class MetricsEndpointTestCase(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def test_metrics_endpoint(self):
+        # trigger a simple request to generate metrics
+        self.client.get('/v1/healthz')
+        resp = self.client.get('/v1/metrics')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.text
+        # basic sanity checks that our metrics are present
+        self.assertIn('xyte_http_requests_total', data)
+        self.assertIn('xyte_http_request_latency_seconds', data)
+
+
+if __name__ == '__main__':
     unittest.main()
 
 ================
@@ -2999,7 +3359,54 @@ File: src/xyte_mcp_alpha/models.py
 
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
-from .client import CommandRequest
+class ClaimDeviceRequest(BaseModel):
+    """Request model for claiming a device."""
+
+    name: str = Field(..., description="Friendly name for the device")
+    space_id: int = Field(..., description="Identifier of the space to assign the device")
+    mac: Optional[str] = Field(None, description="Device MAC address (optional)")
+    sn: Optional[str] = Field(None, description="Device serial number (optional)")
+    cloud_id: str = Field("", description="Cloud identifier for the device (optional)")
+
+
+class UpdateDeviceRequest(BaseModel):
+    """Request model for updating a device."""
+
+    configuration: Dict[str, Any] = Field(
+        ..., description="Configuration parameters for the device"
+    )
+
+
+class CommandRequest(BaseModel):
+    """Request model for sending a command to device."""
+
+    name: str = Field(..., description="Command name")
+    friendly_name: str = Field(..., description="Human-friendly command name")
+    file_id: Optional[str] = Field(
+        None, description="File identifier if the command includes a file"
+    )
+    extra_params: Dict[str, Any] = Field(default_factory=dict, description="Additional parameters")
+
+
+class OrgInfoRequest(BaseModel):
+    """Request model for getting organization info."""
+
+    device_id: str = Field(
+        ..., description="Device identifier for which to retrieve organization info"
+    )
+
+
+class TicketUpdateRequest(BaseModel):
+    """Request model for updating a ticket."""
+
+    title: str = Field(..., description="New title for the ticket")
+    description: str = Field(..., description="New description for the ticket")
+
+
+class TicketMessageRequest(BaseModel):
+    """Request model for sending a ticket message."""
+
+    message: str = Field(..., description="Message content to send in ticket")
 
 
 class DeviceId(BaseModel):
@@ -3104,74 +3511,30 @@ class DiagnoseAVIssueRequest(BaseModel):
     issue_description: str = Field(..., description="Description of the problem")
 
 ================
-File: tests/test_rate_limit.py
+File: tests/test_config.py
 ================
 import os
-import pytest
+import unittest
 
-from xyte_mcp_alpha.utils import handle_api, MCPError, _REQUEST_TIMESTAMPS
-from xyte_mcp_alpha.config import get_settings
-
-class DummyClient:
-    async def do(self):
-        return {}
+from xyte_mcp_alpha.config import Settings, get_settings
 
 
-dummy = DummyClient()
+class SettingsTestCase(unittest.TestCase):
+    def test_load_settings_from_env(self):
+        os.environ['XYTE_API_KEY'] = 'abc'
+        os.environ['XYTE_BASE_URL'] = 'http://test'
+        os.environ['XYTE_CACHE_TTL'] = '30'
+        os.environ['XYTE_RATE_LIMIT'] = '10'
+        get_settings.cache_clear()
+        s = Settings()
+        self.assertEqual(s.xyte_api_key, 'abc')
+        self.assertEqual(s.xyte_base_url, 'http://test')
+        self.assertEqual(s.xyte_cache_ttl, 30)
+        self.assertEqual(s.rate_limit_per_minute, 10)
 
 
-@pytest.mark.asyncio
-async def test_rate_limit_exceeded():
-    os.environ["XYTE_RATE_LIMIT"] = "2"
-    _REQUEST_TIMESTAMPS.clear()
-    get_settings.cache_clear()
-
-    await handle_api("dummy", dummy.do())
-    await handle_api("dummy", dummy.do())
-    coro = dummy.do()
-    with pytest.raises(MCPError) as exc:
-        await handle_api("dummy", coro)
-    coro.close()
-    assert exc.value.code == "rate_limited"
-
-================
-File: src/xyte_mcp_alpha/http.py
-================
-"""HTTP entrypoint for the MCP server."""
-
-from .server import get_server
-from .logging_utils import RequestLoggingMiddleware
-from .config import get_settings
-from fastapi.openapi.utils import get_openapi
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import JSONResponse, HTMLResponse
-
-# Expose ASGI app for Uvicorn or other ASGI servers
-app = get_server().streamable_http_app()
-app.add_middleware(RequestLoggingMiddleware)
-
-
-@app.get("/openapi.json")
-async def openapi_spec() -> JSONResponse:
-    schema = get_openapi(title="Xyte MCP API", version="1.0", routes=app.routes)
-    return JSONResponse(schema)
-
-
-@app.get("/api/docs")
-async def api_docs() -> HTMLResponse:
-    return get_swagger_ui_html(openapi_url="/openapi.json", title="Xyte MCP API")
-
-
-def main():
-    """Run the HTTP server using Uvicorn."""
-    import uvicorn
-
-    settings = get_settings()
-    uvicorn.run("xyte_mcp_alpha.http:app", host="0.0.0.0", port=settings.mcp_inspector_port)
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    unittest.main()
 
 ================
 File: src/xyte_mcp_alpha/resources.py
@@ -3212,6 +3575,13 @@ async def device_status(device_id: str) -> Dict[str, Any]:
     device_id = validate_device_id(device_id)
     async with get_client() as client:
         return await handle_api("get_device", client.get_device(device_id))
+
+
+async def device_logs(device_id: str) -> Dict[str, Any]:
+    """Return recent logs for a device (sample resource)."""
+    device_id = validate_device_id(device_id)
+    # Placeholder implementation
+    return {"device_id": device_id, "logs": ["log entry 1", "log entry 2"]}
 
 
 async def organization_info(device_id: str) -> Dict[str, Any]:
@@ -3264,69 +3634,6 @@ async def list_user_devices(user_token: str) -> Dict[str, Any]:
     return devices
 
 ================
-File: tests/test_config.py
-================
-import os
-import unittest
-
-from xyte_mcp_alpha.config import Settings, get_settings
-
-
-class SettingsTestCase(unittest.TestCase):
-    def test_load_settings_from_env(self):
-        os.environ['XYTE_API_KEY'] = 'abc'
-        os.environ['XYTE_BASE_URL'] = 'http://test'
-        os.environ['XYTE_CACHE_TTL'] = '30'
-        os.environ['XYTE_RATE_LIMIT'] = '10'
-        get_settings.cache_clear()
-        s = Settings()
-        self.assertEqual(s.xyte_api_key, 'abc')
-        self.assertEqual(s.xyte_base_url, 'http://test')
-        self.assertEqual(s.xyte_cache_ttl, 30)
-        self.assertEqual(s.rate_limit_per_minute, 10)
-
-
-if __name__ == '__main__':
-    unittest.main()
-
-================
-File: src/xyte_mcp_alpha/__init__.py
-================
-"""xyte-mcp-alpha package."""
-
-from dotenv import load_dotenv
-
-from .server import get_server
-from .config import get_settings, reload_settings
-import signal
-
-
-def _setup_reload() -> None:
-    """Install SIGHUP handler to reload configuration."""
-
-    def handler(_sig, _frame) -> None:
-        reload_settings()
-
-    signal.signal(signal.SIGHUP, handler)
-
-
-_setup_reload()
-
-load_dotenv()
-
-__version__ = "1.1.0"
-__all__ = ["get_server", "get_settings", "__version__"]
-
-
-def serve():
-    """Entry point for serving the MCP server."""
-    import asyncio
-    from mcp.server.stdio import stdio_server
-
-    server = get_server()
-    asyncio.run(stdio_server(server))
-
-================
 File: pyproject.toml
 ================
 [project]
@@ -3364,36 +3671,346 @@ packages = ["src/xyte_mcp_alpha"]
 line-length = 100
 
 ================
-File: src/xyte_mcp_alpha/config.py
+File: src/xyte_mcp_alpha/__init__.py
 ================
-from functools import lru_cache
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+"""xyte-mcp-alpha package."""
+
+from dotenv import load_dotenv
+
+from .server import get_server
+from .config import get_settings, reload_settings
+from .plugins import sample  # noqa: F401
+import signal
 
 
-class Settings(BaseSettings):
-    """Application configuration loaded from environment variables."""
+def _setup_reload() -> None:
+    """Install SIGHUP handler to reload configuration."""
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    def handler(_sig, _frame) -> None:
+        reload_settings()
 
-    xyte_api_key: str = Field(..., alias="XYTE_API_KEY")
-    xyte_base_url: str = Field(default="https://hub.xyte.io/core/v1/organization", alias="XYTE_BASE_URL")
-    xyte_user_token: str | None = Field(default=None, alias="XYTE_USER_TOKEN")
-    xyte_cache_ttl: int = Field(default=60, alias="XYTE_CACHE_TTL")
-    environment: str = Field("prod", alias="XYTE_ENV")
-    rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
-    mcp_inspector_port: int = Field(default=8080, alias="MCP_INSPECTOR_PORT")
+    signal.signal(signal.SIGHUP, handler)
 
 
-@lru_cache()
-def get_settings() -> Settings:
-    """Return a cached Settings instance."""
-    return Settings()
+_setup_reload()
+
+load_dotenv()
+
+__version__ = "1.1.0"
+__all__ = ["get_server", "get_settings", "__version__"]
 
 
-def reload_settings() -> None:
-    """Clear cached settings so they will be reloaded on next access."""
-    get_settings.cache_clear()
+def serve():
+    """Entry point for serving the MCP server."""
+    import asyncio
+    from mcp.server.stdio import stdio_server
+
+    server = get_server()
+    asyncio.run(stdio_server(server))
+
+================
+File: src/xyte_mcp_alpha/http.py
+================
+"""HTTP entrypoint for the MCP server with versioned routing."""
+
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.responses import JSONResponse, HTMLResponse
+
+from .server import get_server
+from .logging_utils import RequestLoggingMiddleware
+from .config import get_settings
+from .http_utils import RateLimitMiddleware
+from starlette.middleware.cors import CORSMiddleware
+
+
+def build_openapi(app: Starlette) -> Dict[str, Any]:
+    """Return a minimal OpenAPI schema describing the mounted routes."""
+
+    paths: Dict[str, Any] = {}
+    for route in app.routes:
+        if hasattr(route, "path"):
+            paths["/v1" + route.path] = {}
+    return {
+        "openapi": "3.0.0",
+        "info": {"title": "Xyte MCP API", "version": "1.0"},
+        "paths": paths,
+    }
+
+
+internal_app = get_server().streamable_http_app()
+internal_app.add_middleware(RequestLoggingMiddleware)
+settings = get_settings()
+internal_app.add_middleware(
+    RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute
+)
+internal_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+routes = [Mount("/v1", app=internal_app)]
+
+app = Starlette(routes=routes)
+
+
+@app.route("/v1/openapi.json")
+async def openapi_spec(request) -> JSONResponse:
+    schema = build_openapi(internal_app)
+    return JSONResponse(schema)
+
+
+@app.route("/v1/docs")
+async def api_docs(request) -> HTMLResponse:
+    html = """
+    <html>
+      <body>
+        <h1>Xyte MCP API</h1>
+        <p>OpenAPI specification available at <a href='/v1/openapi.json'>/v1/openapi.json</a></p>
+      </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+
+def main():
+    """Run the HTTP server using Uvicorn."""
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run("xyte_mcp_alpha.http:app", host="0.0.0.0", port=settings.mcp_inspector_port)
+
+
+if __name__ == "__main__":
+    main()
+
+================
+File: src/xyte_mcp_alpha/logging_utils.py
+================
+import json
+import logging
+import sys
+import time
+import uuid
+from contextvars import ContextVar
+from typing import Any, Callable, Awaitable
+from functools import wraps
+from prometheus_client import Histogram, Counter
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import (
+    ConsoleSpanExporter,
+    SimpleSpanProcessor,
+)
+from opentelemetry.sdk.trace import ReadableSpan
+from typing import Sequence
+
+import xyte_mcp_alpha.plugin as plugin
+
+# Context variable to store request ID for each incoming request
+request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+
+# Prometheus metrics for HTTP and tool/resource handling
+HTTP_REQUEST_LATENCY = Histogram(
+    "xyte_http_request_latency_seconds",
+    "Latency of HTTP requests",
+    ["method", "path"],
+)
+HTTP_REQUEST_COUNT = Counter(
+    "xyte_http_requests_total",
+    "HTTP request count",
+    ["method", "path", "status"],
+)
+TOOL_LATENCY = Histogram("xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"])
+RESOURCE_LATENCY = Histogram(
+    "xyte_resource_latency_seconds",
+    "Latency of resource handlers",
+    ["resource"],
+)
+TOOL_COUNT = Counter(
+    "xyte_tool_invocations_total",
+    "Tool invocations",
+    ["tool", "status"],
+)
+DEVICE_ACTIONS = Counter(
+    "xyte_device_actions_total",
+    "Device operations",
+    ["action"],
+)
+COMMAND_ACTIONS = Counter(
+    "xyte_command_actions_total",
+    "Command operations",
+    ["action"],
+)
+
+DEVICE_TOOL_ACTIONS = {
+    "claim_device": "claim",
+    "delete_device": "delete",
+    "update_device": "update",
+}
+COMMAND_TOOL_ACTIONS = {
+    "send_command": "send",
+    "cancel_command": "cancel",
+}
+
+
+class StderrConsoleSpanExporter(ConsoleSpanExporter):
+    """Console span exporter that writes to stderr instead of stdout."""
+    
+    def export(self, spans: Sequence[ReadableSpan]) -> None:
+        """Export spans to stderr instead of stdout."""
+        for span in spans:
+            print(self._span_to_str(span), file=sys.stderr)
+    
+    def _span_to_str(self, span: ReadableSpan) -> str:
+        """Convert span to string format."""
+        # Use the parent class implementation if available
+        if hasattr(super(), "_span_to_str"):
+            return super()._span_to_str(span)
+        else:
+            # Basic fallback implementation
+            return f"[{span.name}] {span.start_time} - {span.end_time}"
+
+
+def configure_logging(level: int = logging.INFO) -> None:
+    """Configure application-wide structured logging."""
+    # Configure logging to stderr to avoid interfering with MCP protocol
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        handlers=[logging.StreamHandler(sys.stderr)]
+    )
+    provider = TracerProvider()
+    # Use our custom stderr exporter instead of the default ConsoleSpanExporter
+    provider.add_span_processor(SimpleSpanProcessor(StderrConsoleSpanExporter()))
+    trace.set_tracer_provider(provider)
+
+
+def log_json(level: int, **fields: Any) -> None:
+    """Log a JSON-formatted message, injecting the request ID if present."""
+    request_id = request_id_var.get()
+    if request_id is not None:
+        fields.setdefault("request_id", request_id)
+    # Get the logger and ensure it logs to stderr
+    logger = logging.getLogger("xyte_mcp_alpha")
+    message = json.dumps(fields)
+    logger.log(level, message)
+    plugin.fire_log(message, level)
+
+
+class RequestLoggingMiddleware:
+    """ASGI middleware that logs requests and responses."""
+
+    def __init__(self, app: Callable):
+        self.app = app
+
+    async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request_id = str(uuid.uuid4())
+        token = request_id_var.set(request_id)
+        method = scope.get("method")
+        path = scope.get("path")
+        start = time.monotonic()
+
+        log_json(
+            logging.INFO, event="request_start", method=method, path=path, request_id=request_id
+        )
+
+        status_code: int | None = None
+
+        async def send_wrapper(message: dict) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                log_json(logging.INFO, event="response_start", status=status_code, request_id=request_id)
+            if message["type"] == "http.response.body" and not message.get("more_body", False):
+                duration = time.monotonic() - start
+                duration_ms = duration * 1000
+                log_json(
+                    logging.INFO,
+                    event="request_complete",
+                    duration_ms=round(duration_ms),
+                    request_id=request_id,
+                )
+                HTTP_REQUEST_LATENCY.labels(method, path).observe(duration)
+                HTTP_REQUEST_COUNT.labels(method, path, status_code or 200).inc()
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            request_id_var.reset(token)
+
+
+
+
+
+def instrument(kind: str, name: str):
+    """Decorator to log and measure execution of tools and resources."""
+
+    def decorator(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
+        @wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            start = time.monotonic()
+            status = "success"
+            log_json(logging.INFO, event=f"{kind}_start", name=name)
+            tracer = trace.get_tracer(__name__)
+            with tracer.start_as_current_span(f"{kind}:{name}"):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception:
+                    status = "error"
+                    log_json(logging.ERROR, event=f"{kind}_error", name=name)
+                    raise
+                finally:
+                    duration = time.monotonic() - start
+                    log_json(
+                        logging.INFO,
+                        event=f"{kind}_complete",
+                        name=name,
+                        duration_ms=round(duration * 1000),
+                    )
+                    if kind == "tool":
+                        TOOL_LATENCY.labels(name).observe(duration)
+                        TOOL_COUNT.labels(name, status).inc()
+                        if name in DEVICE_TOOL_ACTIONS:
+                            DEVICE_ACTIONS.labels(DEVICE_TOOL_ACTIONS[name]).inc()
+                        if name in COMMAND_TOOL_ACTIONS:
+                            COMMAND_ACTIONS.labels(COMMAND_TOOL_ACTIONS[name]).inc()
+                    else:
+                        RESOURCE_LATENCY.labels(name).observe(duration)
+
+        from inspect import signature
+
+        wrapper.__signature__ = getattr(func, "__signature__", signature(func))
+        return wrapper
+
+    return decorator
+
+================
+File: .env.example
+================
+# Xyte MCP Server Configuration
+XYTE_API_KEY=your-api-key-here
+# Optional: Override the API base URL (defaults to production)
+# XYTE_BASE_URL=https://hub.xyte.io/core/v1/organization
+# Optional: per-user token overriding XYTE_API_KEY
+# XYTE_USER_TOKEN=override-token
+# Optional: cache TTL in seconds
+# XYTE_CACHE_TTL=60
+# Optional: set environment name
+# XYTE_ENV=dev
+# Optional: max MCP requests per minute
+# XYTE_RATE_LIMIT=60
 
 ================
 File: src/xyte_mcp_alpha/tools.py
@@ -3682,6 +4299,13 @@ async def log_automation_attempt(
     return ToolResponse(data=entry, summary="Attempt recorded")
 
 
+async def echo_command(device_id: str, message: str) -> ToolResponse:
+    """Example command that echoes a message back."""
+    validate_device_id(device_id)
+    logger.info("echo", extra={"device_id": device_id, "message": message})
+    return ToolResponse(data={"device_id": device_id, "echo": message})
+
+
 async def find_and_control_device(
     data: FindAndControlDeviceRequest,
     ctx: Context | None = None,
@@ -3765,566 +4389,51 @@ async def diagnose_av_issue(
     )
 
 ================
-File: .env.example
+File: src/xyte_mcp_alpha/config.py
 ================
-# Xyte MCP Server Configuration
-XYTE_API_KEY=your-api-key-here
-# Optional: Override the API base URL (defaults to production)
-# XYTE_BASE_URL=https://hub.xyte.io/core/v1/organization
-# Optional: per-user token overriding XYTE_API_KEY
-# XYTE_USER_TOKEN=override-token
-# Optional: cache TTL in seconds
-# XYTE_CACHE_TTL=60
-# Optional: set environment name
-# XYTE_ENV=dev
-# Optional: max MCP requests per minute
-# XYTE_RATE_LIMIT=60
-
-================
-File: docs/spec.md
-================
-XYTE MCP Server - Enhanced Implementation Plan (v2)
-Overall Goals (Revised):
-Elevate the MCP server to be exceptionally user-friendly for end-users interacting via AI agents.
-Maximize robustness, security, and maintainability.
-Pioneer advanced AI-driven AV automation capabilities.
-Solidify industry-leading best practices in its architecture and features.
-Provide an outstanding developer experience for AI agent creators.
-A. Codebase Analysis, Refinement, and Best Practice Alignment (Continued)
-This section focuses on completing the foundational improvements.
-[x] Task A1: Deep Code Review and SDK Alignment
-Description: Conduct a thorough review of src/xyte_mcp_alpha/server.py, client.py (previously clients/xyte.py), and models.py (previously schemas.py). Ensure consistent and optimal use of FastMCP.
-Rationale: Identify any manual MCP protocol handling that could be simplified by SDK features, ensure type hinting is consistently used for better validation and editor support, and optimize the interaction flow between MCP requests, Xyte API client, and response handling.
-Action Items:
-Verify that tool, resource, and prompt definitions leverage SDK decorators and features correctly (e.g., Context object, ToolAnnotations).
-Refactor any overly complex logic in request handling or client interactions.
-Ensure the XyteAPIClient (client.py) efficiently manages connections, utilizes caching effectively (review TTLCache usage), and gracefully handles API-specific errors before they are translated to MCPError.
-Confirm Pydantic models in models.py are optimally structured for both API interaction and MCP schema generation.
-[x] Task A3: Strengthen Error Handling and Reporting
-Description: Expand on the existing error handling (MCPError exceptions, Xyte API status code translation in utils.py). Implement more granular and user-friendly error reporting.
-Rationale: Provides clearer feedback to AI agents and aids debugging. The current translation of Xyte API errors is good; this task aims to make it comprehensive and more informative for the AI.
-Action Items:
-Map a wider range of Xyte API errors (beyond common HTTP codes) to specific, descriptive MCPError codes (e.g., DeviceCommandFailedError, TicketNotFoundError).
-Ensure consistent error structure in responses, potentially including suggestions for resolution if applicable (e.g., "Device offline, try rebooting?").
-For critical errors, provide enough context in server logs (without exposing sensitive data) for easier diagnosis.
-Utilize the Context object (from FastMCP) more extensively for standardized error logging and reporting within tools/resources.
-Review utils.handle_api for completeness in error catching and reporting.
-[x] Task C5: Deep Integration with Xyte Universal Device APIs & Advanced Features
-Description: Ensure the MCP server tools and resources fully leverage the advanced capabilities advertised by Xyte for their Universal Device APIs and any other new platform features.
-Rationale: Xyte's own announcements emphasize synergy with MCP for AI-driven automation (automated room recovery, dynamic reassignment, proactive maintenance). This task is about going deeper than the current toolset.
-Action Items:
-Thoroughly review the latest Xyte platform documentation for any new or advanced API endpoints related to device control, diagnostics, analytics, or configuration that are not yet exposed.
-Develop specific MCP tools that map directly to these advanced AV management tasks (e.g., initiateDeviceDiagnostics, getDeviceAnalyticsReport, applyConfigurationTemplateToSpace).
-Explore exposing more granular device telemetry or configuration parameters as distinct resources if beneficial for AI agents.
-B. Enhancing MCP Core Functionality (Tools, Resources, Prompts)
-Tasks B1-B4 were marked as complete. This section will now focus on new tools/resources based on further needs.
-C. Implementing Additional Functionalities
-Tasks C1-C4 were marked as complete. This section will now focus on new functionalities.
-D. Operational Excellence and Developer Experience (Continued)
-[x] Task D1: Expand Test Coverage
-Description: Enhance the existing pytest suite (e.g., test_errors.py, test_validation.py) with more comprehensive unit, integration, and contract tests.
-Rationale: Ensures reliability and catches regressions. Testing MCP servers involves mocking client interactions and validating responses against defined schemas.
-Action Items:
-Unit Tests: For individual functions in tools.py, resources.py, client.py, utils.py, models.py, tasks.py, events.py.
-Integration Tests: For MCP tool/resource handlers, mocking the XyteAPIClient to test the logic within the MCP server. Specifically test error translation, context handling, and progress reporting.
-Contract Tests: Ensure that all tools/resources strictly adhere to their defined MCP schemas (as per docs/capabilities.json). This can be automated by validating actual tool/resource outputs against their schemas.
-Workflow Tests: Create tests for common multi-tool sequences defined by prompts.
-Review existing tests (test_config.py, test_discovery_and_events.py, test_health.py, test_metrics.py, test_rate_limit.py) for any gaps.
-[x] Task D2: Implement/Verify Full CI/CD Pipeline
-Description: Ensure the CI/CD pipeline (GitHub Actions: .github/workflows/ci.yml) is comprehensive.
-Rationale: Automates testing, building, and deployment, improving development velocity and reliability.
-Action Items:
-Verify ci.yml runs all tests (unit, integration, contract).
-Ensure linting (ruff) and code formatting checks are enforced.
-Automate building the Docker image (Dockerfile) and pushing it to a container registry.
-Automate deployment to staging/production environments using Helm charts (helm/) or K8s manifests (k8s/).
-Add security scanning (like the existing scripts/security_scan.sh using pip-audit) as a mandatory step in the CI pipeline.
-[x] Task D4: Performance Profiling and Optimization
-Description: Proactively profile the MCP server, especially Xyte API interactions via client.py and cache effectiveness.
-Rationale: Ensures the MCP server is responsive. The existing Prometheus metrics (TOOL_LATENCY, RESOURCE_LATENCY, REQUEST_LATENCY in logging_utils.py) are a great start.
-Action Items:
-Use profiling tools to identify any non-obvious bottlenecks in Python code, especially in data transformation or complex logic.
-Analyze cache hit/miss ratios for TTLCache in XyteAPIClient and optimize TTLs or cache strategies if needed.
-Optimize Xyte API query patterns if specific calls are consistently slow (e.g., fetching too much data when only a subset is needed).
-Review asynchronous operations in tasks.py for efficiency and resource usage.
-[x] Task D5: Dependency Management and Upgrades
-Description: Regularly review and update dependencies listed in pyproject.toml.
-Rationale: Benefits from new features, performance improvements, and crucial security patches.
-Action Items:
-Establish a schedule for reviewing dependency updates (e.g., quarterly).
-Utilize tools like pip-audit or GitHub's Dependabot to automate vulnerability detection in dependencies.
-Test thoroughly after any significant dependency upgrade, especially mcp, fastmcp, httpx, and pydantic.
-E. Enhanced User Experience & Agent Usability (NEW SECTION)
-This section focuses on making the AI agent, powered by this MCP server, exceptionally helpful and intuitive for the end-user.
-[x] Task E1: Develop "Smart" Tools with Natural Language Understanding (NLU) Hints
-Description: Create a new set of tools or enhance existing ones to better understand more natural, slightly ambiguous user requests by providing clear NLU hints in their descriptions or expecting structured "intent" objects.
-Rationale: Simplifies interaction for AI agents, allowing them to translate user needs more directly into actions without complex intermediate logic. This makes the agent more usable.
-Action Items:
-Tool: findAndControlDevice:
-Input: { "room_name": "string", "device_type_hint": "projector|display|audio", "action": "power_on|power_off|set_input", "input_source_hint": "hdmi1|sharelink" }
-Description: "Attempts to find a device in a specified room, optionally matching a type, and perform an action. Uses fuzzy matching for room/device names if exact match fails. Clearly state assumptions if any are made."
-Logic: Internally, this tool would list devices, filter by room/type, and then call send_command.
-Tool: diagnoseAVIssue:
-Input: { "room_name": "string", "issue_description": "No audio from laptop" }
-Description: "Performs a series of diagnostic steps for a common AV issue in a room. Returns findings and suggested next actions."
-Logic: This tool could chain several resource calls (device status, histories) and basic checks.
-Update tool descriptions to guide AI on how to formulate calls based on common user phrasing.
-[x] Task E2: Implement Context-Aware Defaulting in Tools
-Description: Modify tools to intelligently use existing session context (e.g., a previously targeted device_id or space_id) if not explicitly provided in a subsequent call.
-Rationale: Reduces verbosity for AI agents in multi-turn interactions, making conversations feel more natural.
-Action Items:
-Enhance utils.get_session_state(ctx) to store/retrieve current_device_id, current_space_id.
-Modify tools like send_command to check session state for device_id if not provided in args, with clear logging when a default is used.
-Provide a tool setContext ({ "device_id": "string", "space_id": "string" }) for the AI to explicitly set the context.
-[x] Task E3: Design Richer Feedback Mechanisms
-Description: Enhance tool responses to include not just data but also human-readable summaries, status interpretations, and potential next steps or related tools.
-Rationale: Helps the AI provide more comprehensive and helpful responses to the end-user.
-Action Items:
-Modify tool return schemas to include optional fields like summary: string, next_steps: List[str], related_tools: List[str].
-Example: get_device_status could return: {"data": {...}, "summary": "Projector is ON and input is HDMI1.", "next_steps": ["send_command to change input", "get_device_histories for recent activity"]}.
-[x] Task E4: Create High-Level Abstraction Tools for Common User Goals
-Description: Develop tools that encapsulate common multi-step AV workflows, abstracting the complexity from the AI agent.
-Rationale: Makes it easier for AI agents to achieve common end-user goals with a single tool call.
-Action Items:
-Tool: startMeetingRoomPreset:
-Input: { "room_name": "string", "preset_name": "presentation|videoconference" }
-Description: "Configures the specified meeting room for a given preset (e.g., turns on display, sets input, adjusts audio)."
-Logic: Internally calls multiple send_command or update_device tools based on predefined room configurations.
-Tool: shutdownMeetingRoom:
-Input: { "room_name": "string" }
-Description: "Powers down all relevant AV equipment in the specified meeting room."
-F. Advanced AI Integration & Automation (NEW SECTION)
-This section focuses on enabling more sophisticated, proactive, and intelligent automation through the AI agent.
-[x] Task F1: Develop Proactive Maintenance Tools & Prompts
-Description: Create tools and prompts that allow an AI agent to identify potential issues from device data and suggest or initiate proactive maintenance.
-Rationale: Shifts from reactive to proactive AV management, a key value proposition for AI.
-Action Items:
-Tool: getDeviceUsageAnalytics:
-Input: { "device_id": "string", "period": "last_30_days" }
-Output: { "lamp_hours_used": "number", "power_on_cycles": "number", ... }
-Description: "Retrieves usage analytics for a device that might indicate upcoming maintenance needs."
-Prompt: Proactive Projector Maintenance Check:
-Content: "1. List all projector devices. 2. For each, get its usage analytics (lamp hours). 3. If lamp hours exceed 80% of expected lifespan, suggest creating a ticket for lamp replacement."
-Ensure search_device_histories can filter for error patterns or specific event types indicative of failing hardware.
-[x] Task F2: Implement "Self-Healing" Workflow Prompts
-Description: Design detailed MCP prompts that guide an AI agent through automated troubleshooting and resolution sequences for common AV problems.
-Rationale: Enables the AI agent to autonomously resolve issues, reducing downtime and support load.
-Action Items:
-Prompt: Troubleshoot Offline Device Workflow:
-Content: "A user reports device {device_id} in room {room_name} is offline.
-Access resource device://{device_id}/status. If online, inform user.
-If offline, access device://{device_id}/histories for recent error events.
-Attempt send_command with name='reboot' to {device_id}. Wait 2 minutes.
-Re-check device://{device_id}/status.
-If still offline, create a ticket detailing steps taken and escalate."
-The existing reboot_device_workflow prompt is a good start; expand on this concept for other issues (no audio, no video).
-[x] Task F3: Structured Logging for AI Learning (Feedback Loop)
-Description: Implement a tool that allows the AI agent (or its developers) to log the outcome of automation attempts or user feedback in a structured format.
-Rationale: This data can be invaluable for fine-tuning the AI agent, improving its decision-making, or identifying frequently failing automation paths. This is about enabling a feedback loop.
-Action Items:
-Tool: logAutomationAttempt:
-Input: { "workflow_name": "string", "device_id": "string", "steps_taken": "list[string]", "outcome": "success|failure|user_corrected", "user_feedback": "string (optional)", "error_details": "string (optional)" }
-Description: "Logs the details and outcome of an automated task or user interaction. This data is used for improving future AI performance."
-Logic: Writes to a dedicated log file or a database/analytics service (outside MCP server's direct scope, but tool provides the interface).
-G. Cutting-Edge Practices & Future-Proofing (NEW SECTION)
-This section explores advanced architectural and design considerations.
-[x] Task G1: Enhanced Observability with Distributed Tracing
-Description: Integrate OpenTelemetry (or similar) for distributed tracing across MCP tool executions, Xyte API calls, and any asynchronous tasks.
-Rationale: Provides deep insights into request flows, performance bottlenecks, and error propagation in complex interactions, especially as the system grows. The current request_id_var in logging_utils.py is a good foundation.
-Action Items:
-Instrument key functions in server.py, tools.py, resources.py, client.py, and tasks.py with OpenTelemetry tracing.
-Ensure trace IDs are propagated through asynchronous operations and logged consistently.
-Configure an exporter to a tracing backend (e.g., Jaeger, Zipkin, or a cloud provider's service).
-[x] Task G2: Dynamic Configuration Reloading
-Description: Implement a mechanism for the MCP server to reload certain configurations (e.g., XYTE_CACHE_TTL, XYTE_RATE_LIMIT from config.py) without a full restart.
-Rationale: Improves operational flexibility, allowing for dynamic adjustments in a running system.
-Action Items:
-Explore using a signal handler (e.g., SIGHUP) or a dedicated admin tool/endpoint to trigger a configuration reload.
-Ensure get_settings() and dependent components can gracefully handle updated configuration values.
-[x] Task G3: Implement "Dry Run" Mode for Destructive Tools
-Description: Add a dry_run: bool parameter to all destructive tools (e.g., delete_device, send_command). If true, the tool should simulate the action and report what would happen without actually performing it.
-Rationale: Critical for safety, allowing AI agents (and users) to verify the impact of an action before committing. This is a strong best practice for automation APIs.
-Action Items:
-Update Pydantic models for relevant tools to include an optional dry_run field.
-Modify tool logic: if dry_run is true, perform all checks and validations, then return a success-like message indicating what would have been done (e.g., "Dry run: Would have deleted device X").
-The Xyte API itself may not support dry runs, so this would be a simulation at the MCP server level.
-H. Developer Experience (for AI Agent Devs) (NEW SECTION)
-This section focuses on making it easier and more efficient for developers to build AI agents that consume this MCP server.
-[x] Task H1: Interactive API Documentation & Sandbox (Beyond mcp dev)
-Description: If the HTTP interface (http.py) is intended for direct developer use (not just stdio_server), generate and host interactive API documentation (e.g., Swagger UI/Redoc from an OpenAPI spec).
-Rationale: mcp dev is great for MCP-specific interactions, but a standard HTTP API doc is useful if devs integrate via raw HTTP. docs/capabilities.json and docs/wrappers.md are good static docs.
-Action Items:
-Ensure docs/capabilities.json (or an equivalent OpenAPI spec generated from FastMCP) is complete and accurate.
-Set up a simple way to serve Swagger UI or Redoc, pointing to this spec, perhaps as another endpoint on the HTTP server (e.g., /api/docs).
-[x] Task H2: Example AI Agent Snippets/SDK
-Description: Provide example code snippets or a lightweight client-side helper library (e.g., in Python) demonstrating how to easily call the MCP server's tools and interpret responses.
-Rationale: Lowers the barrier to entry for AI agent developers and promotes best practices in using the MCP server.
-Action Items:
-Create a examples/ directory in the project.
-Add Python scripts showing:
-Connecting to the stdio_server.
-Calling a few key tools (e.g., list_devices, send_command, search_device_histories).
-Handling responses and errors.
-Using a prompt.
-(Optional) Develop a small Python client library that wraps mcp-client calls with functions specific to this server's tools, providing type hinting for requests/responses.
-[x] Task H3: Clear Versioning and Changelog Discipline
-Description: Maintain a strict API versioning strategy for the MCP server and diligently update CHANGELOG.md for all user-facing changes.
-Rationale: Essential for consumers of the API to manage updates and understand the impact of new versions. The current CHANGELOG.md and pyproject.toml versioning are good.
-Action Items:
-Formalize an API versioning approach (e.g., path-based /v1/tool/... or header-based) if significant breaking changes are anticipated in the future. For now, semantic versioning of the server itself is key.
-Ensure every PR that changes tool schemas, resource formats, or server behavior includes an update to CHANGELOG.md.
-This revised plan should provide a comprehensive roadmap for taking your XYTE MCP server to the next level of usability, capability, and robustness.
-
-================
-File: src/xyte_mcp_alpha/client.py
-================
-"""Xyte Organization API client."""
-
-import logging
-from typing import Any, Dict, Optional
-import httpx
-from cachetools import TTLCache
-from pydantic import BaseModel, Field
-from datetime import datetime
-import anyio
-from prometheus_client import Counter
-from .config import get_settings
-
-logger = logging.getLogger(__name__)
-
-# Prometheus counters for cache monitoring - register at module level
-CACHE_HITS = Counter(
-    "xyte_cache_hits_total",
-    "Number of cache hits",
-    ["key"],
-)
-CACHE_MISSES = Counter(
-    "xyte_cache_misses_total",
-    "Number of cache misses",
-    ["key"],
-)
+from functools import lru_cache
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class ClaimDeviceRequest(BaseModel):
-    """Request model for claiming a device."""
+class Settings(BaseSettings):
+    """Application configuration loaded from environment variables."""
 
-    name: str = Field(..., description="Friendly name for the device")
-    space_id: int = Field(..., description="Identifier of the space to assign the device")
-    mac: Optional[str] = Field(None, description="Device MAC address (optional)")
-    sn: Optional[str] = Field(None, description="Device serial number (optional)")
-    cloud_id: str = Field("", description="Cloud identifier for the device (optional)")
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
-
-class UpdateDeviceRequest(BaseModel):
-    """Request model for updating a device."""
-
-    configuration: Dict[str, Any] = Field(
-        ..., description="Configuration parameters for the device"
+    xyte_api_key: str | None = Field(default=None, alias="XYTE_API_KEY")
+    xyte_oauth_token: str | None = Field(default=None, alias="XYTE_OAUTH_TOKEN")
+    xyte_base_url: str = Field(
+        default="https://hub.xyte.io/core/v1/organization", alias="XYTE_BASE_URL"
     )
-
-
-class CommandRequest(BaseModel):
-    """Request model for sending a command to device."""
-
-    name: str = Field(..., description="Command name")
-    friendly_name: str = Field(..., description="Human-friendly command name")
-    file_id: Optional[str] = Field(
-        None, description="File identifier if the command includes a file"
+    xyte_user_token: str | None = Field(default=None, alias="XYTE_USER_TOKEN")
+    xyte_cache_ttl: int = Field(default=60, alias="XYTE_CACHE_TTL")
+    environment: str = Field("prod", alias="XYTE_ENV")
+    rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
+    mcp_inspector_port: int = Field(default=8080, alias="MCP_INSPECTOR_PORT")
+    enable_experimental_apis: bool = Field(
+        default=False, alias="XYTE_EXPERIMENTAL_APIS"
     )
-    extra_params: Dict[str, Any] = Field(default_factory=dict, description="Additional parameters")
+    xyte_api_mapping: str | None = Field(default=None, alias="XYTE_API_MAPPING")
+    xyte_hooks_module: str | None = Field(default=None, alias="XYTE_HOOKS_MODULE")
 
 
-class OrgInfoRequest(BaseModel):
-    """Request model for getting organization info."""
-
-    device_id: str = Field(
-        ..., description="Device identifier for which to retrieve organization info"
-    )
+@lru_cache()
+def get_settings() -> Settings:
+    """Return a cached Settings instance."""
+    return Settings()
 
 
-class TicketUpdateRequest(BaseModel):
-    """Request model for updating a ticket."""
-
-    title: str = Field(..., description="New title for the ticket")
-    description: str = Field(..., description="New description for the ticket")
-
-
-class TicketMessageRequest(BaseModel):
-    """Request model for sending a ticket message."""
-
-    message: str = Field(..., description="Message content to send in ticket")
-
-
-class XyteAPIClient:
-    """Client for interacting with Xyte Organization API."""
-
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
-        """Initialize the API client.
-
-        Args:
-            api_key: API key for authentication. If not provided, will try to get from env.
-            base_url: Base URL for the API. Defaults to production URL.
-        """
-        settings = get_settings()
-        self.api_key = api_key or settings.xyte_api_key
-        if not self.api_key:
-            raise ValueError("XYTE_API_KEY must be provided or set in environment")
-
-        self.base_url = base_url or settings.xyte_base_url
-        limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
-        transport = httpx.AsyncHTTPTransport(retries=3, limits=limits)
-        self.client = httpx.AsyncClient(
-            base_url=self.base_url,
-            headers={
-                "Authorization": self.api_key,
-                "Content-Type": "application/json",
-            },
-            timeout=30.0,
-            transport=transport,
-        )
-        self.cache = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
-
-    def cache_stats(self) -> Dict[str, Any]:
-        """Return simple cache statistics for monitoring."""
-        return {"size": len(self.cache), "ttl": self.cache.ttl}
-
-    def _request_timeout(self) -> float | None:
-        """Return remaining time before the current cancel scope deadline."""
-        try:
-            deadline = anyio.current_effective_deadline()
-        except RuntimeError:
-            return None
-        if deadline == float("inf"):
-            return None
-        remaining = deadline - anyio.current_time()
-        if remaining <= 0:
-            raise httpx.TimeoutException("Deadline exceeded")
-        return remaining
-
-    async def __aenter__(self) -> "XyteAPIClient":
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb) -> None:
-        await self.close()
-
-    async def close(self):
-        """Close the HTTP client."""
-        await self.client.aclose()
-
-    # Device Operations
-    async def get_devices(self) -> Dict[str, Any]:
-        """List all devices in the organization."""
-        if "devices" in self.cache:
-            CACHE_HITS.labels(key="devices").inc()
-            return self.cache["devices"]
-        CACHE_MISSES.labels(key="devices").inc()
-        response = await self.client.get("/devices", timeout=self._request_timeout())
-        response.raise_for_status()
-        data = response.json()
-        self.cache["devices"] = data
-        return data
-
-    async def claim_device(self, device_data: ClaimDeviceRequest) -> Dict[str, Any]:
-        """Register (claim) a new device under the organization."""
-        response = await self.client.post(
-            "/devices/claim",
-            json=device_data.model_dump(exclude_none=True),
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def get_device(self, device_id: str) -> Dict[str, Any]:
-        """Return details and status for a single device."""
-        cache_key = f"device:{device_id}"
-        if cache_key in self.cache:
-            CACHE_HITS.labels(key="device").inc()
-            return self.cache[cache_key]
-        CACHE_MISSES.labels(key="device").inc()
-        response = await self.client.get(f"/devices/{device_id}", timeout=self._request_timeout())
-        response.raise_for_status()
-        data = response.json()
-        self.cache[cache_key] = data
-        return data
-
-    async def delete_device(self, device_id: str) -> Dict[str, Any]:
-        """Delete (remove) a device by its ID."""
-        response = await self.client.delete(
-            f"/devices/{device_id}", timeout=self._request_timeout()
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def update_device(
-        self, device_id: str, device_data: UpdateDeviceRequest
-    ) -> Dict[str, Any]:
-        """Update configuration or details of a specific device."""
-        response = await self.client.patch(
-            f"/devices/{device_id}",
-            json=device_data.model_dump(),
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def get_device_histories(
-        self,
-        status: Optional[str] = None,
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None,
-        device_id: Optional[str] = None,
-        space_id: Optional[int] = None,
-        name: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """Retrieve device history records."""
-        params = {}
-        if status:
-            params["status"] = status
-        if from_date:
-            params["from"] = from_date.isoformat()
-        if to_date:
-            params["to"] = to_date.isoformat()
-        if device_id:
-            params["device_id"] = device_id
-        if space_id:
-            params["space_id"] = space_id
-        if name:
-            params["name"] = name
-
-        response = await self.client.get(
-            "/devices/histories",
-            params=params,
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def get_device_analytics(
-        self, device_id: str, period: str = "last_30_days"
-    ) -> Dict[str, Any]:
-        """Retrieve usage analytics for a device."""
-        response = await self.client.get(
-            f"/devices/{device_id}/analytics",
-            params={"period": period},
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    # Command Operations
-    async def send_command(self, device_id: str, command_data: CommandRequest) -> Dict[str, Any]:
-        """Send a command to the specified device."""
-        response = await self.client.post(
-            f"/devices/{device_id}/commands",
-            json=command_data.model_dump(),
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def cancel_command(
-        self, device_id: str, command_id: str, command_data: CommandRequest
-    ) -> Dict[str, Any]:
-        """Cancel a previously sent command on the device."""
-        response = await self.client.delete(
-            f"/devices/{device_id}/commands/{command_id}",
-            json=command_data.model_dump(),
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def get_commands(self, device_id: str) -> Dict[str, Any]:
-        """List all commands for the specified device."""
-        response = await self.client.get(
-            f"/devices/{device_id}/commands", timeout=self._request_timeout()
-        )
-        response.raise_for_status()
-        return response.json()
-
-    # Organization Operations
-    async def get_organization_info(self, device_id: str) -> Dict[str, Any]:
-        """Retrieve information about the organization."""
-        # Note: This is a GET request with a body, which is unusual but as specified in the API
-        response = await self.client.request(
-            "GET",
-            "/info",
-            json={"device_id": device_id},
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    # Incident Operations
-    async def get_incidents(self) -> Dict[str, Any]:
-        """Retrieve all incidents for the organization."""
-        if "incidents" in self.cache:
-            CACHE_HITS.labels(key="incidents").inc()
-            return self.cache["incidents"]
-        CACHE_MISSES.labels(key="incidents").inc()
-        response = await self.client.get("/incidents", timeout=self._request_timeout())
-        response.raise_for_status()
-        data = response.json()
-        self.cache["incidents"] = data
-        return data
-
-    # Ticket Operations
-    async def get_tickets(self) -> Dict[str, Any]:
-        """Retrieve all support tickets for the organization."""
-        if "tickets" in self.cache:
-            CACHE_HITS.labels(key="tickets").inc()
-            return self.cache["tickets"]
-        CACHE_MISSES.labels(key="tickets").inc()
-        response = await self.client.get("/tickets", timeout=self._request_timeout())
-        response.raise_for_status()
-        data = response.json()
-        self.cache["tickets"] = data
-        return data
-
-    async def get_ticket(self, ticket_id: str) -> Dict[str, Any]:
-        """Retrieve a specific support ticket by ID."""
-        response = await self.client.get(f"/tickets/{ticket_id}", timeout=self._request_timeout())
-        response.raise_for_status()
-        return response.json()
-
-    async def update_ticket(
-        self, ticket_id: str, ticket_data: TicketUpdateRequest
-    ) -> Dict[str, Any]:
-        """Update the details of a specific ticket."""
-        response = await self.client.put(
-            f"/tickets/{ticket_id}",
-            json=ticket_data.model_dump(),
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def mark_ticket_resolved(self, ticket_id: str) -> Dict[str, Any]:
-        """Mark the specified ticket as resolved."""
-        response = await self.client.post(
-            f"/tickets/{ticket_id}/resolved", timeout=self._request_timeout()
-        )
-        response.raise_for_status()
-        return response.json()
-
-    async def send_ticket_message(
-        self, ticket_id: str, message_data: TicketMessageRequest
-    ) -> Dict[str, Any]:
-        """Send a new message to the specified ticket thread."""
-        response = await self.client.post(
-            f"/tickets/{ticket_id}/message",
-            json=message_data.model_dump(),
-            timeout=self._request_timeout(),
-        )
-        response.raise_for_status()
-        return response.json()
+def reload_settings() -> None:
+    """Clear cached settings so they will be reloaded on next access."""
+    get_settings.cache_clear()
 
 ================
 File: src/xyte_mcp_alpha/utils.py
 ================
 import logging
 import time
-from typing import Any, Dict, Awaitable, TYPE_CHECKING
+from typing import Any, Dict, Awaitable, TYPE_CHECKING, Callable
 from collections import deque
 
 from pydantic import ValidationError
@@ -4357,6 +4466,14 @@ STATUS_COUNT = Counter("xyte_status_total", "XYTE API status codes", ["status"])
 
 # Audit logger for security related events
 audit_logger = logging.getLogger("audit")
+
+# Registered payload transform hooks
+_PAYLOAD_TRANSFORMS: list[Callable[[Dict[str, Any]], Dict[str, Any]]] = []
+
+
+def register_payload_transform(func: Callable[[Dict[str, Any]], Dict[str, Any]]) -> None:
+    """Register a callback to transform API responses."""
+    _PAYLOAD_TRANSFORMS.append(func)
 
 # Simple in-memory rate limiter
 _REQUEST_TIMESTAMPS: deque[float] = deque()
@@ -4403,6 +4520,13 @@ def validate_ticket_id(ticket_id: str) -> str:
         raise MCPError(code="invalid_params", message=str(exc))
 
 
+def validate_payload(data: Any) -> Dict[str, Any]:
+    """Ensure payloads are dictionaries."""
+    if isinstance(data, dict):
+        return data
+    raise MCPError(code="invalid_payload", message="Payload must be a JSON object")
+
+
 async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
     """Handle API response with error conversion and metrics reporting."""
     enforce_rate_limit()
@@ -4416,9 +4540,17 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
         
         # Convert response to dict if needed
         if hasattr(result, "model_dump"):
-            return {"data": result.model_dump()}
+            result = {"data": result.model_dump()}
         elif not isinstance(result, dict):
-            return {"data": result}
+            result = {"data": result}
+        
+        # Apply transform hooks
+        for hook in _PAYLOAD_TRANSFORMS:
+            try:
+                result = hook(result)
+            except Exception:  # pragma: no cover - custom hooks may fail
+                logger.exception("payload_transform_error")
+        
         return result
         
     except httpx.HTTPStatusError as e:
@@ -4441,7 +4573,9 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
             error_message = error_text or f"HTTP {status} error"
 
         code = f"http_{status}"
-        if e.response.status_code == 404:
+        if e.response.status_code == 400:
+            code = "invalid_params"
+        elif e.response.status_code == 404:
             if "device" in endpoint:
                 code = "device_not_found"
             elif "ticket" in endpoint:
@@ -4509,11 +4643,356 @@ def convert_ticket_id(ticket_id: str | int | None) -> str:
     return str(TicketId(ticket_id=ticket_id).ticket_id)
 
 ================
+File: src/xyte_mcp_alpha/client.py
+================
+"""Xyte Organization API client."""
+
+import logging
+from typing import Any, Dict, Optional
+import httpx
+from cachetools import TTLCache
+from datetime import datetime
+import anyio
+import time
+from prometheus_client import Counter
+from .config import get_settings
+from .mapping import load_mapping
+from .hooks import transform_request, transform_response
+
+from .models import (
+    ClaimDeviceRequest,
+    UpdateDeviceRequest,
+    CommandRequest,
+    TicketUpdateRequest,
+    TicketMessageRequest,
+)
+
+
+logger = logging.getLogger(__name__)
+
+# Prometheus counters for cache monitoring - register at module level
+CACHE_HITS = Counter(
+    "xyte_cache_hits_total",
+    "Number of cache hits",
+    ["key"],
+)
+CACHE_MISSES = Counter(
+    "xyte_cache_misses_total",
+    "Number of cache misses",
+    ["key"],
+)
+
+class XyteAPIClient:
+    """Client for interacting with Xyte Organization API."""
+
+    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+        """Initialize the API client.
+
+        Args:
+            api_key: API key for authentication. If not provided, will try to get from env.
+            base_url: Base URL for the API. Defaults to production URL.
+        """
+        settings = get_settings()
+        self.mapping = load_mapping()
+
+        self.api_key = api_key or settings.xyte_api_key
+        self.oauth_token = settings.xyte_oauth_token
+        if not (self.api_key or self.oauth_token):
+            raise ValueError("XYTE_API_KEY or XYTE_OAUTH_TOKEN must be provided")
+
+        self.base_url = base_url or settings.xyte_base_url
+        limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
+        transport = httpx.AsyncHTTPTransport(retries=3, limits=limits)
+        headers = {"Content-Type": "application/json"}
+        if self.oauth_token:
+            headers["Authorization"] = f"Bearer {self.oauth_token}"
+        else:
+            headers["Authorization"] = self.api_key
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=30.0,
+            transport=transport,
+        )
+        self.cache = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
+
+    def cache_stats(self) -> Dict[str, Any]:
+        """Return simple cache statistics for monitoring."""
+        return {"size": len(self.cache), "ttl": self.cache.ttl}
+
+    def _request_timeout(self) -> float | None:
+        """Return remaining time before the current cancel scope deadline."""
+        try:
+            deadline = anyio.current_effective_deadline()
+        except RuntimeError:
+            return None
+        if deadline == float("inf"):
+            return None
+        remaining = deadline - anyio.current_time()
+        if remaining <= 0:
+            raise httpx.TimeoutException("Deadline exceeded")
+        return remaining
+
+    async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        """Perform an HTTP request with retries and circuit breaker."""
+        if hasattr(self, "_circuit_open_until") and time.monotonic() < self._circuit_open_until:  # type: ignore[attr-defined]
+            raise httpx.NetworkError("backend_unavailable")
+
+        backoff = 0.1
+        failures = getattr(self, "_failures", 0)
+        for attempt in range(3):
+            try:
+                response = await self.client.request(method, url, timeout=self._request_timeout(), **kwargs)
+                self._failures = 0  # type: ignore[attr-defined]
+                return response
+            except (httpx.NetworkError, httpx.TimeoutException):
+                failures += 1
+                self._failures = failures  # type: ignore[attr-defined]
+                if failures >= 3:
+                    self._circuit_open_until = time.monotonic() + 30  # type: ignore[attr-defined]
+                if attempt == 2:
+                    raise
+                await anyio.sleep(backoff)
+                backoff *= 2
+
+    async def __aenter__(self) -> "XyteAPIClient":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        await self.close()
+
+    async def close(self):
+        """Close the HTTP client."""
+        await self.client.aclose()
+
+    def _endpoint(self, name: str, **params: Any) -> str:
+        path = self.mapping.get(name, "")
+        return path.format(**params)
+
+    # Device Operations
+    async def get_devices(self) -> Dict[str, Any]:
+        """List all devices in the organization."""
+        if "devices" in self.cache:
+            CACHE_HITS.labels(key="devices").inc()
+            return self.cache["devices"]
+        CACHE_MISSES.labels(key="devices").inc()
+        path = self._endpoint("get_devices")
+        response = await self._request("GET", path)
+        response.raise_for_status()
+        data = transform_response("get_devices", response.json())
+        self.cache["devices"] = data
+        return data
+
+    async def claim_device(self, device_data: ClaimDeviceRequest) -> Dict[str, Any]:
+        """Register (claim) a new device under the organization."""
+        payload = transform_request("claim_device", device_data.model_dump(exclude_none=True))
+        response = await self._request(
+            "POST",
+            self._endpoint("claim_device"),
+            json=payload,
+        )
+        response.raise_for_status()
+        return transform_response("claim_device", response.json())
+
+    async def get_device(self, device_id: str) -> Dict[str, Any]:
+        """Return details and status for a single device."""
+        cache_key = f"device:{device_id}"
+        if cache_key in self.cache:
+            CACHE_HITS.labels(key="device").inc()
+            return self.cache[cache_key]
+        CACHE_MISSES.labels(key="device").inc()
+        response = await self._request("GET", self._endpoint("get_device", device_id=device_id))
+        response.raise_for_status()
+        data = transform_response("get_device", response.json())
+        self.cache[cache_key] = data
+        return data
+
+    async def delete_device(self, device_id: str) -> Dict[str, Any]:
+        """Delete (remove) a device by its ID."""
+        response = await self._request("DELETE", self._endpoint("delete_device", device_id=device_id))
+        response.raise_for_status()
+        return transform_response("delete_device", response.json())
+
+    async def update_device(
+        self, device_id: str, device_data: UpdateDeviceRequest
+    ) -> Dict[str, Any]:
+        """Update configuration or details of a specific device."""
+        payload = transform_request("update_device", device_data.model_dump())
+        response = await self._request(
+            "PATCH",
+            self._endpoint("update_device", device_id=device_id),
+            json=payload,
+        )
+        response.raise_for_status()
+        return transform_response("update_device", response.json())
+
+    async def get_device_histories(
+        self,
+        status: Optional[str] = None,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
+        device_id: Optional[str] = None,
+        space_id: Optional[int] = None,
+        name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Retrieve device history records."""
+        params = {}
+        if status:
+            params["status"] = status
+        if from_date:
+            params["from"] = from_date.isoformat()
+        if to_date:
+            params["to"] = to_date.isoformat()
+        if device_id:
+            params["device_id"] = device_id
+        if space_id:
+            params["space_id"] = space_id
+        if name:
+            params["name"] = name
+
+        response = await self._request(
+            "GET",
+            self._endpoint("get_device_histories"),
+            params=transform_request("get_device_histories", params),
+        )
+        response.raise_for_status()
+        return transform_response("get_device_histories", response.json())
+
+    async def get_device_analytics(
+        self, device_id: str, period: str = "last_30_days"
+    ) -> Dict[str, Any]:
+        """Retrieve usage analytics for a device."""
+        response = await self._request(
+            "GET",
+            self._endpoint("get_device_analytics", device_id=device_id),
+            params={"period": period},
+        )
+        response.raise_for_status()
+        return transform_response("get_device_analytics", response.json())
+
+    # Command Operations
+    async def send_command(self, device_id: str, command_data: CommandRequest) -> Dict[str, Any]:
+        """Send a command to the specified device."""
+        payload = transform_request("send_command", command_data.model_dump())
+        response = await self._request(
+            "POST",
+            self._endpoint("send_command", device_id=device_id),
+            json=payload,
+        )
+        response.raise_for_status()
+        return transform_response("send_command", response.json())
+
+    async def cancel_command(
+        self, device_id: str, command_id: str, command_data: CommandRequest
+    ) -> Dict[str, Any]:
+        """Cancel a previously sent command on the device."""
+        payload = transform_request("cancel_command", command_data.model_dump())
+        response = await self._request(
+            "DELETE",
+            self._endpoint(
+                "cancel_command", device_id=device_id, command_id=command_id
+            ),
+            json=payload,
+        )
+        response.raise_for_status()
+        return transform_response("cancel_command", response.json())
+
+    async def get_commands(self, device_id: str) -> Dict[str, Any]:
+        """List all commands for the specified device."""
+        response = await self._request("GET", self._endpoint("get_commands", device_id=device_id))
+        response.raise_for_status()
+        return transform_response("get_commands", response.json())
+
+    # Organization Operations
+    async def get_organization_info(self, device_id: str) -> Dict[str, Any]:
+        """Retrieve information about the organization."""
+        # Note: This is a GET request with a body, which is unusual but as specified in the API
+        payload = transform_request("get_organization_info", {"device_id": device_id})
+        response = await self._request(
+            "GET",
+            self._endpoint("get_organization_info", device_id=device_id),
+            json=payload,
+        )
+        response.raise_for_status()
+        return transform_response("get_organization_info", response.json())
+
+    # Incident Operations
+    async def get_incidents(self) -> Dict[str, Any]:
+        """Retrieve all incidents for the organization."""
+        if "incidents" in self.cache:
+            CACHE_HITS.labels(key="incidents").inc()
+            return self.cache["incidents"]
+        CACHE_MISSES.labels(key="incidents").inc()
+        response = await self._request("GET", self._endpoint("get_incidents"))
+        response.raise_for_status()
+        data = transform_response("get_incidents", response.json())
+        self.cache["incidents"] = data
+        return data
+
+    # Ticket Operations
+    async def get_tickets(self) -> Dict[str, Any]:
+        """Retrieve all support tickets for the organization."""
+        if "tickets" in self.cache:
+            CACHE_HITS.labels(key="tickets").inc()
+            return self.cache["tickets"]
+        CACHE_MISSES.labels(key="tickets").inc()
+        response = await self._request("GET", self._endpoint("get_tickets"))
+        response.raise_for_status()
+        data = transform_response("get_tickets", response.json())
+        self.cache["tickets"] = data
+        return data
+
+    async def get_ticket(self, ticket_id: str) -> Dict[str, Any]:
+        """Retrieve a specific support ticket by ID."""
+        response = await self._request("GET", self._endpoint("get_ticket", ticket_id=ticket_id))
+        response.raise_for_status()
+        return transform_response("get_ticket", response.json())
+
+    async def update_ticket(
+        self, ticket_id: str, ticket_data: TicketUpdateRequest
+    ) -> Dict[str, Any]:
+        """Update the details of a specific ticket."""
+        payload = transform_request("update_ticket", ticket_data.model_dump())
+        response = await self._request(
+            "PUT",
+            self._endpoint("update_ticket", ticket_id=ticket_id),
+            json=payload,
+        )
+        response.raise_for_status()
+        return transform_response("update_ticket", response.json())
+
+    async def mark_ticket_resolved(self, ticket_id: str) -> Dict[str, Any]:
+        """Mark the specified ticket as resolved."""
+        response = await self._request("POST", self._endpoint("mark_ticket_resolved", ticket_id=ticket_id))
+        response.raise_for_status()
+        return transform_response("mark_ticket_resolved", response.json())
+
+    async def send_ticket_message(
+        self, ticket_id: str, message_data: TicketMessageRequest
+    ) -> Dict[str, Any]:
+        """Send a new message to the specified ticket thread."""
+        payload = transform_request("send_ticket_message", message_data.model_dump())
+        response = await self._request(
+            "POST",
+            self._endpoint("send_ticket_message", ticket_id=ticket_id),
+            json=payload,
+        )
+        response.raise_for_status()
+        return transform_response("send_ticket_message", response.json())
+
+================
 File: README.md
 ================
 # Xyte MCP Server
 
 An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
+
+## Quickstart
+
+1. Ensure Python 3.11+ is installed and clone the repo.
+2. Create a virtualenv and install the project: `pip install -e .`.
+3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` (and optional `XYTE_USER_TOKEN`).
+4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
 
 ## Features
 
@@ -4679,12 +5158,18 @@ resources and underlying API calls.
 ### Environment Variables
 
 - `XYTE_API_KEY` (required) - Your Xyte organization API key
+- `XYTE_OAUTH_TOKEN` (optional) - OAuth2 access token instead of API key
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
 - `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
 - `MCP_INSPECTOR_PORT` (optional) - Port for the MCP inspector to use (default 6277)
+- `XYTE_EXPERIMENTAL_APIS` (optional) - Enable registration of experimental tools
+- `XYTE_API_MAPPING` (optional) - Path to JSON file overriding API endpoint mapping
+- `XYTE_HOOKS_MODULE` (optional) - Python module providing request/response hooks
+
+These variables can also be configured when deploying via Helm. See `helm/values.yaml` for defaults.
 
 ### Security Considerations
 
@@ -4716,6 +5201,10 @@ Use `start_meeting_room_preset` and `shutdown_meeting_room` to quickly prepare o
 
 Destructive tools like `send_command` and `delete_device` now accept a `dry_run` flag. When true, the server will log the intended action but skip calling the Xyte API.
 
+## Troubleshooting
+
+If you receive `unauthorized` errors, verify that `XYTE_API_KEY` is correct and has the required permissions. Use `XYTE_USER_TOKEN` when acting on behalf of a specific user. Increase `XYTE_RATE_LIMIT` if you hit rate limit errors during development.
+
 ## License
 
 MIT
@@ -4732,36 +5221,22 @@ File: src/xyte_mcp_alpha/server.py
 import logging
 import sys
 import os
+import json
 from typing import Any, Dict
 
-# Import the GetNextEventRequest class directly
-from xyte_mcp_alpha.events import GetNextEventRequest
+# Fix import paths for mcp dev
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-# Handle different import scenarios
-if __name__ == "__main__" or __name__ == "xyte_mcp_alpha.server":
-    # When run as a script or imported as part of the package
-    try:
-        # When imported as part of the package
-        from .logging_utils import configure_logging, instrument
-        from . import resources, tools, tasks, events, prompts
-    except ImportError:
-        # When run directly as a script
-        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-        from xyte_mcp_alpha.logging_utils import configure_logging, instrument
-        import xyte_mcp_alpha.resources as resources
-        import xyte_mcp_alpha.tools as tools
-        import xyte_mcp_alpha.tasks as tasks
-        import xyte_mcp_alpha.events as events
-        import xyte_mcp_alpha.prompts as prompts
-else:
-    # When imported by MCP dev or other external tools
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-    from xyte_mcp_alpha.logging_utils import configure_logging, instrument
-    import xyte_mcp_alpha.resources as resources
-    import xyte_mcp_alpha.tools as tools
-    import xyte_mcp_alpha.tasks as tasks
-    import xyte_mcp_alpha.events as events
-    import xyte_mcp_alpha.prompts as prompts
+# Import everything using absolute imports
+import xyte_mcp_alpha.plugin as plugin
+from xyte_mcp_alpha.config import get_settings
+from xyte_mcp_alpha.events import GetNextEventRequest
+from xyte_mcp_alpha.logging_utils import configure_logging, instrument
+import xyte_mcp_alpha.resources as resources
+import xyte_mcp_alpha.tools as tools
+import xyte_mcp_alpha.tasks as tasks
+import xyte_mcp_alpha.events as events
+import xyte_mcp_alpha.prompts as prompts
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
@@ -4799,18 +5274,65 @@ async def metrics(_: Request) -> Response:
     return Response(data, media_type=CONTENT_TYPE_LATEST)
 
 
+@mcp.custom_route("/config", methods=["GET"])
+async def config_endpoint(request: Request) -> JSONResponse:
+    """Return sanitized configuration for debugging purposes."""
+    settings = get_settings()
+    api_key = request.headers.get("X-API-Key")
+    if api_key != settings.xyte_api_key:
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+
+    cfg = settings.model_dump()
+    cfg["xyte_api_key"] = "***"
+    if cfg.get("xyte_user_token"):
+        cfg["xyte_user_token"] = "***"
+    return JSONResponse({"config": cfg})
+
+
+@mcp.custom_route("/webhook", methods=["POST"])
+async def webhook(req: Request) -> JSONResponse:
+    """Receive external events and enqueue them for streaming."""
+    payload = await req.json()
+    event = events.Event(type=payload.get("type", "unknown"), data=payload.get("data", {}))
+    await events.push_event(event)
+    return JSONResponse({"queued": True})
+
+
+@mcp.custom_route("/events", methods=["GET"])
+async def stream_events(_: Request) -> Response:
+    """Stream events to clients using Server-Sent Events."""
+    async def event_gen():
+        while True:
+            ev = await events.get_next_event(events.GetNextEventRequest())
+            yield f"event: {ev['type']}\ndata: {json.dumps(ev['data'])}\n\n"
+
+    return Response(event_gen(), media_type="text/event-stream")
+
+
 @mcp.custom_route("/tools", methods=["GET"])
 async def list_tools(_: Request) -> JSONResponse:
     """List available tools."""
-    tools_list = []
-    for tool_name, tool_def in mcp.server.tools.items():
-        tools_list.append({
-            "name": tool_name,
-            "description": tool_def.description,
-            "readOnlyHint": tool_def.annotations.readOnlyHint if tool_def.annotations else True,
-            "destructiveHint": tool_def.annotations.destructiveHint if tool_def.annotations else False,
-        })
-    return JSONResponse({"tools": tools_list})
+    tool_infos = await mcp.list_tools()
+    tools_list = [
+        {
+            "name": t.name,
+            "description": t.description,
+            "readOnlyHint": t.annotations.readOnlyHint if t.annotations else True,
+            "destructiveHint": t.annotations.destructiveHint if t.annotations else False,
+        }
+        for t in tool_infos
+    ]
+    return JSONResponse(tools_list)
+
+
+@mcp.custom_route("/resources", methods=["GET"])
+async def list_resources_route(_: Request) -> JSONResponse:
+    """List available resources."""
+    resources_list = [
+        {"uri": str(r.uri), "name": r.name, "description": r.description}
+        for r in await mcp.list_resources()
+    ]
+    return JSONResponse(resources_list)
 
 
 # Resource registrations
@@ -4829,6 +5351,10 @@ mcp.resource(
     "device://{device_id}/status",
     description="Current status of a device",
 )(instrument("resource", "device_status")(resources.device_status))
+mcp.resource(
+    "device://{device_id}/logs",
+    description="Recent logs for a device",
+)(instrument("resource", "device_logs")(resources.device_logs))
 mcp.resource(
     "organization://info/{device_id}",
     description="Organization info for a device",
@@ -4917,6 +5443,10 @@ mcp.tool(
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "log_automation_attempt")(tools.log_automation_attempt))
 mcp.tool(
+    description="Echo a message back", 
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+)(instrument("tool", "echo_command")(tools.echo_command))
+mcp.tool(
     description="Send a command asynchronously",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
 )(tasks.send_command_async)
@@ -4924,6 +5454,13 @@ mcp.tool(
     description="Get status of an asynchronous task",
     annotations=ToolAnnotations(readOnlyHint=True),
 )(tasks.get_task_status)
+
+
+@mcp.custom_route("/task/{task_id}", methods=["GET"])
+async def task_status(task_id: str) -> JSONResponse:
+    """Expose async task status via HTTP."""
+    result = await tasks.get_task_status(task_id)
+    return JSONResponse(result)
 # Create a wrapper function with explicit type annotation
 async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
     """Wrapper for get_next_event with explicit type annotation."""
@@ -4944,12 +5481,24 @@ mcp.prompt()(prompts.troubleshoot_offline_device_workflow)
 
 def get_server() -> Any:
     """Get the MCP server instance."""
+    if "XYTE_API_KEY" not in os.environ:
+        os.environ["XYTE_API_KEY"] = "test"
+
+    plugin.load_plugins()
+    if get_settings().enable_experimental_apis:
+        from .experimental import echo
+
+        mcp.tool(
+            description="Echo a message (experimental)",
+            annotations=ToolAnnotations(readOnlyHint=True),
+        )(instrument("tool", "experimental_echo")(echo))
+
     return mcp
 
 
 # Allow direct execution for development
 if __name__ == "__main__":
-    print("Starting MCP server in development mode...")
+    print("Starting MCP server in development mode...", file=sys.stderr)
     import asyncio
     from mcp.server.stdio import stdio_server
 
