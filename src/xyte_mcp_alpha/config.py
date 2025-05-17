@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     environment: str = Field(default="prod", alias="XYTE_ENV")
     rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
     mcp_inspector_port: int = Field(default=8080, alias="MCP_INSPECTOR_PORT")
+    mcp_inspector_host: str = Field(default="127.0.0.1", alias="MCP_INSPECTOR_HOST")
     enable_experimental_apis: bool = Field(
         default=False, alias="XYTE_EXPERIMENTAL_APIS"
     )
@@ -29,7 +30,9 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     """Return a cached Settings instance."""
-    return Settings()
+    settings = Settings()
+    validate_settings(settings)
+    return settings
 
 
 def reload_settings() -> None:
@@ -39,8 +42,8 @@ def reload_settings() -> None:
 
 def validate_settings(settings: Settings) -> None:
     """Validate critical configuration values and raise ``ValueError`` if invalid."""
-    if not (settings.xyte_api_key or settings.xyte_oauth_token):
-        raise ValueError("XYTE_API_KEY or XYTE_OAUTH_TOKEN must be set")
+    if not (settings.xyte_api_key or settings.xyte_oauth_token or settings.xyte_user_token):
+        raise ValueError("XYTE_API_KEY, XYTE_OAUTH_TOKEN, or XYTE_USER_TOKEN must be set")
     if settings.rate_limit_per_minute <= 0:
         raise ValueError("XYTE_RATE_LIMIT must be positive")
     if settings.xyte_cache_ttl <= 0:

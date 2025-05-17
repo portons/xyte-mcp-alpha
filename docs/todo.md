@@ -80,10 +80,10 @@
 
 ## ⚡ **Advanced / Optional**
 
-* [ ] Add SAST/DAST tools (e.g., Bandit, Trivy) to CI
-* [ ] Provide an interactive API playground (in `examples/` or docs)
-* [ ] Version the plugin API and document stability/support guarantees
-* [ ] Add a support policy and responsible disclosure statement
+* [x] Add SAST/DAST tools (e.g., Bandit, Trivy) to CI
+* [x] Provide an interactive API playground (in `examples/` or docs)
+* [x] Version the plugin API and document stability/support guarantees
+* [x] Add a support policy and responsible disclosure statement
 
 ---
 

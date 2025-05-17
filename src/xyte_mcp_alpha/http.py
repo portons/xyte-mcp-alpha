@@ -72,7 +72,7 @@ def main() -> None:
 
     settings = get_settings()
     uvicorn.run(
-        "xyte_mcp_alpha.http:app", host="0.0.0.0", port=settings.mcp_inspector_port
+        "xyte_mcp_alpha.http:app", host=settings.mcp_inspector_host, port=settings.mcp_inspector_port
     )
 
 
