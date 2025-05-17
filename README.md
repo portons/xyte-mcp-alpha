@@ -12,6 +12,7 @@ All resources and tools return structured JSON objects rather than plain strings
 - `devices://` - List all devices in the organization
 - `device://{device_id}/commands` - List commands for a specific device
 - `device://{device_id}/histories` - Get history records for a device
+- `device://{device_id}/status` - Get current status for a device
 - `organization://info/{device_id}` - Get organization info for a device context
 - `incidents://` - Retrieve all incidents
 - `tickets://` - List all support tickets
