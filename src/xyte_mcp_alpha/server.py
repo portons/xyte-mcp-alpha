@@ -12,7 +12,7 @@ from starlette.responses import Response, JSONResponse
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from . import resources, tools, events, prompts
+from . import resources, tools, tasks, events, prompts
 
 # Configure structured logging
 configure_logging()
@@ -86,6 +86,14 @@ mcp.resource("tickets://", description="All support tickets")(
 mcp.resource("ticket://{ticket_id}", description="Single support ticket")(
     instrument("resource", "get_ticket")(resources.get_ticket)
 )
+mcp.resource(
+    "user://{user_token}/preferences",
+    description="Preferences for a user",
+)(resources.get_user_preferences)
+mcp.resource(
+    "user://{user_token}/devices",
+    description="Devices filtered by user",
+)(resources.list_user_devices)
 
 # Tool registrations
 mcp.tool(
@@ -124,6 +132,14 @@ mcp.tool(
     description="Search device history records",
     annotations=ToolAnnotations(readOnlyHint=True),
 )(instrument("tool", "search_device_histories")(tools.search_device_histories))
+mcp.tool(
+    description="Send a command asynchronously",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)(tasks.send_command_async)
+mcp.tool(
+    description="Get status of an asynchronous task",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(tasks.get_task_status)
 mcp.tool(
     description="Retrieve the next queued event",
     annotations=ToolAnnotations(readOnlyHint=True),

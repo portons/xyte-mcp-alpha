@@ -13,6 +13,8 @@
 | `mark_ticket_resolved` | ticket_id |
 | `send_ticket_message` | ticket_id, message |
 | `search_device_histories` | status, from_date, to_date, device_id, space_id, name |
+| `send_command_async` | name, friendly_name, file_id, extra_params, device_id |
+| `get_task_status` | task_id |
 
 ## Resources
 
@@ -25,4 +27,6 @@
 | `device://{device_id}/histories` | list_device_histories |
 | `organization://info/{device_id}` | organization_info |
 | `ticket://{ticket_id}` | get_ticket |
+| `user://{user_token}/preferences` | get_user_preferences |
+| `user://{user_token}/devices` | list_user_devices |
 

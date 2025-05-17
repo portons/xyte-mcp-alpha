@@ -71,6 +71,14 @@ def validate_device_id(device_id: str) -> str:
         raise MCPError(code="invalid_params", message=str(exc))
 
 
+def validate_ticket_id(ticket_id: str) -> str:
+    """Validate and sanitize a ticket identifier."""
+    try:
+        return TicketId(ticket_id=ticket_id).ticket_id.strip()
+    except ValidationError as exc:  # pragma: no cover - simple validation
+        raise MCPError(code="invalid_params", message=str(exc))
+
+
 async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
     """Handle API response with error conversion and metrics reporting."""
     enforce_rate_limit()

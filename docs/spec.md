@@ -133,14 +133,14 @@ This section outlines new features to expand the server's capabilities.
       * Design MCP tools or resources that allow AI agents to manage subscriptions to relevant AV events.
       * Implement server-side logic to receive these events and potentially trigger AI agent interactions or specific MCP tool calls based on predefined rules or AI decisions. This might involve the MCP server acting as a client to another service or exposing a notification mechanism.
 
-* [ ] **Task C3: User-Specific Context and Personalization (Advanced)**
+* [v] **Task C3: User-Specific Context and Personalization (Advanced)**
    * **Description:** If different users or AI agents have different permissions or preferred devices/rooms, implement mechanisms to tailor the MCP server's behavior accordingly.
    * **Rationale:** Provides a more personalized and secure experience, especially if the `XYTE_USER_TOKEN` is used to represent different end-users.
    * **Action Items:**
       * Based on the authenticated user/agent, filter the list of available tools, resources, or their operational scope.
       * Store user preferences (e.g., default rooms, preferred devices) and make them available as resources or use them to tailor prompt responses.
 
-* [ ] **Task C4: Asynchronous Operations and Progress Reporting**
+* [v] **Task C4: Asynchronous Operations and Progress Reporting**
    * **Description:** For Xyte API calls or AV automation tasks that may take a long time, implement asynchronous tool execution with progress reporting.
    * **Rationale:** Prevents MCP client timeouts and provides a better user experience for AI agents.
    * **Action Items:**
