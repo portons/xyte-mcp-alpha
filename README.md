@@ -1,32 +1,174 @@
-# xyte-mcp-alpha
+# Xyte MCP Server
 
-Xyte MCP Alpha - A Python project.
+An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
+
+## Features
+
+This MCP server exposes the following capabilities:
+
+### Resources (Read-only)
+- `devices://` - List all devices in the organization
+- `device://{device_id}/commands` - List commands for a specific device
+- `device://{device_id}/histories` - Get history records for a device
+- `organization://info/{device_id}` - Get organization info for a device context
+- `incidents://` - Retrieve all incidents
+- `tickets://` - List all support tickets
+- `ticket://{ticket_id}` - Get a specific ticket
+
+### Tools (Actions)
+- `claim_device` - Register a new device
+- `delete_device` - Remove a device
+- `update_device` - Update device configuration
+- `send_command` - Send a command to a device
+- `cancel_command` - Cancel a pending command
+- `update_ticket` - Update ticket details
+- `mark_ticket_resolved` - Mark a ticket as resolved
+- `send_ticket_message` - Send a message to a ticket
+- `search_device_histories` - Search device histories with filters
 
 ## Installation
 
+1. Clone the repository:
 ```bash
-pip install -e .
+git clone https://github.com/portons/xyte-mcp-alpha.git
+cd xyte-mcp-alpha
 ```
 
-## Usage
-
-TBD
-
-## Development
-
-Create a virtual environment:
-
+2. Create a virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-Install the package in editable mode:
-
+3. Install the package in editable mode:
 ```bash
 pip install -e .
 ```
 
+## Configuration
+
+1. Copy the example environment file:
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` and add your Xyte API key:
+```
+XYTE_API_KEY=your-actual-api-key-here
+```
+
+## Usage
+
+### Running the Server
+
+There are several ways to run the MCP server:
+
+1. Using the installed command:
+```bash
+serve
+```
+
+2. Using Python module:
+```bash
+python -m xyte_mcp_alpha
+```
+
+3. Using MCP CLI for development:
+```bash
+mcp dev src/xyte_mcp_alpha/server.py
+```
+
+### Connecting to Claude Desktop
+
+To use this server with Claude Desktop, add it to your configuration file:
+
+**macOS/Linux:** `~/.claude/config.json`
+**Windows:** `%APPDATA%\claude\config.json`
+
+```json
+{
+  "mcpServers": {
+    "xyte": {
+      "command": "serve",
+      "env": {
+        "XYTE_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+Alternatively, with a Python virtual environment:
+
+```json
+{
+  "mcpServers": {
+    "xyte": {
+      "command": "/path/to/xyte-mcp-alpha/venv/bin/python",
+      "args": ["-m", "xyte_mcp_alpha"],
+      "env": {
+        "XYTE_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+## Example Usage
+
+Once connected, you can interact with Xyte through Claude:
+
+**List devices:**
+- "Show me all devices in the organization"
+- "What devices are available?"
+
+**Device operations:**
+- "Claim a new device named 'Test Device' in space 13244"
+- "Update the configuration of device XYZ with {a: 1}"
+- "Send a reboot command to device ABC"
+
+**Ticket management:**
+- "Show me all open tickets"
+- "Update ticket #123 with a new title"
+- "Send a message to ticket #456"
+
+**History search:**
+- "Search device histories for the last 24 hours"
+- "Find histories for device XYZ from last week"
+
+## Development
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Using the MCP Inspector
+
+For development and debugging:
+
+```bash
+mcp dev src/xyte_mcp_alpha/server.py
+```
+
+This opens an interactive UI where you can test tools and resources.
+
+## API Reference
+
+### Environment Variables
+
+- `XYTE_API_KEY` (required) - Your Xyte organization API key
+- `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
+
+### Error Handling
+
+The server handles errors gracefully and returns structured error messages. All errors are logged for debugging purposes.
+
 ## License
 
 MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

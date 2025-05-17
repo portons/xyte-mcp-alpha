@@ -1,15 +1,23 @@
 [project]
 name = "xyte-mcp-alpha"
 version = "0.1.0"
-description = "Xyte MCP Alpha"
+description = "MCP server for Xyte organization API"
 authors = [{name = "Your Name", email = "your.email@example.com"}]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "mcp[cli]>=1.1.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0"
+]
+
+[project.scripts]
+serve = "xyte_mcp_alpha:serve"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/xyte-mcp-alpha"
+Homepage = "https://github.com/portons/xyte-mcp-alpha"
 
 [build-system]
 requires = ["hatchling"]
