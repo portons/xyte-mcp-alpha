@@ -42,7 +42,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * For critical errors, provide enough context in server logs (without exposing sensitive data) for easier diagnosis.
       * Consider using the `Context` object (if using FastMCP) for standardized error logging within tools/resources.
 
-* [ ] **Task A4: Refine Configuration Management**
+* [x] **Task A4: Refine Configuration Management**
    * **Description:** Review `config.py` and environment variable usage. Ensure configurations are loaded securely and efficiently, and consider support for different environments (dev, staging, prod).
    * **Rationale:** Robust configuration is key for operational stability and security.
    * **Action Items:**
@@ -51,7 +51,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * Document all environment variables clearly.
       * Consider structured configuration for different deployment environments if not already in place.
 
-* [ ] **Task A5: Security Hardening**
+* [x] **Task A5: Security Hardening**
    * **Description:** Implement comprehensive security best practices beyond basic input validation and secret management.
    * **Rationale:** MCP servers can become powerful interfaces to backend systems (like Xyte for AV control), making security paramount. This aligns with research on MCP vulnerabilities (unauthenticated access, over-permissioned tokens, etc.).
    * **Action Items:**
