@@ -2,56 +2,56 @@
 
 ## 🚩 **Documentation**
 
-* [ ] Expand `README.md` with:
+* [x] Expand `README.md` with:
 
-    * [ ] Setup steps (dev/prod)
-    * [ ] Configuration guide (env vars, options)
-    * [ ] API usage examples (code/curl)
-    * [ ] Explanation of core components and architecture
-* [ ] Create `docs/PLUGINS.md` with:
+    * [x] Setup steps (dev/prod)
+    * [x] Configuration guide (env vars, options)
+    * [x] API usage examples (code/curl)
+    * [x] Explanation of core components and architecture
+* [x] Create `docs/PLUGINS.md` with:
 
-    * [ ] Plugin architecture overview
-    * [ ] Step-by-step plugin development/registration guide
-    * [ ] Realistic code examples
-* [ ] Add `docs/DEPLOYMENT.md`:
+    * [x] Plugin architecture overview
+    * [x] Step-by-step plugin development/registration guide
+    * [x] Realistic code examples
+* [x] Add `docs/DEPLOYMENT.md`:
 
-    * [ ] Kubernetes/Helm install instructions
-    * [ ] Explanation of key Helm values and manifests
-    * [ ] Upgrade and rollback notes
+    * [x] Kubernetes/Helm install instructions
+    * [x] Explanation of key Helm values and manifests
+    * [x] Upgrade and rollback notes
 
 ## ✅ **Testing**
 
-* [ ] Audit and expand unit tests for all modules
-* [ ] Add integration tests (especially for plugin system & API)
-* [ ] Add negative/error scenario tests
-* [ ] Use `pytest-cov` to generate code coverage report
-* [ ] Add coverage badge to `README.md`
-* [ ] Create `tests/README.md` with structure & running instructions
+* [x] Audit and expand unit tests for all modules
+* [x] Add integration tests (especially for plugin system & API)
+* [x] Add negative/error scenario tests
+* [x] Use `pytest-cov` to generate code coverage report
+* [x] Add coverage badge to `README.md`
+* [x] Create `tests/README.md` with structure & running instructions
 
 ## 💎 **Code Quality & Style**
 
-* [ ] Run and fix all linter issues (`ruff`, `black`, or similar)
-* [ ] Add pre-commit hooks for linting and typing (`pre-commit`)
-* [ ] Add type hints to all functions/modules
-* [ ] Refactor monolithic files (e.g., `server.py`, `tools.py`) into smaller, focused modules
-* [ ] Standardize error handling (use custom exceptions where appropriate)
+* [x] Run and fix all linter issues (`ruff`, `black`, or similar)
+* [x] Add pre-commit hooks for linting and typing (`pre-commit`)
+* [x] Add type hints to all functions/modules
+* [x] Refactor monolithic files (e.g., `server.py`, `tools.py`) into smaller, focused modules
+* [x] Standardize error handling (use custom exceptions where appropriate)
 
 ## 📜 **Logging & Observability**
 
-* [ ] Unify logging (one utility, consistent usage)
-* [ ] Document logging configuration and log levels
-* [ ] Ensure all core actions/events are logged
-* [ ] Provide example Grafana dashboard for Prometheus metrics
+* [x] Unify logging (one utility, consistent usage)
+* [x] Document logging configuration and log levels
+* [x] Ensure all core actions/events are logged
+* [x] Provide example Grafana dashboard for Prometheus metrics
 
 ## 🔒 **Security**
 
-* [ ] Add a `SECURITY.md` with:
+* [x] Add a `SECURITY.md` with:
 
-    * [ ] Security best practices
-    * [ ] How to report vulnerabilities
-    * [ ] Token/secret management
-* [ ] Review Dockerfile for security (run as non-root user, minimize layers)
-* [ ] Document recommended .env practices and secrets rotation
+    * [x] Security best practices
+    * [x] How to report vulnerabilities
+    * [x] Token/secret management
+* [x] Review Dockerfile for security (run as non-root user, minimize layers)
+* [x] Document recommended .env practices and secrets rotation
 
 ## 🚀 **CI/CD & Automation**
 
@@ -66,10 +66,10 @@
 
 ## 🔌 **Plugin System**
 
-* [ ] Document plugin lifecycle (install, register, reload, validate)
-* [ ] Add realistic plugin integration test(s)
-* [ ] (Optional) Implement entry-point-based plugin discovery
-* [ ] Validate plugins on load (schema, compatibility)
+* [x] Document plugin lifecycle (install, register, reload, validate)
+* [x] Add realistic plugin integration test(s)
+* [x] (Optional) Implement entry-point-based plugin discovery
+* [x] Validate plugins on load (schema, compatibility)
 
 ## 🗂️ **API & Config**
 

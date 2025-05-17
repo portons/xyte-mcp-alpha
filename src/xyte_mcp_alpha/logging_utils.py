@@ -32,7 +32,9 @@ HTTP_REQUEST_COUNT = Counter(
     "HTTP request count",
     ["method", "path", "status"],
 )
-TOOL_LATENCY = Histogram("xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"])
+TOOL_LATENCY = Histogram(
+    "xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"]
+)
 RESOURCE_LATENCY = Histogram(
     "xyte_resource_latency_seconds",
     "Latency of resource handlers",
@@ -67,12 +69,12 @@ COMMAND_TOOL_ACTIONS = {
 
 class StderrConsoleSpanExporter(ConsoleSpanExporter):
     """Console span exporter that writes to stderr instead of stdout."""
-    
+
     def export(self, spans: Sequence[ReadableSpan]) -> None:
         """Export spans to stderr instead of stdout."""
         for span in spans:
             print(self._span_to_str(span), file=sys.stderr)
-    
+
     def _span_to_str(self, span: ReadableSpan) -> str:
         """Convert span to string format."""
         # Use the parent class implementation if available
@@ -83,13 +85,17 @@ class StderrConsoleSpanExporter(ConsoleSpanExporter):
             return f"[{span.name}] {span.start_time} - {span.end_time}"
 
 
-def configure_logging(level: int = logging.INFO) -> None:
+def configure_logging(level: int | None = None) -> None:
     """Configure application-wide structured logging."""
+    from .config import get_settings
+
+    if level is None:
+        level_name = get_settings().log_level.upper()
+        level = getattr(logging, level_name, logging.INFO)
+
     # Configure logging to stderr to avoid interfering with MCP protocol
     logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        handlers=[logging.StreamHandler(sys.stderr)]
+        level=level, format="%(message)s", handlers=[logging.StreamHandler(sys.stderr)]
     )
     provider = TracerProvider()
     # Use our custom stderr exporter instead of the default ConsoleSpanExporter
@@ -112,7 +118,7 @@ def log_json(level: int, **fields: Any) -> None:
 class RequestLoggingMiddleware:
     """ASGI middleware that logs requests and responses."""
 
-    def __init__(self, app: Callable):
+    def __init__(self, app: Callable) -> None:
         self.app = app
 
     async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
@@ -127,7 +133,11 @@ class RequestLoggingMiddleware:
         start = time.monotonic()
 
         log_json(
-            logging.INFO, event="request_start", method=method, path=path, request_id=request_id
+            logging.INFO,
+            event="request_start",
+            method=method,
+            path=path,
+            request_id=request_id,
         )
 
         status_code: int | None = None
@@ -136,8 +146,15 @@ class RequestLoggingMiddleware:
             nonlocal status_code
             if message["type"] == "http.response.start":
                 status_code = message["status"]
-                log_json(logging.INFO, event="response_start", status=status_code, request_id=request_id)
-            if message["type"] == "http.response.body" and not message.get("more_body", False):
+                log_json(
+                    logging.INFO,
+                    event="response_start",
+                    status=status_code,
+                    request_id=request_id,
+                )
+            if message["type"] == "http.response.body" and not message.get(
+                "more_body", False
+            ):
                 duration = time.monotonic() - start
                 duration_ms = duration * 1000
                 log_json(
@@ -156,10 +173,9 @@ class RequestLoggingMiddleware:
             request_id_var.reset(token)
 
 
-
-
-
-def instrument(kind: str, name: str):
+def instrument(
+    kind: str, name: str
+) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Awaitable[Any]]]:
     """Decorator to log and measure execution of tools and resources."""
 
     def decorator(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:

@@ -66,14 +66,15 @@ async def api_docs(request) -> HTMLResponse:
     return HTMLResponse(html)
 
 
-def main():
+def main() -> None:
     """Run the HTTP server using Uvicorn."""
     import uvicorn
 
     settings = get_settings()
-    uvicorn.run("xyte_mcp_alpha.http:app", host="0.0.0.0", port=settings.mcp_inspector_port)
+    uvicorn.run(
+        "xyte_mcp_alpha.http:app", host="0.0.0.0", port=settings.mcp_inspector_port
+    )
 
 
 if __name__ == "__main__":
     main()
-
