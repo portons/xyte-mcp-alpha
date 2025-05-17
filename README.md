@@ -1,4 +1,5 @@
 # Xyte MCP Server
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 
 An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
 
