@@ -36,16 +36,16 @@
 
 ## Extensibility & Integration
 
-* [ ] Validate mapping of all MCP flows to XYTE’s external API (configurable, not hardcoded)
-* [ ] Allow for custom mapping/transform hooks (pluggable Python, securely sandboxed)
+* [x] Validate mapping of all MCP flows to XYTE’s external API (configurable, not hardcoded)
+* [x] Allow for custom mapping/transform hooks (pluggable Python, securely sandboxed)
 
 ---
 
 ## Authentication & Security
 
-* [ ] Ensure API key or OAuth2 support (user-supplied key)
-* [ ] Validate all inbound and outbound payloads
-* [ ] Harden HTTP endpoints (rate limiting, input validation, CORS, etc.)
+* [x] Ensure API key or OAuth2 support (user-supplied key)
+* [x] Validate all inbound and outbound payloads
+* [x] Harden HTTP endpoints (rate limiting, input validation, CORS, etc.)
 
 ---
 

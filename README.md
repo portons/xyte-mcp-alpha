@@ -166,12 +166,15 @@ resources and underlying API calls.
 ### Environment Variables
 
 - `XYTE_API_KEY` (required) - Your Xyte organization API key
+- `XYTE_OAUTH_TOKEN` (optional) - OAuth2 access token instead of API key
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
 - `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
 - `MCP_INSPECTOR_PORT` (optional) - Port for the MCP inspector to use (default 6277)
+- `XYTE_API_MAPPING` (optional) - Path to JSON file overriding API endpoint mapping
+- `XYTE_HOOKS_MODULE` (optional) - Python module providing request/response hooks
 
 ### Security Considerations
 
