@@ -70,18 +70,38 @@ async def metrics(_: Request) -> Response:
     return Response(data, media_type=CONTENT_TYPE_LATEST)
 
 
+@mcp.custom_route("/webhook", methods=["POST"])
+async def webhook(request: Request) -> Response:
+    """Receive a webhook event and enqueue it."""
+    payload = await request.json()
+    await events.push_event(events.Event(**payload))
+    return Response(status_code=200)
+
+
 @mcp.custom_route("/tools", methods=["GET"])
 async def list_tools(_: Request) -> JSONResponse:
     """List available tools."""
-    tools_list = []
-    for tool_name, tool_def in mcp.server.tools.items():
-        tools_list.append({
-            "name": tool_name,
-            "description": tool_def.description,
-            "readOnlyHint": tool_def.annotations.readOnlyHint if tool_def.annotations else True,
-            "destructiveHint": tool_def.annotations.destructiveHint if tool_def.annotations else False,
-        })
-    return JSONResponse({"tools": tools_list})
+    tools = await mcp.list_tools()
+    tools_list = [
+        {
+            "name": t.name,
+            "description": t.description,
+            "readOnlyHint": t.annotations.readOnlyHint if t.annotations else True,
+            "destructiveHint": t.annotations.destructiveHint if t.annotations else False,
+        }
+        for t in tools
+    ]
+    return JSONResponse(tools_list)
+
+
+@mcp.custom_route("/resources", methods=["GET"])
+async def list_resources_route(_: Request) -> JSONResponse:
+    """List available resources."""
+    resources_list = [
+        {"uri": str(r.uri), "name": r.name, "description": r.description}
+        for r in await mcp.list_resources()
+    ]
+    return JSONResponse(resources_list)
 
 
 # Resource registrations

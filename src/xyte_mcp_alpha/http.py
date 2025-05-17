@@ -3,24 +3,28 @@
 from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
 from .config import get_settings
-from fastapi.openapi.utils import get_openapi
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import JSONResponse, HTMLResponse
+from starlette.responses import JSONResponse, HTMLResponse
+from starlette.requests import Request
 
 # Expose ASGI app for Uvicorn or other ASGI servers
 app = get_server().streamable_http_app()
 app.add_middleware(RequestLoggingMiddleware)
 
 
-@app.get("/openapi.json")
-async def openapi_spec() -> JSONResponse:
-    schema = get_openapi(title="Xyte MCP API", version="1.0", routes=app.routes)
+async def openapi_spec(_: Request) -> JSONResponse:
+    """Return a minimal OpenAPI schema."""
+    schema = {"openapi": "3.0.0", "info": {"title": "Xyte MCP API", "version": "1.0"}}
     return JSONResponse(schema)
 
 
-@app.get("/api/docs")
-async def api_docs() -> HTMLResponse:
-    return get_swagger_ui_html(openapi_url="/openapi.json", title="Xyte MCP API")
+async def api_docs(_: Request) -> HTMLResponse:
+    """Return a very small HTML docs placeholder."""
+    html = "<html><body><pre>Xyte MCP API Docs</pre></body></html>"
+    return HTMLResponse(html)
+
+
+app.add_route("/openapi.json", openapi_spec, methods=["GET"])
+app.add_route("/api/docs", api_docs, methods=["GET"])
 
 
 def main():
