@@ -2,22 +2,22 @@
 
 ## 🚩 **Documentation**
 
-* [ ] Expand `README.md` with:
+* [x] Expand `README.md` with:
 
-    * [ ] Setup steps (dev/prod)
-    * [ ] Configuration guide (env vars, options)
-    * [ ] API usage examples (code/curl)
-    * [ ] Explanation of core components and architecture
-* [ ] Create `docs/PLUGINS.md` with:
+    * [x] Setup steps (dev/prod)
+    * [x] Configuration guide (env vars, options)
+    * [x] API usage examples (code/curl)
+    * [x] Explanation of core components and architecture
+* [x] Create `docs/PLUGINS.md` with:
 
-    * [ ] Plugin architecture overview
-    * [ ] Step-by-step plugin development/registration guide
-    * [ ] Realistic code examples
-* [ ] Add `docs/DEPLOYMENT.md`:
+    * [x] Plugin architecture overview
+    * [x] Step-by-step plugin development/registration guide
+    * [x] Realistic code examples
+* [x] Add `docs/DEPLOYMENT.md`:
 
-    * [ ] Kubernetes/Helm install instructions
-    * [ ] Explanation of key Helm values and manifests
-    * [ ] Upgrade and rollback notes
+    * [x] Kubernetes/Helm install instructions
+    * [x] Explanation of key Helm values and manifests
+    * [x] Upgrade and rollback notes
 
 ## ✅ **Testing**
 
