@@ -10,6 +10,7 @@ from starlette.responses import Response
 from mcp.server.fastmcp import FastMCP
 
 from . import resources, tools
+from . import tasks
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,6 +46,8 @@ mcp.resource("organization://info/{device_id}")(resources.organization_info)
 mcp.resource("incidents://")(resources.list_incidents)
 mcp.resource("tickets://")(resources.list_tickets)
 mcp.resource("ticket://{ticket_id}")(resources.get_ticket)
+mcp.resource("user://{user_token}/preferences")(resources.get_user_preferences)
+mcp.resource("user://{user_token}/devices")(resources.list_user_devices)
 
 # Tool registrations
 mcp.tool()(tools.claim_device)
@@ -56,6 +59,8 @@ mcp.tool()(tools.update_ticket)
 mcp.tool()(tools.mark_ticket_resolved)
 mcp.tool()(tools.send_ticket_message)
 mcp.tool()(tools.search_device_histories)
+mcp.tool()(tasks.send_command_async)
+mcp.tool()(tasks.get_task_status)
 
 
 def get_server() -> Any:

@@ -16,6 +16,8 @@ All resources and tools return structured JSON objects rather than plain strings
 - `incidents://` - Retrieve all incidents
 - `tickets://` - List all support tickets
 - `ticket://{ticket_id}` - Get a specific ticket
+- `user://{user_token}/preferences` - Get user preferences
+- `user://{user_token}/devices` - List devices filtered by user
 
 ### Tools (Actions)
 - `claim_device` - Register a new device
@@ -27,6 +29,8 @@ All resources and tools return structured JSON objects rather than plain strings
 - `mark_ticket_resolved` - Mark a ticket as resolved
 - `send_ticket_message` - Send a message to a ticket
 - `search_device_histories` - Search device histories with filters
+- `send_command_async` - Send a command asynchronously
+- `get_task_status` - Query async task status
 
 ## Installation
 
