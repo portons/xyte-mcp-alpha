@@ -280,7 +280,9 @@ def get_server() -> Any:
 
 # Allow direct execution for development
 if __name__ == "__main__":
-    print("Starting MCP server in development mode...", file=sys.stderr)
+    from .logging_utils import log_json
+
+    log_json(logging.INFO, event="server_start", mode="development")
     import asyncio
     from mcp.server.stdio import stdio_server
 

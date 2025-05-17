@@ -1,4 +1,4 @@
-# Plugin Lifecycle
+# Plugin System
 
 This document explains how to extend the MCP server with Python plugins.
 
@@ -53,6 +53,14 @@ During loading each plugin is validated:
 
 Invalid plugins are skipped and a warning is logged.
 
+## Writing a Plugin
+
+1. Create a Python module (e.g. `myplugin.py`).
+2. Implement a class with optional `on_event(event: dict)` and
+   `on_log(message: str, level: int)` methods.
+3. Export an instance named `plugin` so the loader can discover it.
+4. Set `XYTE_PLUGINS=myplugin` before starting the server.
+
 ## Example
 
 ```python
@@ -61,8 +69,11 @@ from xyte_mcp_alpha import plugin
 
 class Logger:
     API_VERSION = 1
+    def on_event(self, event: dict) -> None:
+        print("event", event)
+
     def on_log(self, message: str, level: int) -> None:
-        print(level, message)
+        print("log", level, message)
 
 plugin_instance = Logger()
 ```
@@ -81,3 +92,9 @@ logger = "my_plugin:plugin_instance"
 ```
 
 After installation the server will automatically load the plugin.
+
+Plugins may also call `register_payload_transform` to modify API responses before
+they reach the client.
+
+All listed plugins will be loaded at startup. Failures are logged but do not stop
+startup.
