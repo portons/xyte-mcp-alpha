@@ -12,6 +12,15 @@ from .config import get_settings
 from .mapping import load_mapping
 from .hooks import transform_request, transform_response
 
+from .models import (
+    ClaimDeviceRequest,
+    UpdateDeviceRequest,
+    CommandRequest,
+    TicketUpdateRequest,
+    TicketMessageRequest,
+)
+
+
 logger = logging.getLogger(__name__)
 
 # Prometheus counters for cache monitoring - register at module level
@@ -25,16 +34,6 @@ CACHE_MISSES = Counter(
     "Number of cache misses",
     ["key"],
 )
-
-
-from .models import (
-    ClaimDeviceRequest,
-    UpdateDeviceRequest,
-    CommandRequest,
-    TicketUpdateRequest,
-    TicketMessageRequest,
-)
-
 
 class XyteAPIClient:
     """Client for interacting with Xyte Organization API."""
