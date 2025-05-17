@@ -51,13 +51,13 @@
 
 ## Observability & Ops
 
-* [ ] Implement structured (JSON) logging with context (request/correlation IDs)
+* [x] Implement structured (JSON) logging with context (request/correlation IDs)
 
-* [ ] Add logging for all state transitions, errors, and critical flows
+* [x] Add logging for all state transitions, errors, and critical flows
 
-* [ ] Add Prometheus metrics for critical events (requests, errors, device/command counts, latency)
+* [x] Add Prometheus metrics for critical events (requests, errors, device/command counts, latency)
 
-* [ ] Health and readiness endpoints for ops (K8s) use
+* [x] Health and readiness endpoints for ops (K8s) use
 
 ---
 
