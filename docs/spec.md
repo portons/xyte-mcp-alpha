@@ -42,7 +42,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * For critical errors, provide enough context in server logs (without exposing sensitive data) for easier diagnosis.
       * Consider using the `Context` object (if using FastMCP) for standardized error logging within tools/resources.
 
-* [ ] **Task A4: Refine Configuration Management**
+* [x] **Task A4: Refine Configuration Management**
    * **Description:** Review `config.py` and environment variable usage. Ensure configurations are loaded securely and efficiently, and consider support for different environments (dev, staging, prod).
    * **Rationale:** Robust configuration is key for operational stability and security.
    * **Action Items:**
@@ -51,7 +51,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * Document all environment variables clearly.
       * Consider structured configuration for different deployment environments if not already in place.
 
-* [ ] **Task A5: Security Hardening**
+* [x] **Task A5: Security Hardening**
    * **Description:** Implement comprehensive security best practices beyond basic input validation and secret management.
    * **Rationale:** MCP servers can become powerful interfaces to backend systems (like Xyte for AV control), making security paramount. This aligns with research on MCP vulnerabilities (unauthenticated access, over-permissioned tokens, etc.).
    * **Action Items:**
@@ -77,7 +77,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
 
 This section focuses on leveraging the full potential of the Model Context Protocol.
 
-* [ ] **Task B1: Optimize Tool Definitions and Implementations**
+* [v] **Task B1: Optimize Tool Definitions and Implementations**
    * **Description:** Review and refine the existing tools exposed by the MCP server. Ensure they are well-defined, atomic, and provide clear descriptions for AI agent consumption.
    * **Rationale:** Clear and well-scoped tools are easier for AI agents to understand and use correctly. The official MCP documentation and SDKs (like FastMCP) provide guidance on tool annotations and schemas.
    * **Action Items:**
@@ -87,7 +87,7 @@ This section focuses on leveraging the full potential of the Model Context Proto
       * Break down complex operations into smaller, more atomic tools if applicable.
       * Leverage tool annotations (e.g., `readOnlyHint`, `destructiveHint` from MCP specification) if supported by your SDK and relevant to AV control.
 
-* [ ] **Task B2: Structure and Expose Resources Effectively**
+* [v] **Task B2: Structure and Expose Resources Effectively**
    * **Description:** Identify and expose relevant data from the Xyte platform as MCP resources. This could include device lists, device statuses, room configurations, etc.
    * **Rationale:** Resources provide contextual information to AI agents, enhancing their ability to make informed decisions before invoking tools.
    * **Action Items:**
@@ -133,14 +133,14 @@ This section outlines new features to expand the server's capabilities.
       * Design MCP tools or resources that allow AI agents to manage subscriptions to relevant AV events.
       * Implement server-side logic to receive these events and potentially trigger AI agent interactions or specific MCP tool calls based on predefined rules or AI decisions. This might involve the MCP server acting as a client to another service or exposing a notification mechanism.
 
-* [ ] **Task C3: User-Specific Context and Personalization (Advanced)**
+* [v] **Task C3: User-Specific Context and Personalization (Advanced)**
    * **Description:** If different users or AI agents have different permissions or preferred devices/rooms, implement mechanisms to tailor the MCP server's behavior accordingly.
    * **Rationale:** Provides a more personalized and secure experience, especially if the `XYTE_USER_TOKEN` is used to represent different end-users.
    * **Action Items:**
       * Based on the authenticated user/agent, filter the list of available tools, resources, or their operational scope.
       * Store user preferences (e.g., default rooms, preferred devices) and make them available as resources or use them to tailor prompt responses.
 
-* [ ] **Task C4: Asynchronous Operations and Progress Reporting**
+* [v] **Task C4: Asynchronous Operations and Progress Reporting**
    * **Description:** For Xyte API calls or AV automation tasks that may take a long time, implement asynchronous tool execution with progress reporting.
    * **Rationale:** Prevents MCP client timeouts and provides a better user experience for AI agents.
    * **Action Items:**

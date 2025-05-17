@@ -22,16 +22,23 @@ from .models import (
 
 
 async def claim_device(request: ClaimDeviceRequest) -> Dict[str, Any]:
+    """Claim a new device and assign it to the organization.
+
+    Example:
+        `claim_device({"name": "Display", "space_id": 1})`
+    """
     async with get_client() as client:
         return await handle_api("claim_device", client.claim_device(request))
 
 
 async def delete_device(data: DeviceId) -> Dict[str, Any]:
+    """Delete an existing device by its identifier."""
     async with get_client() as client:
         return await handle_api("delete_device", client.delete_device(data.device_id))
 
 
 async def update_device(data: UpdateDeviceArgs) -> Dict[str, Any]:
+    """Apply configuration updates to a device."""
     async with get_client() as client:
         req = UpdateDeviceRequest(configuration=data.configuration)
         return await handle_api(
@@ -40,6 +47,7 @@ async def update_device(data: UpdateDeviceArgs) -> Dict[str, Any]:
 
 
 async def send_command(data: SendCommandRequest) -> Dict[str, Any]:
+    """Send a command to a device."""
     async with get_client() as client:
         req = CommandRequest(
             name=data.name,
@@ -53,6 +61,7 @@ async def send_command(data: SendCommandRequest) -> Dict[str, Any]:
 
 
 async def cancel_command(data: CancelCommandRequest) -> Dict[str, Any]:
+    """Cancel a previously sent command."""
     async with get_client() as client:
         req = CommandRequest(
             name=data.name,
@@ -67,6 +76,7 @@ async def cancel_command(data: CancelCommandRequest) -> Dict[str, Any]:
 
 
 async def update_ticket(data: UpdateTicketRequest) -> Dict[str, Any]:
+    """Modify the title or description of a support ticket."""
     async with get_client() as client:
         req = TicketUpdateRequest(title=data.title, description=data.description)
         return await handle_api(
@@ -75,6 +85,7 @@ async def update_ticket(data: UpdateTicketRequest) -> Dict[str, Any]:
 
 
 async def mark_ticket_resolved(data: MarkTicketResolvedRequest) -> Dict[str, Any]:
+    """Mark a ticket as resolved."""
     async with get_client() as client:
         return await handle_api(
             "mark_ticket_resolved", client.mark_ticket_resolved(data.ticket_id)
@@ -82,6 +93,7 @@ async def mark_ticket_resolved(data: MarkTicketResolvedRequest) -> Dict[str, Any
 
 
 async def send_ticket_message(data: SendTicketMessageRequest) -> Dict[str, Any]:
+    """Post a new message to a ticket conversation."""
     async with get_client() as client:
         req = TicketMessageRequest(message=data.message)
         return await handle_api(
@@ -89,6 +101,7 @@ async def send_ticket_message(data: SendTicketMessageRequest) -> Dict[str, Any]:
         )
 
 async def search_device_histories(params: SearchDeviceHistoriesRequest) -> Dict[str, Any]:
+    """Search device history records with optional filters."""
     async with get_client() as client:
         from datetime import datetime
         from_dt = datetime.fromisoformat(params.from_date) if params.from_date else None
