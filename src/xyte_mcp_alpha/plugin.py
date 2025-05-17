@@ -2,6 +2,7 @@ import importlib
 import logging
 import os
 from typing import List, Protocol
+from .logging_utils import log_json
 
 class MCPPlugin(Protocol):
     """Plugin interface for AI agent integration."""
@@ -24,8 +25,8 @@ def load_plugins() -> None:
             plugin = getattr(module, "plugin", module)
             if hasattr(plugin, "on_event") or hasattr(plugin, "on_log"):
                 _PLUGINS.append(plugin)  # type: ignore[arg-type]
-        except Exception:  # pragma: no cover - plugin loading should not fail tests
-            logging.exception("Failed to load plugin %s", path)
+        except Exception as exc:  # pragma: no cover - plugin loading should not fail tests
+            log_json(logging.ERROR, event="plugin_load_error", plugin=path, error=str(exc))
 
 
 def fire_event(event: dict) -> None:
@@ -35,8 +36,8 @@ def fire_event(event: dict) -> None:
         if hook:
             try:
                 hook(event)
-            except Exception:
-                logging.exception("Plugin error in on_event")
+            except Exception as exc:
+                log_json(logging.ERROR, event="plugin_event_error", error=str(exc))
 
 
 def fire_log(message: str, level: int) -> None:
@@ -46,5 +47,5 @@ def fire_log(message: str, level: int) -> None:
         if hook:
             try:
                 hook(message, level)
-            except Exception:
-                logging.exception("Plugin error in on_log")
+            except Exception as exc:
+                log_json(logging.ERROR, event="plugin_log_error", error=str(exc))

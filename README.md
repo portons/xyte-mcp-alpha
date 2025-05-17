@@ -9,6 +9,17 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 2. Create a virtualenv and install the project: `pip install -e .`.
 3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` (and optional `XYTE_USER_TOKEN`).
 4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
+## Setup
+
+### Development
+1. Install extra dev dependencies with `pip install -e .[dev]`.
+2. Start the server using `mcp dev src/xyte_mcp_alpha/server.py` to get the interactive inspector.
+
+### Production
+1. Build the Docker image or install the package on your host.
+2. Set environment variables such as `XYTE_API_KEY` and `XYTE_BASE_URL`.
+3. Run `python -m xyte_mcp_alpha.http` under a process manager.
+
 
 ## Features
 
@@ -71,6 +82,12 @@ cp .env.example .env
 ```
 XYTE_API_KEY=your-actual-api-key-here
 ```
+
+3. Configure optional variables as needed:
+   - `XYTE_BASE_URL` - override the Xyte API base URL.
+   - `XYTE_USER_TOKEN` - user-scoped token if acting on behalf of a specific user.
+   - `XYTE_RATE_LIMIT` - requests per minute limit (defaults to 60).
+   - `XYTE_PLUGINS` - comma-separated list of plugin modules to load.
 
 ## Usage
 
@@ -135,8 +152,26 @@ Alternatively, with a Python virtual environment:
 ```
 
 ## Example Usage
+## API Usage Examples
+
+Python:
+```python
+import os, requests
+resp = requests.get("http://localhost:8080/devices", headers={"Authorization": os.getenv("XYTE_API_KEY")})
+print(resp.json())
+```
+
+Curl:
+```bash
+curl -H "Authorization: $XYTE_API_KEY" http://localhost:8080/devices
+```
 
 ![mcp dev demo](docs/mcp-dev.gif)
+## Architecture Overview
+The server is built on [FastMCP](https://github.com/anthropics/fastmcp) and organizes functionality into **resources** for read-only data and **tools** for actions.
+Events emitted by the Xyte API are queued internally and can trigger plugins.
+The plugin system loads modules listed in `XYTE_PLUGINS`, allowing hooks on events and logs.
+
 
 ## Development
 
@@ -164,10 +199,20 @@ This opens an interactive UI where you can test tools and resources.
 
 ## Logging and Monitoring
 
-Structured JSON logs are produced for every HTTP request and Xyte API call. Each
-log entry includes a unique `request_id` for easy tracing. Prometheus metrics are
-available at the `/metrics` endpoint, including latency histograms for tools,
-resources and underlying API calls.
+The server emits structured JSON logs for all incoming requests, resource
+lookups and tool invocations. The helper `configure_logging()` function sets up
+logging on startup using the `XYTE_LOG_LEVEL` environment variable (default
+`INFO`). Supported levels are the standard Python log levels (`DEBUG`, `INFO`,
+`WARNING`, `ERROR`).
+
+Every log entry includes a `request_id` so you can trace a call across multiple
+actions. Logs are written to stderr and are also forwarded to any loaded
+plugins.
+
+Prometheus metrics are exposed at the `/metrics` endpoint. These include request
+counts and latency histograms for tools, resources and underlying API calls. You
+can visualize them using Grafana (see `docs/grafana_dashboard.json` for an
+example dashboard).
 
 ## API Reference
 
@@ -190,8 +235,11 @@ These variables can also be configured when deploying via Helm. See `helm/values
 ### Security Considerations
 
 Ensure the value provided for `XYTE_API_KEY` has only the permissions required
-for the tools you expose. Avoid logging this key or any per-user token. Run
-`scripts/security_scan.sh` regularly to check dependencies for vulnerabilities.
+for the tools you expose. Avoid logging this key or any per-user token. Store
+all secrets in an `.env` file or a dedicated secrets manager and never commit
+them to version control. Rotate keys and tokens periodically and reload the
+server after updating the `.env` file. Run `scripts/security_scan.sh` regularly
+to check dependencies for vulnerabilities.
 
 ### Error Handling
 
