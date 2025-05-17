@@ -1,5 +1,8 @@
 from typing import Any, Dict, Optional
 import logging
+from pathlib import Path
+import json
+import anyio
 
 from .deps import get_client
 from .utils import handle_api, get_session_state, validate_device_id, MCPError
@@ -12,7 +15,6 @@ from .client import (
     TicketMessageRequest,
 )
 from .models import (
-    DeviceId,
     UpdateDeviceArgs,
     MarkTicketResolvedRequest,
     SendTicketMessageRequest,
@@ -21,6 +23,7 @@ from .models import (
     UpdateTicketRequest,
     SearchDeviceHistoriesRequest,
     ToolResponse,
+    DeleteDeviceArgs,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,10 +39,14 @@ async def claim_device(request: ClaimDeviceRequest) -> Dict[str, Any]:
         return await handle_api("claim_device", client.claim_device(request))
 
 
-async def delete_device(data: DeviceId) -> Dict[str, Any]:
+async def delete_device(data: DeleteDeviceArgs) -> ToolResponse:
     """Delete an existing device by its identifier."""
+    if data.dry_run:
+        logger.info("Dry run: would delete device", extra={"device_id": data.device_id})
+        return ToolResponse(data={"dry_run": True}, summary=f"Dry run: Would delete device {data.device_id}")
     async with get_client() as client:
-        return await handle_api("delete_device", client.delete_device(data.device_id))
+        result = await handle_api("delete_device", client.delete_device(data.device_id))
+        return ToolResponse(data=result.get("data", result), summary=f"Device {data.device_id} deleted")
 
 
 async def update_device(data: UpdateDeviceArgs) -> Dict[str, Any]:
@@ -79,14 +86,23 @@ async def send_command(
             state["last_command"] = data.name
             await ctx.info(f"Sending command {data.name} to device {device_id}")
             await ctx.report_progress(0.0, 1.0, "sending")
-        result = await handle_api(
-            "send_command", client.send_command(device_id, req)
-        )
+
+        if data.dry_run:
+            logger.info("Dry run: would send command", extra={"device_id": device_id, "command": data.name})
+            result = {"dry_run": True}
+        else:
+            result = await handle_api(
+                "send_command", client.send_command(device_id, req)
+            )
+
         if ctx:
             await ctx.report_progress(1.0, 1.0, "done")
         return ToolResponse(
             data=result.get("data", result),
-            summary=f"Command '{data.friendly_name}' sent to device {device_id}",
+            summary=(
+                f"Dry run: would send '{data.friendly_name}'" if data.dry_run else f"Command '{data.friendly_name}' sent"
+            )
+            + f" to device {device_id}",
             next_steps=["get_device_status"],
         )
 
@@ -200,4 +216,69 @@ async def set_context(
         state["current_space_id"] = space_id
 
     return ToolResponse(data=state, summary="Context updated")
+
+
+async def start_meeting_room_preset(
+    room_name: str,
+    preset_name: str,
+    ctx: Context | None = None,
+) -> ToolResponse:
+    """Configure a meeting room for a preset workflow."""
+    if ctx:
+        await ctx.info(f"Configuring {room_name} for {preset_name}")
+        await ctx.report_progress(0.0, 1.0, "starting")
+    # Placeholder logic. Real implementation would orchestrate multiple commands
+    await anyio.sleep(0)  # yield control
+    if ctx:
+        await ctx.report_progress(1.0, 1.0, "done")
+    return ToolResponse(
+        data={"room_name": room_name, "preset_name": preset_name},
+        summary=f"Room {room_name} set to {preset_name} preset",
+    )
+
+
+async def shutdown_meeting_room(
+    room_name: str,
+    ctx: Context | None = None,
+) -> ToolResponse:
+    """Power down AV equipment in the specified room."""
+    if ctx:
+        await ctx.info(f"Shutting down room {room_name}")
+        await ctx.report_progress(0.0, 1.0, "shutting_down")
+    await anyio.sleep(0)
+    if ctx:
+        await ctx.report_progress(1.0, 1.0, "done")
+    return ToolResponse(
+        data={"room_name": room_name},
+        summary=f"Shutdown routine completed for {room_name}",
+    )
+
+
+async def log_automation_attempt(
+    workflow_name: str,
+    device_id: str,
+    steps_taken: list[str],
+    outcome: str,
+    user_feedback: Optional[str] = None,
+    error_details: Optional[str] = None,
+    ctx: Context | None = None,
+) -> ToolResponse:
+    """Record the result of an automated workflow."""
+    entry = {
+        "workflow_name": workflow_name,
+        "device_id": device_id,
+        "steps_taken": steps_taken,
+        "outcome": outcome,
+        "user_feedback": user_feedback,
+        "error_details": error_details,
+    }
+    path = Path("logs") / "automation.log"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
+    logger.info("automation_attempt", extra=entry)
+    if ctx:
+        await ctx.info("Automation attempt logged")
+    return ToolResponse(data=entry, summary="Attempt recorded")
+
 

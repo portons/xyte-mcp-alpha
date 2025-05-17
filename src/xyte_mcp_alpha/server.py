@@ -141,6 +141,18 @@ mcp.tool(
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "set_context")(tools.set_context))
 mcp.tool(
+    description="Start meeting room preset",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)(instrument("tool", "start_meeting_room_preset")(tools.start_meeting_room_preset))
+mcp.tool(
+    description="Shutdown meeting room",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)(instrument("tool", "shutdown_meeting_room")(tools.shutdown_meeting_room))
+mcp.tool(
+    description="Log automation attempt",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+)(instrument("tool", "log_automation_attempt")(tools.log_automation_attempt))
+mcp.tool(
     description="Send a command asynchronously",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
 )(tasks.send_command_async)
@@ -156,6 +168,8 @@ mcp.tool(
 # Prompt registrations
 mcp.prompt()(prompts.reboot_device_workflow)
 mcp.prompt()(prompts.check_projectors_health)
+mcp.prompt()(prompts.proactive_projector_maintenance_check)
+mcp.prompt()(prompts.troubleshoot_offline_device_workflow)
 
 
 def get_server() -> Any:
