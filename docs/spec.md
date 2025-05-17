@@ -42,7 +42,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * For critical errors, provide enough context in server logs (without exposing sensitive data) for easier diagnosis.
       * Consider using the `Context` object (if using FastMCP) for standardized error logging within tools/resources.
 
-* [ ] **Task A4: Refine Configuration Management**
+* [x] **Task A4: Refine Configuration Management**
    * **Description:** Review `config.py` and environment variable usage. Ensure configurations are loaded securely and efficiently, and consider support for different environments (dev, staging, prod).
    * **Rationale:** Robust configuration is key for operational stability and security.
    * **Action Items:**
@@ -51,7 +51,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * Document all environment variables clearly.
       * Consider structured configuration for different deployment environments if not already in place.
 
-* [ ] **Task A5: Security Hardening**
+* [x] **Task A5: Security Hardening**
    * **Description:** Implement comprehensive security best practices beyond basic input validation and secret management.
    * **Rationale:** MCP servers can become powerful interfaces to backend systems (like Xyte for AV control), making security paramount. This aligns with research on MCP vulnerabilities (unauthenticated access, over-permissioned tokens, etc.).
    * **Action Items:**
@@ -77,7 +77,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
 
 This section focuses on leveraging the full potential of the Model Context Protocol.
 
-* [ ] **Task B1: Optimize Tool Definitions and Implementations**
+* [v] **Task B1: Optimize Tool Definitions and Implementations**
    * **Description:** Review and refine the existing tools exposed by the MCP server. Ensure they are well-defined, atomic, and provide clear descriptions for AI agent consumption.
    * **Rationale:** Clear and well-scoped tools are easier for AI agents to understand and use correctly. The official MCP documentation and SDKs (like FastMCP) provide guidance on tool annotations and schemas.
    * **Action Items:**
@@ -87,7 +87,7 @@ This section focuses on leveraging the full potential of the Model Context Proto
       * Break down complex operations into smaller, more atomic tools if applicable.
       * Leverage tool annotations (e.g., `readOnlyHint`, `destructiveHint` from MCP specification) if supported by your SDK and relevant to AV control.
 
-* [ ] **Task B2: Structure and Expose Resources Effectively**
+* [v] **Task B2: Structure and Expose Resources Effectively**
    * **Description:** Identify and expose relevant data from the Xyte platform as MCP resources. This could include device lists, device statuses, room configurations, etc.
    * **Rationale:** Resources provide contextual information to AI agents, enhancing their ability to make informed decisions before invoking tools.
    * **Action Items:**
@@ -118,14 +118,14 @@ This section focuses on leveraging the full potential of the Model Context Proto
 
 This section outlines new features to expand the server's capabilities.
 
-* [ ] **Task C1: Support for Dynamic Tool/Resource Discovery (If applicable)**
+* [v] **Task C1: Support for Dynamic Tool/Resource Discovery (If applicable)**
    * **Description:** If the range of Xyte devices or available actions changes frequently, consider mechanisms for AI agents to dynamically discover available tools and resources.
    * **Rationale:** Makes the MCP server more adaptive to changes in the underlying Xyte platform or device capabilities. MCP specification includes `tools/list` and `resources/list` methods.
    * **Action Items:**
       * Ensure your server correctly implements the standard MCP methods for listing available tools and resources with up-to-date information.
       * If capabilities can change during a session, implement `notifications/tools/list_changed` and `notifications/resources/list_changed`.
 
-* [ ] **Task C2: Event-Driven Interactions for AV Automation**
+* [v] **Task C2: Event-Driven Interactions for AV Automation**
    * **Description:** Explore integration with event streams from the Xyte platform or AV devices to enable proactive AI agent responses.
    * **Rationale:** AV systems often generate events (e.g., device offline, error detected). MCP could enable AI agents to subscribe to or be notified of these events and take autonomous action.
    * **Action Items:**

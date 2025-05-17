@@ -1,7 +1,11 @@
 import asyncio
+import time
 from typing import Any, Dict, Awaitable
+from collections import deque
+import logging
 
 from pydantic import ValidationError
+from .config import get_settings
 
 from .models import DeviceId, TicketId
 
@@ -23,12 +27,35 @@ REQUEST_LATENCY = Histogram(
 ERROR_COUNT = Counter("xyte_errors_total", "XYTE API errors", ["endpoint", "code"])
 STATUS_COUNT = Counter("xyte_status_total", "XYTE API status codes", ["status"])
 
+# Audit logger for security related events
+audit_logger = logging.getLogger("audit")
+
+# Simple in-memory rate limiter
+_REQUEST_TIMESTAMPS: deque[float] = deque()
+
+
+def enforce_rate_limit() -> None:
+    """Raise MCPError if request rate exceeds configured threshold."""
+    settings = get_settings()
+    limit = settings.rate_limit_per_minute
+    window = 60.0
+    now = time.monotonic()
+    while _REQUEST_TIMESTAMPS and now - _REQUEST_TIMESTAMPS[0] > window:
+        _REQUEST_TIMESTAMPS.popleft()
+    if len(_REQUEST_TIMESTAMPS) >= limit:
+        audit_logger.warning("rate limit exceeded")
+        raise MCPError(code="rate_limited", message="Too many requests")
+    _REQUEST_TIMESTAMPS.append(now)
+
 
 def validate_device_id(device_id: str) -> str:
     """Validate and sanitize a device identifier."""
     try:
-        return DeviceId(device_id=device_id).device_id.strip()
-    except ValidationError as exc:  # pragma: no cover - simple validation
+        value = DeviceId(device_id=device_id).device_id.strip()
+        if not value:
+            raise ValueError("device_id cannot be empty")
+        return value
+    except (ValidationError, ValueError) as exc:  # pragma: no cover - simple validation
         raise MCPError(code="invalid_params", message=str(exc))
 
 
@@ -42,6 +69,8 @@ def validate_ticket_id(ticket_id: str) -> str:
 
 async def handle_api(name: str, coro: Awaitable[Dict[str, Any]]) -> Dict[str, Any]:
     """Execute an API call, track metrics and translate errors."""
+    enforce_rate_limit()
+    audit_logger.info("%s", name)
     start = asyncio.get_event_loop().time()
     try:
         result = await coro
