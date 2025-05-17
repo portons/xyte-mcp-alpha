@@ -7,6 +7,7 @@ import httpx
 from cachetools import TTLCache
 from pydantic import BaseModel, Field
 from datetime import datetime
+import anyio
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,19 @@ class XyteAPIClient:
         ttl = int(os.getenv("XYTE_CACHE_TTL", "60"))
         self.cache = TTLCache(maxsize=128, ttl=ttl)
 
+    def _request_timeout(self) -> float | None:
+        """Return remaining time before the current cancel scope deadline."""
+        try:
+            deadline = anyio.current_effective_deadline()
+        except RuntimeError:
+            return None
+        if deadline == float("inf"):
+            return None
+        remaining = deadline - anyio.current_time()
+        if remaining <= 0:
+            raise httpx.TimeoutException("Deadline exceeded")
+        return remaining
+
     async def __aenter__(self) -> "XyteAPIClient":
         return self
 
@@ -110,7 +124,7 @@ class XyteAPIClient:
         """List all devices in the organization."""
         if "devices" in self.cache:
             return self.cache["devices"]
-        response = await self.client.get("/devices")
+        response = await self.client.get("/devices", timeout=self._request_timeout())
         response.raise_for_status()
         data = response.json()
         self.cache["devices"] = data
@@ -119,14 +133,18 @@ class XyteAPIClient:
     async def claim_device(self, device_data: ClaimDeviceRequest) -> Dict[str, Any]:
         """Register (claim) a new device under the organization."""
         response = await self.client.post(
-            "/devices/claim", json=device_data.model_dump(exclude_none=True)
+            "/devices/claim",
+            json=device_data.model_dump(exclude_none=True),
+            timeout=self._request_timeout(),
         )
         response.raise_for_status()
         return response.json()
 
     async def delete_device(self, device_id: str) -> Dict[str, Any]:
         """Delete (remove) a device by its ID."""
-        response = await self.client.delete(f"/devices/{device_id}")
+        response = await self.client.delete(
+            f"/devices/{device_id}", timeout=self._request_timeout()
+        )
         response.raise_for_status()
         return response.json()
 
@@ -135,7 +153,9 @@ class XyteAPIClient:
     ) -> Dict[str, Any]:
         """Update configuration or details of a specific device."""
         response = await self.client.patch(
-            f"/devices/{device_id}", json=device_data.model_dump()
+            f"/devices/{device_id}",
+            json=device_data.model_dump(),
+            timeout=self._request_timeout(),
         )
         response.raise_for_status()
         return response.json()
@@ -164,7 +184,11 @@ class XyteAPIClient:
         if name:
             params["name"] = name
 
-        response = await self.client.get("/devices/histories", params=params)
+        response = await self.client.get(
+            "/devices/histories",
+            params=params,
+            timeout=self._request_timeout(),
+        )
         response.raise_for_status()
         return response.json()
 
@@ -174,7 +198,9 @@ class XyteAPIClient:
     ) -> Dict[str, Any]:
         """Send a command to the specified device."""
         response = await self.client.post(
-            f"/devices/{device_id}/commands", json=command_data.model_dump()
+            f"/devices/{device_id}/commands",
+            json=command_data.model_dump(),
+            timeout=self._request_timeout(),
         )
         response.raise_for_status()
         return response.json()
@@ -186,13 +212,16 @@ class XyteAPIClient:
         response = await self.client.delete(
             f"/devices/{device_id}/commands/{command_id}",
             json=command_data.model_dump(),
+            timeout=self._request_timeout(),
         )
         response.raise_for_status()
         return response.json()
 
     async def get_commands(self, device_id: str) -> Dict[str, Any]:
         """List all commands for the specified device."""
-        response = await self.client.get(f"/{device_id}/commands")
+        response = await self.client.get(
+            f"/{device_id}/commands", timeout=self._request_timeout()
+        )
         response.raise_for_status()
         return response.json()
 
@@ -201,7 +230,10 @@ class XyteAPIClient:
         """Retrieve information about the organization."""
         # Note: This is a GET request with a body, which is unusual but as specified in the API
         response = await self.client.request(
-            "GET", "/info", json={"device_id": device_id}
+            "GET",
+            "/info",
+            json={"device_id": device_id},
+            timeout=self._request_timeout(),
         )
         response.raise_for_status()
         return response.json()
@@ -211,7 +243,9 @@ class XyteAPIClient:
         """Retrieve all incidents for the organization."""
         if "incidents" in self.cache:
             return self.cache["incidents"]
-        response = await self.client.get("/incidents")
+        response = await self.client.get(
+            "/incidents", timeout=self._request_timeout()
+        )
         response.raise_for_status()
         data = response.json()
         self.cache["incidents"] = data
@@ -222,7 +256,9 @@ class XyteAPIClient:
         """Retrieve all support tickets for the organization."""
         if "tickets" in self.cache:
             return self.cache["tickets"]
-        response = await self.client.get("/tickets")
+        response = await self.client.get(
+            "/tickets", timeout=self._request_timeout()
+        )
         response.raise_for_status()
         data = response.json()
         self.cache["tickets"] = data
@@ -230,7 +266,9 @@ class XyteAPIClient:
 
     async def get_ticket(self, ticket_id: str) -> Dict[str, Any]:
         """Retrieve a specific support ticket by ID."""
-        response = await self.client.get(f"/tickets/{ticket_id}")
+        response = await self.client.get(
+            f"/tickets/{ticket_id}", timeout=self._request_timeout()
+        )
         response.raise_for_status()
         return response.json()
 
@@ -239,14 +277,18 @@ class XyteAPIClient:
     ) -> Dict[str, Any]:
         """Update the details of a specific ticket."""
         response = await self.client.put(
-            f"/tickets/{ticket_id}", json=ticket_data.model_dump()
+            f"/tickets/{ticket_id}",
+            json=ticket_data.model_dump(),
+            timeout=self._request_timeout(),
         )
         response.raise_for_status()
         return response.json()
 
     async def mark_ticket_resolved(self, ticket_id: str) -> Dict[str, Any]:
         """Mark the specified ticket as resolved."""
-        response = await self.client.post(f"/tickets/{ticket_id}/resolved")
+        response = await self.client.post(
+            f"/tickets/{ticket_id}/resolved", timeout=self._request_timeout()
+        )
         response.raise_for_status()
         return response.json()
 
@@ -255,7 +297,9 @@ class XyteAPIClient:
     ) -> Dict[str, Any]:
         """Send a new message to the specified ticket thread."""
         response = await self.client.post(
-            f"/tickets/{ticket_id}/message", json=message_data.model_dump()
+            f"/tickets/{ticket_id}/message",
+            json=message_data.model_dump(),
+            timeout=self._request_timeout(),
         )
         response.raise_for_status()
         return response.json()
