@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict, Optional
 
+from . import plugin
+
 from pydantic import BaseModel, Field
 
 
@@ -22,6 +24,8 @@ _event_queue: asyncio.Queue[Event] = asyncio.Queue()
 async def push_event(event: Event) -> None:
     """Add an event to the queue."""
     await _event_queue.put(event)
+    # Notify plugins about the new event
+    plugin.fire_event(event.model_dump())
 
 
 class GetNextEventRequest(BaseModel):
