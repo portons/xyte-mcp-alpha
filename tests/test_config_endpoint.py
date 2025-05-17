@@ -14,7 +14,6 @@ class ConfigEndpointTestCase(unittest.TestCase):
         os.environ["XYTE_API_KEY"] = "secret"
         get_settings.cache_clear()
         import importlib
-        import xyte_mcp_alpha.http as http_mod
         importlib.reload(http_mod)
         self.client = TestClient(http_mod.app)
 

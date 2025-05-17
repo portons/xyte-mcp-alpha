@@ -4,7 +4,6 @@ from starlette.testclient import TestClient
 
 from xyte_mcp_alpha import plugin
 from xyte_mcp_alpha.http import app
-from xyte_mcp_alpha import events
 
 
 class PluginHTTPIntegrationTestCase(unittest.TestCase):

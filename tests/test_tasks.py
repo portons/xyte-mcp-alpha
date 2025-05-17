@@ -1,5 +1,4 @@
 import asyncio
-import types
 import unittest
 
 from xyte_mcp_alpha import tasks
