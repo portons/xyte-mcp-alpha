@@ -1,6 +1,5 @@
 """Xyte Organization API client."""
 
-import os
 import logging
 from typing import Any, Dict, Optional
 import httpx
@@ -8,6 +7,7 @@ from cachetools import TTLCache
 from pydantic import BaseModel, Field
 from datetime import datetime
 import anyio
+from .config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -76,11 +76,12 @@ class XyteAPIClient:
             api_key: API key for authentication. If not provided, will try to get from env.
             base_url: Base URL for the API. Defaults to production URL.
         """
-        self.api_key = api_key or os.getenv("XYTE_API_KEY")
+        settings = get_settings()
+        self.api_key = api_key or settings.xyte_api_key
         if not self.api_key:
             raise ValueError("XYTE_API_KEY must be provided or set in environment")
 
-        self.base_url = base_url or "https://hub.xyte.io/core/v1/organization"
+        self.base_url = base_url or settings.xyte_base_url
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
         transport = httpx.AsyncHTTPTransport(retries=3, limits=limits)
         self.client = httpx.AsyncClient(
@@ -93,8 +94,7 @@ class XyteAPIClient:
             transport=transport,
         )
 
-        ttl = int(os.getenv("XYTE_CACHE_TTL", "60"))
-        self.cache = TTLCache(maxsize=128, ttl=ttl)
+        self.cache = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
 
     def _request_timeout(self) -> float | None:
         """Return remaining time before the current cancel scope deadline."""
@@ -139,6 +139,19 @@ class XyteAPIClient:
         )
         response.raise_for_status()
         return response.json()
+
+    async def get_device(self, device_id: str) -> Dict[str, Any]:
+        """Return details and status for a single device."""
+        cache_key = f"device:{device_id}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        response = await self.client.get(
+            f"/devices/{device_id}", timeout=self._request_timeout()
+        )
+        response.raise_for_status()
+        data = response.json()
+        self.cache[cache_key] = data
+        return data
 
     async def delete_device(self, device_id: str) -> Dict[str, Any]:
         """Delete (remove) a device by its ID."""
@@ -220,7 +233,7 @@ class XyteAPIClient:
     async def get_commands(self, device_id: str) -> Dict[str, Any]:
         """List all commands for the specified device."""
         response = await self.client.get(
-            f"/{device_id}/commands", timeout=self._request_timeout()
+            f"/devices/{device_id}/commands", timeout=self._request_timeout()
         )
         response.raise_for_status()
         return response.json()
