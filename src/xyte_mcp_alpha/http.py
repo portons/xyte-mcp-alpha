@@ -1,9 +1,11 @@
 """HTTP entrypoint for the MCP server."""
 
 from .server import get_server
+from .logging_utils import RequestLoggingMiddleware
 
 # Expose ASGI app for Uvicorn or other ASGI servers
 app = get_server().streamable_http_app()
+app.add_middleware(RequestLoggingMiddleware)
 
 
 def main():
