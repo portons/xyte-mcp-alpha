@@ -12,6 +12,18 @@ from .config import get_settings
 
 logger = logging.getLogger(__name__)
 
+# Prometheus counters for cache monitoring - register at module level
+CACHE_HITS = Counter(
+    "xyte_cache_hits_total",
+    "Number of cache hits",
+    ["key"],
+)
+CACHE_MISSES = Counter(
+    "xyte_cache_misses_total",
+    "Number of cache misses",
+    ["key"],
+)
+
 
 class ClaimDeviceRequest(BaseModel):
     """Request model for claiming a device."""
@@ -92,18 +104,6 @@ class XyteAPIClient:
         )
         self.cache = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
 
-        # Prometheus counters for cache monitoring
-        self.cache_hits = Counter(
-            "xyte_cache_hits_total",
-            "Number of cache hits",
-            ["key"],
-        )
-        self.cache_misses = Counter(
-            "xyte_cache_misses_total",
-            "Number of cache misses",
-            ["key"],
-        )
-
     def cache_stats(self) -> Dict[str, Any]:
         """Return simple cache statistics for monitoring."""
         return {"size": len(self.cache), "ttl": self.cache.ttl}
@@ -135,9 +135,9 @@ class XyteAPIClient:
     async def get_devices(self) -> Dict[str, Any]:
         """List all devices in the organization."""
         if "devices" in self.cache:
-            self.cache_hits.labels(key="devices").inc()
+            CACHE_HITS.labels(key="devices").inc()
             return self.cache["devices"]
-        self.cache_misses.labels(key="devices").inc()
+        CACHE_MISSES.labels(key="devices").inc()
         response = await self.client.get("/devices", timeout=self._request_timeout())
         response.raise_for_status()
         data = response.json()
@@ -158,9 +158,9 @@ class XyteAPIClient:
         """Return details and status for a single device."""
         cache_key = f"device:{device_id}"
         if cache_key in self.cache:
-            self.cache_hits.labels(key="device").inc()
+            CACHE_HITS.labels(key="device").inc()
             return self.cache[cache_key]
-        self.cache_misses.labels(key="device").inc()
+        CACHE_MISSES.labels(key="device").inc()
         response = await self.client.get(f"/devices/{device_id}", timeout=self._request_timeout())
         response.raise_for_status()
         data = response.json()
@@ -279,9 +279,9 @@ class XyteAPIClient:
     async def get_incidents(self) -> Dict[str, Any]:
         """Retrieve all incidents for the organization."""
         if "incidents" in self.cache:
-            self.cache_hits.labels(key="incidents").inc()
+            CACHE_HITS.labels(key="incidents").inc()
             return self.cache["incidents"]
-        self.cache_misses.labels(key="incidents").inc()
+        CACHE_MISSES.labels(key="incidents").inc()
         response = await self.client.get("/incidents", timeout=self._request_timeout())
         response.raise_for_status()
         data = response.json()
@@ -292,9 +292,9 @@ class XyteAPIClient:
     async def get_tickets(self) -> Dict[str, Any]:
         """Retrieve all support tickets for the organization."""
         if "tickets" in self.cache:
-            self.cache_hits.labels(key="tickets").inc()
+            CACHE_HITS.labels(key="tickets").inc()
             return self.cache["tickets"]
-        self.cache_misses.labels(key="tickets").inc()
+        CACHE_MISSES.labels(key="tickets").inc()
         response = await self.client.get("/tickets", timeout=self._request_timeout())
         response.raise_for_status()
         data = response.json()

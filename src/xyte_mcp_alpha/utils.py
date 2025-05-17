@@ -45,7 +45,7 @@ def enforce_rate_limit() -> None:
         MCPError: If rate limit is exceeded
     """
     now = time.time()
-    limit = get_settings().rate_limit
+    limit = get_settings().rate_limit_per_minute
     
     # Remove timestamps older than 60 seconds
     while _REQUEST_TIMESTAMPS and _REQUEST_TIMESTAMPS[0] < now - 60:
