@@ -189,8 +189,11 @@ These variables can also be configured when deploying via Helm. See `helm/values
 ### Security Considerations
 
 Ensure the value provided for `XYTE_API_KEY` has only the permissions required
-for the tools you expose. Avoid logging this key or any per-user token. Run
-`scripts/security_scan.sh` regularly to check dependencies for vulnerabilities.
+for the tools you expose. Avoid logging this key or any per-user token. Store
+all secrets in an `.env` file or a dedicated secrets manager and never commit
+them to version control. Rotate keys and tokens periodically and reload the
+server after updating the `.env` file. Run `scripts/security_scan.sh` regularly
+to check dependencies for vulnerabilities.
 
 ### Error Handling
 
