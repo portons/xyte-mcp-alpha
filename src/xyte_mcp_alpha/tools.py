@@ -6,6 +6,7 @@ import anyio
 
 from .deps import get_client
 from .utils import handle_api, get_session_state, validate_device_id, MCPError
+from . import resources
 from mcp.server.fastmcp.server import Context
 from .client import (
     ClaimDeviceRequest,
@@ -24,6 +25,8 @@ from .models import (
     SearchDeviceHistoriesRequest,
     ToolResponse,
     DeleteDeviceArgs,
+    FindAndControlDeviceRequest,
+    DiagnoseAVIssueRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,19 +46,21 @@ async def delete_device(data: DeleteDeviceArgs) -> ToolResponse:
     """Delete an existing device by its identifier."""
     if data.dry_run:
         logger.info("Dry run: would delete device", extra={"device_id": data.device_id})
-        return ToolResponse(data={"dry_run": True}, summary=f"Dry run: Would delete device {data.device_id}")
+        return ToolResponse(
+            data={"dry_run": True}, summary=f"Dry run: Would delete device {data.device_id}"
+        )
     async with get_client() as client:
         result = await handle_api("delete_device", client.delete_device(data.device_id))
-        return ToolResponse(data=result.get("data", result), summary=f"Device {data.device_id} deleted")
+        return ToolResponse(
+            data=result.get("data", result), summary=f"Device {data.device_id} deleted"
+        )
 
 
 async def update_device(data: UpdateDeviceArgs) -> Dict[str, Any]:
     """Apply configuration updates to a device."""
     async with get_client() as client:
         req = UpdateDeviceRequest(configuration=data.configuration)
-        return await handle_api(
-            "update_device", client.update_device(data.device_id, req)
-        )
+        return await handle_api("update_device", client.update_device(data.device_id, req))
 
 
 async def send_command(
@@ -68,9 +73,7 @@ async def send_command(
         state = get_session_state(ctx)
         device_id = state.get("current_device_id")
         if device_id:
-            logger.info(
-                "Defaulting device_id from context", extra={"device_id": device_id}
-            )
+            logger.info("Defaulting device_id from context", extra={"device_id": device_id})
     if not device_id:
         raise MCPError(code="missing_device_id", message="device_id is required")
 
@@ -88,19 +91,21 @@ async def send_command(
             await ctx.report_progress(0.0, 1.0, "sending")
 
         if data.dry_run:
-            logger.info("Dry run: would send command", extra={"device_id": device_id, "command": data.name})
+            logger.info(
+                "Dry run: would send command", extra={"device_id": device_id, "command": data.name}
+            )
             result = {"dry_run": True}
         else:
-            result = await handle_api(
-                "send_command", client.send_command(device_id, req)
-            )
+            result = await handle_api("send_command", client.send_command(device_id, req))
 
         if ctx:
             await ctx.report_progress(1.0, 1.0, "done")
         return ToolResponse(
             data=result.get("data", result),
             summary=(
-                f"Dry run: would send '{data.friendly_name}'" if data.dry_run else f"Command '{data.friendly_name}' sent"
+                f"Dry run: would send '{data.friendly_name}'"
+                if data.dry_run
+                else f"Command '{data.friendly_name}' sent"
             )
             + f" to device {device_id}",
             next_steps=["get_device_status"],
@@ -126,17 +131,13 @@ async def update_ticket(data: UpdateTicketRequest) -> Dict[str, Any]:
     """Modify the title or description of a support ticket."""
     async with get_client() as client:
         req = TicketUpdateRequest(title=data.title, description=data.description)
-        return await handle_api(
-            "update_ticket", client.update_ticket(data.ticket_id, req)
-        )
+        return await handle_api("update_ticket", client.update_ticket(data.ticket_id, req))
 
 
 async def mark_ticket_resolved(data: MarkTicketResolvedRequest) -> Dict[str, Any]:
     """Mark a ticket as resolved."""
     async with get_client() as client:
-        return await handle_api(
-            "mark_ticket_resolved", client.mark_ticket_resolved(data.ticket_id)
-        )
+        return await handle_api("mark_ticket_resolved", client.mark_ticket_resolved(data.ticket_id))
 
 
 async def send_ticket_message(data: SendTicketMessageRequest) -> Dict[str, Any]:
@@ -147,6 +148,7 @@ async def send_ticket_message(data: SendTicketMessageRequest) -> Dict[str, Any]:
             "send_ticket_message", client.send_ticket_message(data.ticket_id, req)
         )
 
+
 async def search_device_histories(
     params: SearchDeviceHistoriesRequest,
     ctx: Context | None = None,
@@ -155,9 +157,7 @@ async def search_device_histories(
     async with get_client() as client:
         from datetime import datetime
 
-        from_dt = (
-            datetime.fromisoformat(params.from_date) if params.from_date else None
-        )
+        from_dt = datetime.fromisoformat(params.from_date) if params.from_date else None
         to_dt = datetime.fromisoformat(params.to_date) if params.to_date else None
 
         if ctx:
@@ -282,3 +282,84 @@ async def log_automation_attempt(
     return ToolResponse(data=entry, summary="Attempt recorded")
 
 
+async def find_and_control_device(
+    data: FindAndControlDeviceRequest,
+    ctx: Context | None = None,
+) -> ToolResponse:
+    """Find a device by room/name hints and perform an action."""
+    async with get_client() as client:
+        devices = await handle_api("get_devices", client.get_devices())
+
+    device_list = devices.get("devices", devices)
+    matches = []
+    room = data.room_name.lower()
+    for dev in device_list:
+        if room in str(dev.get("space_name", "")).lower():
+            if (
+                data.device_type_hint
+                and data.device_type_hint not in str(dev.get("type", "")).lower()
+            ):
+                continue
+            matches.append(dev)
+
+    if not matches:
+        from difflib import get_close_matches
+
+        names = [d.get("space_name", "") for d in device_list]
+        close = get_close_matches(room, names, n=1)
+        if close:
+            matches = [d for d in device_list if d.get("space_name") == close[0]]
+
+    if not matches:
+        raise MCPError(code="device_not_found", message="No matching device found")
+
+    device = matches[0]
+    summary = f"Selected {device.get('name')} in {device.get('space_name')}"
+    if ctx:
+        await ctx.info(summary)
+
+    cmd = SendCommandArgs(
+        device_id=device.get("id"),
+        name=data.action,
+        friendly_name=data.action.replace("_", " "),
+        extra_params={"input": data.input_source_hint} if data.input_source_hint else {},
+    )
+    result = await send_command(cmd, ctx=ctx)
+    return ToolResponse(
+        data={"device": device, "command": result.data},
+        summary=summary + f" -> {data.action}",
+    )
+
+
+async def diagnose_av_issue(
+    data: DiagnoseAVIssueRequest,
+    ctx: Context | None = None,
+) -> ToolResponse:
+    """Run basic diagnostics for a room based on an issue description."""
+    async with get_client() as client:
+        devices = await handle_api("get_devices", client.get_devices())
+
+    room_lower = data.room_name.lower()
+    device = next(
+        (
+            d
+            for d in devices.get("devices", devices)
+            if room_lower in str(d.get("space_name", "")).lower()
+        ),
+        None,
+    )
+
+    if not device:
+        raise MCPError(code="device_not_found", message="No device found for room")
+
+    status = await resources.device_status(device["id"])
+    histories = await search_device_histories(
+        SearchDeviceHistoriesRequest(device_id=device["id"]),
+        ctx=ctx,
+    )
+
+    return ToolResponse(
+        data={"status": status, "histories": histories},
+        summary="Diagnostics gathered",
+        next_steps=["send_command"],
+    )
