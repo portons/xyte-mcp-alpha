@@ -12,6 +12,7 @@ All resources and tools return structured JSON objects rather than plain strings
 - `devices://` - List all devices in the organization
 - `device://{device_id}/commands` - List commands for a specific device
 - `device://{device_id}/histories` - Get history records for a device
+- `device://{device_id}/status` - Get current status for a device
 - `organization://info/{device_id}` - Get organization info for a device context
 - `incidents://` - Retrieve all incidents
 - `tickets://` - List all support tickets
@@ -151,6 +152,14 @@ This opens an interactive UI where you can test tools and resources.
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
 - `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
+- `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
+- `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
+
+### Security Considerations
+
+Ensure the value provided for `XYTE_API_KEY` has only the permissions required
+for the tools you expose. Avoid logging this key or any per-user token. Run
+`scripts/security_scan.sh` regularly to check dependencies for vulnerabilities.
 
 ### Error Handling
 
