@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,10 +19,37 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .
-          pip install ruff
-      - name: Run static analysis
+          pip install ruff mypy coverage
+      - name: Lint
         run: ruff check src tests
-      - name: Run tests
-        run: python -m unittest discover -v
+      - name: Type checks
+        run: mypy src || true
+      - name: Run tests with coverage
+        run: |
+          coverage run -m unittest discover -v
+          coverage xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: false
+      - name: Build Docker image
+        run: docker build -t xyte-mcp-alpha:${{ github.sha }} .
       - name: Security scan
         run: scripts/security_scan.sh || true
+
+  publish:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}:${{ github.ref_name }} .
+          docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}

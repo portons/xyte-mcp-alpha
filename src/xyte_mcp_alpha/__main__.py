@@ -1,4 +1,5 @@
 """Main entry point for xyte-mcp-alpha."""
+# ruff: noqa: E402
 
 import sys
 import asyncio

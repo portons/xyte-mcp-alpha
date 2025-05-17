@@ -1,5 +1,8 @@
 # Xyte MCP Server
 
+![CI](https://github.com/portons/xyte-mcp-alpha/actions/workflows/ci.yml/badge.svg)
+[![Coverage](https://codecov.io/gh/portons/xyte-mcp-alpha/branch/main/graph/badge.svg)](https://codecov.io/gh/portons/xyte-mcp-alpha)
+
 An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
 
 ## Quickstart
