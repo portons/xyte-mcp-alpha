@@ -188,6 +188,14 @@ Use the new `set_context` tool to store a default `device_id` or `space_id` for 
 
 The `get_device_analytics_report` tool exposes advanced analytics from the Xyte API to AI agents.
 
+### Room Preset Tools
+
+Use `start_meeting_room_preset` and `shutdown_meeting_room` to quickly prepare or power down a room. These tools abstract multiple device commands into a single call.
+
+### Dry Run Mode
+
+Destructive tools like `send_command` and `delete_device` now accept a `dry_run` flag. When true, the server will log the intended action but skip calling the Xyte API.
+
 ## License
 
 MIT

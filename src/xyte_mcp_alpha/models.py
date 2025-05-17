@@ -37,12 +37,19 @@ class SendTicketMessageRequest(MarkTicketResolvedRequest):
     message: str = Field(..., description="Message content to send")
 
 
+class DeleteDeviceArgs(DeviceId):
+    """Arguments for deleting a device."""
+
+    dry_run: bool = Field(False, description="Simulate deletion without action")
+
+
 class SendCommandArgs(CommandRequest):
     """Parameters for sending a command with optional context defaults."""
 
     device_id: Optional[str] = Field(
         None, description="Identifier of the target device"
     )
+    dry_run: bool = Field(False, description="Simulate without sending")
 
 
 class SendCommandRequest(DeviceId, CommandRequest):

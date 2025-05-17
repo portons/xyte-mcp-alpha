@@ -7,7 +7,7 @@ from .config import get_settings
 
 load_dotenv()
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = ["get_server", "get_settings", "__version__"]
 
 
