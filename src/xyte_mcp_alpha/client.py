@@ -233,7 +233,7 @@ class XyteAPIClient:
     async def get_commands(self, device_id: str) -> Dict[str, Any]:
         """List all commands for the specified device."""
         response = await self.client.get(
-            f"/{device_id}/commands", timeout=self._request_timeout()
+            f"/devices/{device_id}/commands", timeout=self._request_timeout()
         )
         response.raise_for_status()
         return response.json()
