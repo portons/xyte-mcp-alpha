@@ -77,7 +77,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
 
 This section focuses on leveraging the full potential of the Model Context Protocol.
 
-* [ ] **Task B1: Optimize Tool Definitions and Implementations**
+* [v] **Task B1: Optimize Tool Definitions and Implementations**
    * **Description:** Review and refine the existing tools exposed by the MCP server. Ensure they are well-defined, atomic, and provide clear descriptions for AI agent consumption.
    * **Rationale:** Clear and well-scoped tools are easier for AI agents to understand and use correctly. The official MCP documentation and SDKs (like FastMCP) provide guidance on tool annotations and schemas.
    * **Action Items:**
@@ -87,7 +87,7 @@ This section focuses on leveraging the full potential of the Model Context Proto
       * Break down complex operations into smaller, more atomic tools if applicable.
       * Leverage tool annotations (e.g., `readOnlyHint`, `destructiveHint` from MCP specification) if supported by your SDK and relevant to AV control.
 
-* [ ] **Task B2: Structure and Expose Resources Effectively**
+* [v] **Task B2: Structure and Expose Resources Effectively**
    * **Description:** Identify and expose relevant data from the Xyte platform as MCP resources. This could include device lists, device statuses, room configurations, etc.
    * **Rationale:** Resources provide contextual information to AI agents, enhancing their ability to make informed decisions before invoking tools.
    * **Action Items:**

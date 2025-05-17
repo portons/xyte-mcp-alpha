@@ -140,6 +140,19 @@ class XyteAPIClient:
         response.raise_for_status()
         return response.json()
 
+    async def get_device(self, device_id: str) -> Dict[str, Any]:
+        """Return details and status for a single device."""
+        cache_key = f"device:{device_id}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        response = await self.client.get(
+            f"/devices/{device_id}", timeout=self._request_timeout()
+        )
+        response.raise_for_status()
+        data = response.json()
+        self.cache[cache_key] = data
+        return data
+
     async def delete_device(self, device_id: str) -> Dict[str, Any]:
         """Delete (remove) a device by its ID."""
         response = await self.client.delete(

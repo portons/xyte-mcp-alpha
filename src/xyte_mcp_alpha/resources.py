@@ -28,6 +28,13 @@ async def list_device_histories(device_id: str) -> Dict[str, Any]:
         )
 
 
+async def device_status(device_id: str) -> Dict[str, Any]:
+    """Return status information for a single device."""
+    device_id = validate_device_id(device_id)
+    async with get_client() as client:
+        return await handle_api("get_device", client.get_device(device_id))
+
+
 async def organization_info(device_id: str) -> Dict[str, Any]:
     """Fetch organization information for a device."""
     device_id = validate_device_id(device_id)
