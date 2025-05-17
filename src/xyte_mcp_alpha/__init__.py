@@ -3,6 +3,9 @@
 from dotenv import load_dotenv
 
 from .server import get_server
+from .config import get_settings
+
+load_dotenv()
 
 load_dotenv()
 
