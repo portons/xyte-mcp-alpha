@@ -77,27 +77,27 @@
 
 ## Developer Experience
 
-* [ ] Update README with quickstart, XYTE-specific config, and troubleshooting
+* [x] Update README with quickstart, XYTE-specific config, and troubleshooting
 
-* [ ] Maintain full API spec in docs/spec.md (auto-generated)
+* [x] Maintain full API spec in docs/spec.md (auto-generated)
 
-* [ ] Add Postman collection and curl examples for all endpoints
+* [x] Add Postman collection and curl examples for all endpoints
 
-* [ ] Provide sample plugin (hook) for transforming MCP payloads
+* [x] Provide sample plugin (hook) for transforming MCP payloads
 
-* [ ] Example: adding a new “resource” type and command
+* [x] Example: adding a new “resource” type and command
 
 ---
 
 ## Code Quality/Architecture
 
-* [ ] Refactor utility, model, and client files to minimize duplication (single source of truth for types)
+* [x] Refactor utility, model, and client files to minimize duplication (single source of truth for types)
 
-* [ ] Remove dead code and unused imports/functions
+* [x] Remove dead code and unused imports/functions
 
-* [ ] Add retries with exponential backoff for all external XYTE API calls
+* [x] Add retries with exponential backoff for all external XYTE API calls
 
-* [ ] Implement circuit breaker/fallback for backend downtime (graceful errors)
+* [x] Implement circuit breaker/fallback for backend downtime (graceful errors)
 
 ---
 
@@ -112,3 +112,13 @@
 
 * [ ] Prepare hooks for AI agent integration (eventing/logging/plugin interfaces)
 * [ ] Allow feature flags for experimental APIs
+
+### OpenAPI Specification
+
+The MCP server exposes a documented OpenAPI schema. Regenerate it with:
+
+```bash
+curl http://localhost:8080/openapi.json > docs/openapi.json
+```
+
+The source specification is stored in `registry.yaml` for reference.

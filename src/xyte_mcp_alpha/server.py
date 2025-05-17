@@ -101,6 +101,10 @@ mcp.resource(
     description="Current status of a device",
 )(instrument("resource", "device_status")(resources.device_status))
 mcp.resource(
+    "device://{device_id}/logs",
+    description="Recent logs for a device",
+)(instrument("resource", "device_logs")(resources.device_logs))
+mcp.resource(
     "organization://info/{device_id}",
     description="Organization info for a device",
 )(instrument("resource", "organization_info")(resources.organization_info))
@@ -187,6 +191,10 @@ mcp.tool(
     description="Log automation attempt",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "log_automation_attempt")(tools.log_automation_attempt))
+mcp.tool(
+    description="Echo a message back", 
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+)(instrument("tool", "echo_command")(tools.echo_command))
 mcp.tool(
     description="Send a command asynchronously",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),

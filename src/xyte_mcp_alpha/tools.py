@@ -282,6 +282,13 @@ async def log_automation_attempt(
     return ToolResponse(data=entry, summary="Attempt recorded")
 
 
+async def echo_command(device_id: str, message: str) -> ToolResponse:
+    """Example command that echoes a message back."""
+    validate_device_id(device_id)
+    logger.info("echo", extra={"device_id": device_id, "message": message})
+    return ToolResponse(data={"device_id": device_id, "echo": message})
+
+
 async def find_and_control_device(
     data: FindAndControlDeviceRequest,
     ctx: Context | None = None,

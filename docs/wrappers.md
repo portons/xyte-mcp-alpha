@@ -15,6 +15,7 @@
 | `search_device_histories` | status, from_date, to_date, device_id, space_id, name |
 | `send_command_async` | name, friendly_name, file_id, extra_params, device_id |
 | `get_task_status` | task_id |
+| `echo_command` | device_id, message |
 
 ## Resources
 
@@ -29,4 +30,5 @@
 | `ticket://{ticket_id}` | get_ticket |
 | `user://{user_token}/preferences` | get_user_preferences |
 | `user://{user_token}/devices` | list_user_devices |
+| `device://{device_id}/logs` | device_logs |
 

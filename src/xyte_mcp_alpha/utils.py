@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, Dict, Awaitable, TYPE_CHECKING
+from typing import Any, Dict, Awaitable, TYPE_CHECKING, Callable
 from collections import deque
 
 from pydantic import ValidationError
@@ -33,6 +33,14 @@ STATUS_COUNT = Counter("xyte_status_total", "XYTE API status codes", ["status"])
 
 # Audit logger for security related events
 audit_logger = logging.getLogger("audit")
+
+# Registered payload transform hooks
+_PAYLOAD_TRANSFORMS: list[Callable[[Dict[str, Any]], Dict[str, Any]]] = []
+
+
+def register_payload_transform(func: Callable[[Dict[str, Any]], Dict[str, Any]]) -> None:
+    """Register a callback to transform API responses."""
+    _PAYLOAD_TRANSFORMS.append(func)
 
 # Simple in-memory rate limiter
 _REQUEST_TIMESTAMPS: deque[float] = deque()
@@ -92,9 +100,14 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
         
         # Convert response to dict if needed
         if hasattr(result, "model_dump"):
-            return {"data": result.model_dump()}
+            result = {"data": result.model_dump()}
         elif not isinstance(result, dict):
-            return {"data": result}
+            result = {"data": result}
+        for hook in _PAYLOAD_TRANSFORMS:
+            try:
+                result = hook(result)
+            except Exception:  # pragma: no cover - custom hooks may fail
+                logger.exception("payload_transform_error")
         return result
         
     except httpx.HTTPStatusError as e:
