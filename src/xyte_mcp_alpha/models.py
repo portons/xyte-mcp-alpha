@@ -37,6 +37,14 @@ class SendTicketMessageRequest(MarkTicketResolvedRequest):
     message: str = Field(..., description="Message content to send")
 
 
+class SendCommandArgs(CommandRequest):
+    """Parameters for sending a command with optional context defaults."""
+
+    device_id: Optional[str] = Field(
+        None, description="Identifier of the target device"
+    )
+
+
 class SendCommandRequest(DeviceId, CommandRequest):
     """Parameters for sending a command."""
 
@@ -61,3 +69,12 @@ class SearchDeviceHistoriesRequest(BaseModel):
     device_id: Optional[str] = Field(None, description="Filter by device")
     space_id: Optional[int] = Field(None, description="Filter by space")
     name: Optional[str] = Field(None, description="Filter by name")
+
+
+class ToolResponse(BaseModel):
+    """Standard response model for tools with optional guidance."""
+
+    data: Any
+    summary: Optional[str] = None
+    next_steps: Optional[list[str]] = None
+    related_tools: Optional[list[str]] = None

@@ -1,7 +1,7 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .deps import get_client
-from .utils import handle_api, get_session_state
+from .utils import handle_api, get_session_state, validate_device_id, MCPError
 from mcp.server.fastmcp.server import Context
 from .client import (
     ClaimDeviceRequest,
@@ -16,9 +16,11 @@ from .models import (
     MarkTicketResolvedRequest,
     SendTicketMessageRequest,
     SendCommandRequest,
+    SendCommandArgs,
     CancelCommandRequest,
     UpdateTicketRequest,
     SearchDeviceHistoriesRequest,
+    ToolResponse,
 )
 
 
@@ -48,10 +50,21 @@ async def update_device(data: UpdateDeviceArgs) -> Dict[str, Any]:
 
 
 async def send_command(
-    data: SendCommandRequest,
+    data: SendCommandArgs,
     ctx: Context | None = None,
-) -> Dict[str, Any]:
+) -> ToolResponse:
     """Send a command to a device."""
+    device_id = data.device_id
+    if ctx and not device_id:
+        state = get_session_state(ctx)
+        device_id = state.get("current_device_id")
+        if device_id:
+            logger.info(
+                "Defaulting device_id from context", extra={"device_id": device_id}
+            )
+    if not device_id:
+        raise MCPError(code="missing_device_id", message="device_id is required")
+
     async with get_client() as client:
         req = CommandRequest(
             name=data.name,
@@ -62,16 +75,18 @@ async def send_command(
         if ctx:
             state = get_session_state(ctx)
             state["last_command"] = data.name
-            await ctx.info(
-                f"Sending command {data.name} to device {data.device_id}"
-            )
+            await ctx.info(f"Sending command {data.name} to device {device_id}")
             await ctx.report_progress(0.0, 1.0, "sending")
         result = await handle_api(
-            "send_command", client.send_command(data.device_id, req)
+            "send_command", client.send_command(device_id, req)
         )
         if ctx:
             await ctx.report_progress(1.0, 1.0, "done")
-        return result
+        return ToolResponse(
+            data=result.get("data", result),
+            summary=f"Command '{data.friendly_name}' sent to device {device_id}",
+            next_steps=["get_device_status"],
+        )
 
 
 async def cancel_command(data: CancelCommandRequest) -> Dict[str, Any]:
@@ -148,3 +163,39 @@ async def search_device_histories(
             await ctx.report_progress(1.0, 1.0)
 
         return result
+
+
+async def get_device_analytics_report(
+    device_id: str,
+    period: str = "last_30_days",
+    ctx: Context | None = None,
+) -> ToolResponse:
+    """Retrieve usage analytics for a device."""
+    device_id = validate_device_id(device_id)
+    async with get_client() as client:
+        if ctx:
+            await ctx.info("Fetching analytics")
+        result = await handle_api(
+            "get_device_analytics",
+            client.get_device_analytics(device_id, period=period),
+        )
+        return ToolResponse(data=result.get("data", result))
+
+
+async def set_context(
+    device_id: Optional[str] = None,
+    space_id: Optional[str] = None,
+    ctx: Context | None = None,
+) -> ToolResponse:
+    """Set session context defaults for subsequent tool calls."""
+    if ctx is None:
+        raise MCPError(code="missing_context", message="Context required")
+
+    state = get_session_state(ctx)
+    if device_id is not None:
+        state["current_device_id"] = device_id
+    if space_id is not None:
+        state["current_space_id"] = space_id
+
+    return ToolResponse(data=state, summary="Context updated")
+

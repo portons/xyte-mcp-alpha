@@ -179,6 +179,15 @@ meaningful MCP error codes such as `unauthorized`, `invalid_params`, `not_found`
 `rate_limited`, or `xyte_server_error`. Network issues are returned as `network_error`.
 All errors are logged for debugging purposes.
 
+### Context Defaults
+
+Use the new `set_context` tool to store a default `device_id` or `space_id` for the session. Tools like
+`send_command` will automatically fall back to these values if parameters are omitted.
+
+### Device Analytics
+
+The `get_device_analytics_report` tool exposes advanced analytics from the Xyte API to AI agents.
+
 ## License
 
 MIT

@@ -27,5 +27,17 @@ class ErrorMappingTestCase(unittest.IsolatedAsyncioTestCase):
             await handle_api("test", failing())
         self.assertEqual(cm.exception.code, "network_error")
 
+    async def test_http_status_device_not_found(self):
+        request = httpx.Request("GET", "http://example.com")
+        response = httpx.Response(404, request=request, text="not found")
+        exc = httpx.HTTPStatusError("missing", request=request, response=response)
+
+        async def failing():
+            raise exc
+
+        with self.assertRaises(MCPError) as cm:
+            await handle_api("get_device", failing())
+        self.assertEqual(cm.exception.code, "device_not_found")
+
 if __name__ == "__main__":
     unittest.main()
