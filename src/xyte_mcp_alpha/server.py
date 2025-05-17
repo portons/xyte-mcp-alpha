@@ -3,6 +3,8 @@
 import logging
 from typing import Any
 
+from .logging_utils import configure_logging, instrument
+
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
 from starlette.responses import Response
@@ -12,7 +14,8 @@ from mcp.types import ToolAnnotations
 
 from . import resources, tools, prompts
 
-logging.basicConfig(level=logging.INFO)
+# Configure structured logging
+configure_logging()
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("audit")
 audit_logger.setLevel(logging.INFO)
@@ -42,71 +45,71 @@ async def metrics(_: Request) -> Response:
 
 # Resource registrations
 mcp.resource("devices://", description="List all devices")(
-    resources.list_devices
+    instrument("resource", "list_devices")(resources.list_devices)
 )
 mcp.resource(
     "device://{device_id}/commands",
     description="Commands issued to a device",
-)(resources.list_device_commands)
+)(instrument("resource", "list_device_commands")(resources.list_device_commands))
 mcp.resource(
     "device://{device_id}/histories",
     description="History records for a device",
-)(resources.list_device_histories)
+)(instrument("resource", "list_device_histories")(resources.list_device_histories))
 mcp.resource(
     "device://{device_id}/status",
     description="Current status of a device",
-)(resources.device_status)
+)(instrument("resource", "device_status")(resources.device_status))
 mcp.resource(
     "organization://info/{device_id}",
     description="Organization info for a device",
-)(resources.organization_info)
+)(instrument("resource", "organization_info")(resources.organization_info))
 mcp.resource("incidents://", description="Current incidents")(
-    resources.list_incidents
+    instrument("resource", "list_incidents")(resources.list_incidents)
 )
 mcp.resource("tickets://", description="All support tickets")(
-    resources.list_tickets
+    instrument("resource", "list_tickets")(resources.list_tickets)
 )
 mcp.resource("ticket://{ticket_id}", description="Single support ticket")(
-    resources.get_ticket
+    instrument("resource", "get_ticket")(resources.get_ticket)
 )
 
 # Tool registrations
 mcp.tool(
     description="Register a new device",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(tools.claim_device)
+)(instrument("tool", "claim_device")(tools.claim_device))
 mcp.tool(
     description="Remove a device from the organization",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(tools.delete_device)
+)(instrument("tool", "delete_device")(tools.delete_device))
 mcp.tool(
     description="Update configuration for a device",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(tools.update_device)
+)(instrument("tool", "update_device")(tools.update_device))
 mcp.tool(
     description="Send a command to a device",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(tools.send_command)
+)(instrument("tool", "send_command")(tools.send_command))
 mcp.tool(
     description="Cancel a previously sent command",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
-)(tools.cancel_command)
+)(instrument("tool", "cancel_command")(tools.cancel_command))
 mcp.tool(
     description="Update ticket details",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(tools.update_ticket)
+)(instrument("tool", "update_ticket")(tools.update_ticket))
 mcp.tool(
     description="Resolve a ticket",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(tools.mark_ticket_resolved)
+)(instrument("tool", "mark_ticket_resolved")(tools.mark_ticket_resolved))
 mcp.tool(
     description="Send a message to a ticket",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
-)(tools.send_ticket_message)
+)(instrument("tool", "send_ticket_message")(tools.send_ticket_message))
 mcp.tool(
     description="Search device history records",
     annotations=ToolAnnotations(readOnlyHint=True),
-)(tools.search_device_histories)
+)(instrument("tool", "search_device_histories")(tools.search_device_histories))
 
 # Prompt registrations
 mcp.prompt()(prompts.reboot_device_workflow)

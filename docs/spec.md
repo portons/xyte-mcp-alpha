@@ -61,7 +61,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * **Audit Logging for Security Events:** Log all significant security-related events (e.g., authentication attempts, authorization failures, critical tool invocations).
       * **Dependency Vulnerability Scanning:** Regularly scan dependencies for known vulnerabilities.
 
-* [ ] **Task A6: Improve Logging and Monitoring Capabilities**
+* [x] **Task A6: Improve Logging and Monitoring Capabilities**
    * **Description:** Enhance the existing error logging to be more comprehensive and structured. Implement performance and usage monitoring.
    * **Rationale:** Essential for debugging, understanding server usage, identifying performance bottlenecks, and detecting anomalies. Official MCP documentation and AWS best practices emphasize this.
    * **Action Items:**
