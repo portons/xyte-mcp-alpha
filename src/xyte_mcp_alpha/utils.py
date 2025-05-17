@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import time
 from typing import Any, Dict, Awaitable, TYPE_CHECKING
@@ -11,7 +10,6 @@ from .models import DeviceId, TicketId
 
 import httpx
 from prometheus_client import Counter, Histogram
-from .logging_utils import log_json
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +94,7 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
         try:
             error_data = e.response.json()
             error_message = error_data.get("error", error_text)
-        except:
+        except Exception:
             error_message = error_text or f"HTTP {status} error"
             
         raise MCPError(
