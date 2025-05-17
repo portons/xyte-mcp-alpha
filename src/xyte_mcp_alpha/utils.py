@@ -13,6 +13,8 @@ import httpx
 from prometheus_client import Counter, Histogram
 from .logging_utils import log_json
 
+logger = logging.getLogger(__name__)
+
 
 class MCPError(Exception):
     """Simple error class used for MCP responses."""
@@ -52,16 +54,22 @@ def enforce_rate_limit() -> None:
 def validate_device_id(device_id: str) -> str:
     """Validate and sanitize a device identifier."""
     try:
-        return DeviceId(device_id=device_id).device_id.strip()
-    except ValidationError as exc:  # pragma: no cover - simple validation
+        value = DeviceId(device_id=device_id).device_id.strip()
+        if not value:
+            raise ValueError("device_id must not be empty")
+        return value
+    except (ValidationError, ValueError) as exc:  # pragma: no cover - simple validation
         raise MCPError(code="invalid_params", message=str(exc))
 
 
 def validate_ticket_id(ticket_id: str) -> str:
     """Validate and sanitize a ticket identifier."""
     try:
-        return TicketId(ticket_id=ticket_id).ticket_id.strip()
-    except ValidationError as exc:  # pragma: no cover - simple validation
+        value = TicketId(ticket_id=ticket_id).ticket_id.strip()
+        if not value:
+            raise ValueError("ticket_id must not be empty")
+        return value
+    except (ValidationError, ValueError) as exc:  # pragma: no cover - simple validation
         raise MCPError(code="invalid_params", message=str(exc))
 
 
@@ -80,8 +88,12 @@ async def handle_api(name: str, coro: Awaitable[Dict[str, Any]]) -> Dict[str, An
         STATUS_COUNT.labels(str(status)).inc()
         if status in {401, 403}:
             code = "unauthorized"
+        elif status in {400, 422}:
+            code = "invalid_params"
         elif status == 404:
             code = "not_found"
+        elif status == 405:
+            code = "method_not_allowed"
         elif status == 429:
             code = "rate_limited"
         elif 500 <= status <= 599:
@@ -91,6 +103,10 @@ async def handle_api(name: str, coro: Awaitable[Dict[str, Any]]) -> Dict[str, An
         ERROR_COUNT.labels(name, code).inc()
         log_json(logging.ERROR, event="xyte_api_error", endpoint=name, status=status)
         raise MCPError(code=code, message=e.response.text)
+    except httpx.RequestError as e:
+        ERROR_COUNT.labels(name, "network_error").inc()
+        log_json(logging.ERROR, event="xyte_api_network_error", endpoint=name, error=str(e))
+        raise MCPError(code="network_error", message=str(e))
     except httpx.TimeoutException as e:
         ERROR_COUNT.labels(name, "timeout").inc()
         log_json(logging.ERROR, event="xyte_api_timeout", endpoint=name)
