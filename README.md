@@ -2,6 +2,13 @@
 
 An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
 
+## Quickstart
+
+1. Ensure Python 3.11+ is installed and clone the repo.
+2. Create a virtualenv and install the project: `pip install -e .`.
+3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` (and optional `XYTE_USER_TOKEN`).
+4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
+
 ## Features
 
 This MCP server exposes the following capabilities:
@@ -207,6 +214,10 @@ Use `start_meeting_room_preset` and `shutdown_meeting_room` to quickly prepare o
 ### Dry Run Mode
 
 Destructive tools like `send_command` and `delete_device` now accept a `dry_run` flag. When true, the server will log the intended action but skip calling the Xyte API.
+
+## Troubleshooting
+
+If you receive `unauthorized` errors, verify that `XYTE_API_KEY` is correct and has the required permissions. Use `XYTE_USER_TOKEN` when acting on behalf of a specific user. Increase `XYTE_RATE_LIMIT` if you hit rate limit errors during development.
 
 ## License
 
