@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xyte-config
+data:
+  XYTE_BASE_URL: {{ .Values.env.XYTE_BASE_URL | quote }}
+  XYTE_CACHE_TTL: {{ .Values.env.XYTE_CACHE_TTL | quote }}
+  XYTE_ENV: {{ .Values.env.XYTE_ENV | quote }}
+  XYTE_RATE_LIMIT: {{ .Values.env.XYTE_RATE_LIMIT | quote }}
+  MCP_INSPECTOR_PORT: {{ .Values.env.MCP_INSPECTOR_PORT | quote }}

@@ -87,6 +87,13 @@ def validate_ticket_id(ticket_id: str) -> str:
         raise MCPError(code="invalid_params", message=str(exc))
 
 
+def validate_payload(data: Any) -> Dict[str, Any]:
+    """Ensure payloads are dictionaries."""
+    if isinstance(data, dict):
+        return data
+    raise MCPError(code="invalid_payload", message="Payload must be a JSON object")
+
+
 async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
     """Handle API response with error conversion and metrics reporting."""
     enforce_rate_limit()
@@ -103,11 +110,14 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
             result = {"data": result.model_dump()}
         elif not isinstance(result, dict):
             result = {"data": result}
+        
+        # Apply transform hooks
         for hook in _PAYLOAD_TRANSFORMS:
             try:
                 result = hook(result)
             except Exception:  # pragma: no cover - custom hooks may fail
                 logger.exception("payload_transform_error")
+        
         return result
         
     except httpx.HTTPStatusError as e:
@@ -130,7 +140,9 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
             error_message = error_text or f"HTTP {status} error"
 
         code = f"http_{status}"
-        if e.response.status_code == 404:
+        if e.response.status_code == 400:
+            code = "invalid_params"
+        elif e.response.status_code == 404:
             if "device" in endpoint:
                 code = "device_not_found"
             elif "ticket" in endpoint:
