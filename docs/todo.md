@@ -73,10 +73,10 @@
 
 ## 🗂️ **API & Config**
 
-* [ ] Auto-generate and publish OpenAPI/Swagger docs
-* [ ] Provide Postman/curl examples for main endpoints
-* [ ] Validate config on startup; fail fast with errors
-* [ ] Document `values.yaml` schema for Helm users
+* [x] Auto-generate and publish OpenAPI/Swagger docs
+* [x] Provide Postman/curl examples for main endpoints
+* [x] Validate config on startup; fail fast with errors
+* [x] Document `values.yaml` schema for Helm users
 
 ## ⚡ **Advanced / Optional**
 

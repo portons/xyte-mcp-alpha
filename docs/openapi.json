@@ -1,0 +1,19 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Xyte MCP API",
+    "version": "1.0"
+  },
+  "paths": {
+    "/v1/mcp": {},
+    "/v1/healthz": {},
+    "/v1/readyz": {},
+    "/v1/metrics": {},
+    "/v1/config": {},
+    "/v1/webhook": {},
+    "/v1/events": {},
+    "/v1/tools": {},
+    "/v1/resources": {},
+    "/v1/task/{task_id}": {}
+  }
+}

@@ -1,6 +1,8 @@
+import os
 import unittest
 from starlette.testclient import TestClient
 
+os.environ.setdefault("XYTE_API_KEY", "test")
 from xyte_mcp_alpha.http import app
 
 

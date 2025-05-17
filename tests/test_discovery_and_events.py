@@ -1,15 +1,15 @@
+import os
 import asyncio
 import unittest
 from starlette.testclient import TestClient
 
+os.environ.setdefault("XYTE_API_KEY", "test")
 from xyte_mcp_alpha.http import app
 from xyte_mcp_alpha import events
 
 
 class DiscoveryEventTestCase(unittest.TestCase):
     def setUp(self):
-        import os
-        os.environ.setdefault("XYTE_API_KEY", "test")
         self.client = TestClient(app)
         # Clear event queue
         while not events._event_queue.empty():

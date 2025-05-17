@@ -33,8 +33,5 @@ __all__ = ["get_server", "get_settings", "__version__"]
 
 def serve() -> None:
     """Entry point for serving the MCP server."""
-    import asyncio
-    from mcp.server.stdio import stdio_server
-
     server = get_server()
-    asyncio.run(stdio_server(server))
+    server.run(transport="stdio")

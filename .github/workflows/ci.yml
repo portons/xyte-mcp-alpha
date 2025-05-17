@@ -16,17 +16,17 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: Setup PYTHONPATH
-        run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
+      - name: Setup environment variables
+        run: |
+          echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
+          echo "XYTE_API_KEY=test-api-key" >> $GITHUB_ENV
+          echo "XYTE_ENV=test" >> $GITHUB_ENV
       - name: Install dependencies
         run: |
           pip install .
           pip install ruff mypy pytest pytest-cov coverage
-      - name: Format code with ruff
-        run: |
-          ruff check src tests --fix
-          git diff --exit-code || (echo "Code was formatted. Please run 'ruff check --fix' locally and commit the changes." && exit 1)
-      - name: Lint
+          pip install types-cachetools types-certifi
+      - name: Check code formatting and lint with ruff
         run: ruff check src tests
       - name: Type checks
         run: mypy src || true

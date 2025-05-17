@@ -235,6 +235,16 @@ example dashboard).
 
 These variables can also be configured when deploying via Helm. See `helm/values.yaml` for defaults.
 
+### OpenAPI Documentation
+
+An OpenAPI specification describing all mounted routes can be generated with:
+
+```bash
+XYTE_API_KEY=your-key scripts/generate_openapi.py
+```
+
+The resulting `docs/openapi.json` can be viewed in a Swagger UI at `/v1/docs` when the server is running.
+
 ### Security Considerations
 
 Ensure the value provided for `XYTE_API_KEY` has only the permissions required

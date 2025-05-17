@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 # Import everything using absolute imports
 import xyte_mcp_alpha.plugin as plugin
-from xyte_mcp_alpha.config import get_settings
+from xyte_mcp_alpha.config import get_settings, validate_settings
 from xyte_mcp_alpha.events import GetNextEventRequest
 from xyte_mcp_alpha.logging_utils import configure_logging, instrument
 import xyte_mcp_alpha.resources as resources
@@ -271,8 +271,8 @@ mcp.prompt()(prompts.troubleshoot_offline_device_workflow)
 
 def get_server() -> Any:
     """Get the MCP server instance."""
-    if "XYTE_API_KEY" not in os.environ:
-        os.environ["XYTE_API_KEY"] = "test"
+    settings = get_settings()
+    validate_settings(settings)
 
     plugin.load_plugins()
     if get_settings().enable_experimental_apis:
@@ -291,7 +291,4 @@ if __name__ == "__main__":
     from .logging_utils import log_json
 
     log_json(logging.INFO, event="server_start", mode="development")
-    import asyncio
-    from mcp.server.stdio import stdio_server
-
-    asyncio.run(stdio_server(mcp))
+    mcp.run(transport="stdio")

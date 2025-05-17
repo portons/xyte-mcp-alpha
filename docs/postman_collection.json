@@ -21,6 +21,37 @@
           "raw": "{\n  \"name\": \"reboot\",\n  \"friendly_name\": \"Reboot\"\n}"
         }
       }
+    },
+    {
+      "name": "List Tickets",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/tickets"
+      }
+    },
+    {
+      "name": "Get OpenAPI",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/openapi.json"
+      }
+    },
+    {
+      "name": "Stream Events",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/events"
+      }
+    },
+    {
+      "name": "Fetch Config",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key": "X-API-Key", "value": "{{api_key}}"}
+        ],
+        "url": "{{base_url}}/config"
+      }
     }
   ]
 }

@@ -195,11 +195,11 @@ def convert_device_id(device_id: str | int | None) -> str:
     """Convert device ID to string format."""
     if device_id is None:
         raise MCPError(code="invalid_device_id", message="Device ID is required")
-    return str(DeviceId(device_id=device_id).device_id)
+    return str(DeviceId(device_id=str(device_id)).device_id)
 
 
 def convert_ticket_id(ticket_id: str | int | None) -> str:
     """Convert ticket ID to string format."""
     if ticket_id is None:
         raise MCPError(code="invalid_ticket_id", message="Ticket ID is required")
-    return str(TicketId(ticket_id=ticket_id).ticket_id)
+    return str(TicketId(ticket_id=str(ticket_id)).ticket_id)
