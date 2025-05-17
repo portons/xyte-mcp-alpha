@@ -55,14 +55,14 @@
 
 ## 🚀 **CI/CD & Automation**
 
-* [ ] Expand `.github/workflows/ci.yml` to:
+* [x] Expand `.github/workflows/ci.yml` to:
 
-    * [ ] Run lint, type checks, and all tests
-    * [ ] Build Docker image
-    * [ ] Upload coverage to Codecov/coveralls
-    * [ ] (Optionally) push image to registry on release
-* [ ] Add status and coverage badges to `README.md`
-* [ ] (Optional) Add dependency updates (renovatebot/dependabot)
+    * [x] Run lint, type checks, and all tests
+    * [x] Build Docker image
+    * [x] Upload coverage to Codecov/coveralls
+    * [x] (Optionally) push image to registry on release
+* [x] Add status and coverage badges to `README.md`
+* [x] (Optional) Add dependency updates (renovatebot/dependabot)
 
 ## 🔌 **Plugin System**
 
