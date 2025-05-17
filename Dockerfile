@@ -9,13 +9,11 @@ RUN pip install --upgrade pip && \
 # Runtime stage
 FROM python:3.11-slim
 WORKDIR /app
+COPY --from=builder /wheels /tmp/wheels
 
-# Create non-root user
-RUN useradd -m appuser
-
-# Install application wheel only
-COPY --from=builder /wheels /wheels
-RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin appuser && \
+    pip install --no-cache-dir /tmp/wheels/*.whl && \
+    rm -rf /tmp/wheels /root/.cache/pip
 
 COPY src ./src
 COPY README.md CHANGELOG.md ./
