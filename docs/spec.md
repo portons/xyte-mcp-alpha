@@ -20,17 +20,17 @@
 
 * [ ] Verify MCP API adherence for all endpoints (cross-check with MCP 1.9.0 spec)
 
-* [ ] Implement versioned API routing
+* [x] Implement versioned API routing
 
-* [ ] Add OpenAPI schema docs with live generation
+* [x] Add OpenAPI schema docs with live generation
 
-* [ ] Ensure device discovery, claiming, updating, and deletion match MCP spec exactly
+* [x] Ensure device discovery, claiming, updating, and deletion match MCP spec exactly
 
-* [ ] Implement robust device event streaming (SSE/WebSocket fallback as needed)
+* [x] Implement robust device event streaming (SSE/WebSocket fallback as needed)
 
-* [ ] Fully implement command send/cancel/query lifecycle (all state transitions)
+* [x] Fully implement command send/cancel/query lifecycle (all state transitions)
 
-* [ ] Implement ticketing endpoints, matching input/output schemas
+* [x] Implement ticketing endpoints, matching input/output schemas
 
 ---
 
