@@ -3,7 +3,20 @@
 from dotenv import load_dotenv
 
 from .server import get_server
-from .config import get_settings
+from .config import get_settings, reload_settings
+import signal
+
+
+def _setup_reload() -> None:
+    """Install SIGHUP handler to reload configuration."""
+
+    def handler(_sig, _frame) -> None:
+        reload_settings()
+
+    signal.signal(signal.SIGHUP, handler)
+
+
+_setup_reload()
 
 load_dotenv()
 

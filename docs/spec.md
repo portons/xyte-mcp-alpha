@@ -54,7 +54,7 @@ Ensure linting (ruff) and code formatting checks are enforced.
 Automate building the Docker image (Dockerfile) and pushing it to a container registry.
 Automate deployment to staging/production environments using Helm charts (helm/) or K8s manifests (k8s/).
 Add security scanning (like the existing scripts/security_scan.sh using pip-audit) as a mandatory step in the CI pipeline.
-[ ] Task D4: Performance Profiling and Optimization
+[x] Task D4: Performance Profiling and Optimization
 Description: Proactively profile the MCP server, especially Xyte API interactions via client.py and cache effectiveness.
 Rationale: Ensures the MCP server is responsive. The existing Prometheus metrics (TOOL_LATENCY, RESOURCE_LATENCY, REQUEST_LATENCY in logging_utils.py) are a great start.
 Action Items:
@@ -62,7 +62,7 @@ Use profiling tools to identify any non-obvious bottlenecks in Python code, espe
 Analyze cache hit/miss ratios for TTLCache in XyteAPIClient and optimize TTLs or cache strategies if needed.
 Optimize Xyte API query patterns if specific calls are consistently slow (e.g., fetching too much data when only a subset is needed).
 Review asynchronous operations in tasks.py for efficiency and resource usage.
-[ ] Task D5: Dependency Management and Upgrades
+[x] Task D5: Dependency Management and Upgrades
 Description: Regularly review and update dependencies listed in pyproject.toml.
 Rationale: Benefits from new features, performance improvements, and crucial security patches.
 Action Items:
@@ -71,7 +71,7 @@ Utilize tools like pip-audit or GitHub's Dependabot to automate vulnerability de
 Test thoroughly after any significant dependency upgrade, especially mcp, fastmcp, httpx, and pydantic.
 E. Enhanced User Experience & Agent Usability (NEW SECTION)
 This section focuses on making the AI agent, powered by this MCP server, exceptionally helpful and intuitive for the end-user.
-[ ] Task E1: Develop "Smart" Tools with Natural Language Understanding (NLU) Hints
+[x] Task E1: Develop "Smart" Tools with Natural Language Understanding (NLU) Hints
 Description: Create a new set of tools or enhance existing ones to better understand more natural, slightly ambiguous user requests by providing clear NLU hints in their descriptions or expecting structured "intent" objects.
 Rationale: Simplifies interaction for AI agents, allowing them to translate user needs more directly into actions without complex intermediate logic. This makes the agent more usable.
 Action Items:
@@ -143,14 +143,14 @@ Description: "Logs the details and outcome of an automated task or user interact
 Logic: Writes to a dedicated log file or a database/analytics service (outside MCP server's direct scope, but tool provides the interface).
 G. Cutting-Edge Practices & Future-Proofing (NEW SECTION)
 This section explores advanced architectural and design considerations.
-[ ] Task G1: Enhanced Observability with Distributed Tracing
+[x] Task G1: Enhanced Observability with Distributed Tracing
 Description: Integrate OpenTelemetry (or similar) for distributed tracing across MCP tool executions, Xyte API calls, and any asynchronous tasks.
 Rationale: Provides deep insights into request flows, performance bottlenecks, and error propagation in complex interactions, especially as the system grows. The current request_id_var in logging_utils.py is a good foundation.
 Action Items:
 Instrument key functions in server.py, tools.py, resources.py, client.py, and tasks.py with OpenTelemetry tracing.
 Ensure trace IDs are propagated through asynchronous operations and logged consistently.
 Configure an exporter to a tracing backend (e.g., Jaeger, Zipkin, or a cloud provider's service).
-[ ] Task G2: Dynamic Configuration Reloading
+[x] Task G2: Dynamic Configuration Reloading
 Description: Implement a mechanism for the MCP server to reload certain configurations (e.g., XYTE_CACHE_TTL, XYTE_RATE_LIMIT from config.py) without a full restart.
 Rationale: Improves operational flexibility, allowing for dynamic adjustments in a running system.
 Action Items:
@@ -165,13 +165,13 @@ Modify tool logic: if dry_run is true, perform all checks and validations, then 
 The Xyte API itself may not support dry runs, so this would be a simulation at the MCP server level.
 H. Developer Experience (for AI Agent Devs) (NEW SECTION)
 This section focuses on making it easier and more efficient for developers to build AI agents that consume this MCP server.
-[ ] Task H1: Interactive API Documentation & Sandbox (Beyond mcp dev)
+[x] Task H1: Interactive API Documentation & Sandbox (Beyond mcp dev)
 Description: If the HTTP interface (http.py) is intended for direct developer use (not just stdio_server), generate and host interactive API documentation (e.g., Swagger UI/Redoc from an OpenAPI spec).
 Rationale: mcp dev is great for MCP-specific interactions, but a standard HTTP API doc is useful if devs integrate via raw HTTP. docs/capabilities.json and docs/wrappers.md are good static docs.
 Action Items:
 Ensure docs/capabilities.json (or an equivalent OpenAPI spec generated from FastMCP) is complete and accurate.
 Set up a simple way to serve Swagger UI or Redoc, pointing to this spec, perhaps as another endpoint on the HTTP server (e.g., /api/docs).
-[ ] Task H2: Example AI Agent Snippets/SDK
+[x] Task H2: Example AI Agent Snippets/SDK
 Description: Provide example code snippets or a lightweight client-side helper library (e.g., in Python) demonstrating how to easily call the MCP server's tools and interpret responses.
 Rationale: Lowers the barrier to entry for AI agent developers and promotes best practices in using the MCP server.
 Action Items:

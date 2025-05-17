@@ -141,6 +141,14 @@ mcp.tool(
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "set_context")(tools.set_context))
 mcp.tool(
+    description="Find and control a device with natural language hints",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)(instrument("tool", "find_and_control_device")(tools.find_and_control_device))
+mcp.tool(
+    description="Diagnose an AV issue in a room",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "diagnose_av_issue")(tools.diagnose_av_issue))
+mcp.tool(
     description="Start meeting room preset",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
 )(instrument("tool", "start_meeting_room_preset")(tools.start_meeting_room_preset))

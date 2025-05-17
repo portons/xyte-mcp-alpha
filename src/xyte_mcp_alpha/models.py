@@ -85,3 +85,23 @@ class ToolResponse(BaseModel):
     summary: Optional[str] = None
     next_steps: Optional[list[str]] = None
     related_tools: Optional[list[str]] = None
+
+
+class FindAndControlDeviceRequest(BaseModel):
+    """Parameters for the find_and_control_device tool."""
+
+    room_name: str = Field(..., description="Name of the room to search")
+    device_type_hint: Optional[str] = Field(
+        None, description="Optional device type hint (projector, display, etc.)"
+    )
+    action: str = Field(..., description="Action to perform, e.g. power_on")
+    input_source_hint: Optional[str] = Field(
+        None, description="Optional input source hint"
+    )
+
+
+class DiagnoseAVIssueRequest(BaseModel):
+    """Parameters for the diagnose_av_issue tool."""
+
+    room_name: str = Field(..., description="Room to diagnose")
+    issue_description: str = Field(..., description="Description of the problem")

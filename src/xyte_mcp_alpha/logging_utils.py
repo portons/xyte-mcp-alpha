@@ -6,6 +6,9 @@ from contextvars import ContextVar
 from typing import Any, Callable, Awaitable
 from functools import wraps
 from prometheus_client import Histogram
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
@@ -14,6 +17,9 @@ request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 def configure_logging(level: int = logging.INFO) -> None:
     """Configure application-wide structured logging."""
     logging.basicConfig(level=level, format="%(message)s")
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+    trace.set_tracer_provider(provider)
 
 
 def log_json(level: int, **fields: Any) -> None:
@@ -41,7 +47,9 @@ class RequestLoggingMiddleware:
         path = scope.get("path")
         start = time.monotonic()
 
-        log_json(logging.INFO, event="request_start", method=method, path=path, request_id=request_id)
+        log_json(
+            logging.INFO, event="request_start", method=method, path=path, request_id=request_id
+        )
 
         async def send_wrapper(message: dict) -> None:
             if message["type"] == "http.response.start":
@@ -79,23 +87,26 @@ def instrument(kind: str, name: str):
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             start = time.monotonic()
             log_json(logging.INFO, event=f"{kind}_start", name=name)
-            try:
-                return await func(*args, **kwargs)
-            except Exception:
-                log_json(logging.ERROR, event=f"{kind}_error", name=name)
-                raise
-            finally:
-                duration = time.monotonic() - start
-                log_json(
-                    logging.INFO,
-                    event=f"{kind}_complete",
-                    name=name,
-                    duration_ms=round(duration * 1000),
-                )
-                if kind == "tool":
-                    TOOL_LATENCY.labels(name).observe(duration)
-                else:
-                    RESOURCE_LATENCY.labels(name).observe(duration)
+            tracer = trace.get_tracer(__name__)
+            with tracer.start_as_current_span(f"{kind}:{name}"):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception:
+                    log_json(logging.ERROR, event=f"{kind}_error", name=name)
+                    raise
+                finally:
+                    duration = time.monotonic() - start
+                    log_json(
+                        logging.INFO,
+                        event=f"{kind}_complete",
+                        name=name,
+                        duration_ms=round(duration * 1000),
+                    )
+                    if kind == "tool":
+                        TOOL_LATENCY.labels(name).observe(duration)
+                    else:
+                        RESOURCE_LATENCY.labels(name).observe(duration)
+
         from inspect import signature
 
         wrapper.__signature__ = getattr(func, "__signature__", signature(func))
