@@ -133,6 +133,14 @@ mcp.tool(
     annotations=ToolAnnotations(readOnlyHint=True),
 )(instrument("tool", "search_device_histories")(tools.search_device_histories))
 mcp.tool(
+    description="Retrieve usage analytics for a device",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "get_device_analytics_report")(tools.get_device_analytics_report))
+mcp.tool(
+    description="Set context defaults",
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+)(instrument("tool", "set_context")(tools.set_context))
+mcp.tool(
     description="Send a command asynchronously",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
 )(tasks.send_command_async)

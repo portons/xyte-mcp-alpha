@@ -96,6 +96,10 @@ class XyteAPIClient:
 
         self.cache = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
 
+    def cache_stats(self) -> Dict[str, Any]:
+        """Return simple cache statistics for monitoring."""
+        return {"size": len(self.cache), "ttl": self.cache.ttl}
+
     def _request_timeout(self) -> float | None:
         """Return remaining time before the current cancel scope deadline."""
         try:
@@ -200,6 +204,18 @@ class XyteAPIClient:
         response = await self.client.get(
             "/devices/histories",
             params=params,
+            timeout=self._request_timeout(),
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def get_device_analytics(
+        self, device_id: str, period: str = "last_30_days"
+    ) -> Dict[str, Any]:
+        """Retrieve usage analytics for a device."""
+        response = await self.client.get(
+            f"/devices/{device_id}/analytics",
+            params={"period": period},
             timeout=self._request_timeout(),
         )
         response.raise_for_status()

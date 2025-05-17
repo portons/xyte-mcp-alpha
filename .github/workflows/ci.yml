@@ -21,3 +21,5 @@ jobs:
         run: ruff check src tests
       - name: Run tests
         run: python -m unittest discover -v
+      - name: Security scan
+        run: scripts/security_scan.sh || true

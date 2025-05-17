@@ -115,11 +115,17 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
             error_message = error_data.get("error", error_text)
         except Exception:
             error_message = error_text or f"HTTP {status} error"
-            
-        raise MCPError(
-            code=f"http_{status}",
-            message=error_message
-        )
+
+        code = f"http_{status}"
+        if e.response.status_code == 404:
+            if "device" in endpoint:
+                code = "device_not_found"
+            elif "ticket" in endpoint:
+                code = "ticket_not_found"
+        elif e.response.status_code == 503:
+            code = "service_unavailable"
+
+        raise MCPError(code=code, message=error_message)
         
     except ValidationError as e:
         ERROR_COUNT.labels(endpoint=endpoint, code="validation_error").inc()
