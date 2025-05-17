@@ -21,12 +21,12 @@
 
 ## ✅ **Testing**
 
-* [ ] Audit and expand unit tests for all modules
-* [ ] Add integration tests (especially for plugin system & API)
-* [ ] Add negative/error scenario tests
-* [ ] Use `pytest-cov` to generate code coverage report
-* [ ] Add coverage badge to `README.md`
-* [ ] Create `tests/README.md` with structure & running instructions
+* [x] Audit and expand unit tests for all modules
+* [x] Add integration tests (especially for plugin system & API)
+* [x] Add negative/error scenario tests
+* [x] Use `pytest-cov` to generate code coverage report
+* [x] Add coverage badge to `README.md`
+* [x] Create `tests/README.md` with structure & running instructions
 
 ## 💎 **Code Quality & Style**
 
