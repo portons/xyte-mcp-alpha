@@ -60,6 +60,17 @@ def enforce_rate_limit() -> None:
     _REQUEST_TIMESTAMPS.append(now)
 
 
+def validate_device_id(device_id: str) -> str:
+    """Validate and sanitize a device identifier."""
+    try:
+        value = DeviceId(device_id=device_id).device_id.strip()
+        if not value:
+            raise ValueError("device_id cannot be empty")
+        return value
+    except (ValidationError, ValueError) as exc:  # pragma: no cover - simple validation
+        raise MCPError(code="invalid_params", message=str(exc))
+
+
 async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
     """Handle API response with error conversion and metrics reporting."""
     enforce_rate_limit()

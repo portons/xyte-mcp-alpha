@@ -7,12 +7,12 @@ from .logging_utils import configure_logging, instrument
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from . import resources, tools, prompts
+from . import resources, tools, events, prompts
 
 # Configure structured logging
 configure_logging()
@@ -41,6 +41,20 @@ async def metrics(_: Request) -> Response:
     """Expose Prometheus metrics."""
     data = generate_latest()
     return Response(data, media_type=CONTENT_TYPE_LATEST)
+
+
+@mcp.custom_route("/tools", methods=["GET"])
+async def list_tools(_: Request) -> JSONResponse:
+    """List available tools."""
+    tools_list = []
+    for tool_name, tool_def in mcp.server.tools.items():
+        tools_list.append({
+            "name": tool_name,
+            "description": tool_def.description,
+            "readOnlyHint": tool_def.annotations.readOnlyHint if tool_def.annotations else True,
+            "destructiveHint": tool_def.annotations.destructiveHint if tool_def.annotations else False,
+        })
+    return JSONResponse({"tools": tools_list})
 
 
 # Resource registrations
@@ -110,6 +124,10 @@ mcp.tool(
     description="Search device history records",
     annotations=ToolAnnotations(readOnlyHint=True),
 )(instrument("tool", "search_device_histories")(tools.search_device_histories))
+mcp.tool(
+    description="Retrieve the next queued event",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "get_next_event")(events.get_next_event))
 
 # Prompt registrations
 mcp.prompt()(prompts.reboot_device_workflow)

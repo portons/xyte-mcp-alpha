@@ -139,13 +139,12 @@ async def search_device_histories(
                 to_date=to_dt,
                 device_id=params.device_id,
                 order=params.order or "DESC",
-                limit=params.limit or 100,
+                page=params.page,
+                limit=params.limit,
             ),
         )
 
         if ctx:
-            state = get_session_state(ctx)
-            state["search_results"] = result["data"]
-            await ctx.report_progress(1.0, 1.0, "complete")
+            await ctx.report_progress(1.0, 1.0)
 
         return result
