@@ -1,0 +1,370 @@
+openapi: 3.0.0
+info:
+  title: Xyte Organization API
+  version: "1.0"
+servers:
+  - url: https://hub.xyte.io/core/v1/organization
+    description: Production server
+security:
+  - ApiKeyAuth: []
+paths:
+  /devices:
+    get:
+      summary: "Get Devices"
+      description: "List all devices in the organization."
+      tags:
+        - Devices
+      responses:
+        '200':
+          description: OK
+  /devices/claim:
+    post:
+      summary: "Claim Device"
+      description: "Register (claim) a new device under the organization."
+      tags:
+        - Devices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimDeviceRequest'
+            example:
+              name: "Friendly device name"
+              space_id: 13244
+              mac: null
+              sn: null
+              cloud_id: ""
+      responses:
+        '200':
+          description: OK
+  /devices/{device_id}:
+    delete:
+      summary: "Delete Device"
+      description: "Delete (remove) a device by its ID."
+      tags:
+        - Devices
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: OK
+    patch:
+      summary: "Update Device"
+      description: "Update configuration or details of a specific device."
+      tags:
+        - Devices
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeviceRequest'
+            example:
+              configuration:
+                a: 1
+      responses:
+        '200':
+          description: OK
+  /devices/histories:
+    get:
+      summary: "Get Histories"
+      description: "Retrieve device history records, filtered by query parameters."
+      tags:
+        - Devices
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter by status
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start of time range
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End of time range
+        - name: device_id
+          in: query
+          schema:
+            type: string
+          description: Filter by device identifier
+        - name: space_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by space identifier
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: Filter by name
+      responses:
+        '200':
+          description: OK
+  /devices/{device_id}/commands:
+    post:
+      summary: "Send Command"
+      description: "Send a command to the specified device."
+      tags:
+        - Commands
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandRequest'
+            example:
+              name: "reboot"
+              friendly_name: "Reboot"
+              file_id: "optional"
+              extra_params: {}
+      responses:
+        '200':
+          description: OK
+  /devices/{device_id}/commands/{command_id}:
+    delete:
+      summary: "Cancel Command"
+      description: "Cancel a previously sent command on the device."
+      tags:
+        - Commands
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+        - $ref: '#/components/parameters/CommandId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandRequest'
+            example:
+              name: "reboot"
+              friendly_name: "Reboot"
+              file_id: "optional"
+              extra_params: {}
+      responses:
+        '200':
+          description: OK
+  /{device_id}/commands:
+    get:
+      summary: "Get Commands"
+      description: "List all commands for the specified device."
+      tags:
+        - Commands
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: OK
+  /info:
+    get:
+      summary: "Get Organization Info"
+      description: "Retrieve information about the organization (requires a device context)."
+      tags:
+        - Organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgInfoRequest'
+            example:
+              device_id: "xxxxx"
+      responses:
+        '200':
+          description: OK
+  /incidents:
+    get:
+      summary: "Get Incidents"
+      description: "Retrieve all incidents for the organization."
+      tags:
+        - Incidents
+      responses:
+        '200':
+          description: OK
+  /tickets:
+    get:
+      summary: "Get Tickets"
+      description: "Retrieve all support tickets for the organization."
+      tags:
+        - Tickets
+      responses:
+        '200':
+          description: OK
+  /tickets/{ticket_id}:
+    get:
+      summary: "Get Ticket"
+      description: "Retrieve a specific support ticket by ID."
+      tags:
+        - Tickets
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: "Update Ticket"
+      description: "Update the details of a specific ticket."
+      tags:
+        - Tickets
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketUpdateRequest'
+            example:
+              title: "New title"
+              description: "New description"
+      responses:
+        '200':
+          description: OK
+  /tickets/{ticket_id}/resolved:
+    post:
+      summary: "Mark Ticket as Resolved"
+      description: "Mark the specified ticket as resolved."
+      tags:
+        - Tickets
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      responses:
+        '200':
+          description: OK
+  /tickets/{ticket_id}/message:
+    post:
+      summary: "Send Ticket Message"
+      description: "Send a new message to the specified ticket thread."
+      tags:
+        - Tickets
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketMessageRequest'
+            example:
+              message: "Hello!"
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Provide your organization API key or token via the Authorization header.
+  parameters:
+    DeviceId:
+      name: device_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique device identifier
+    CommandId:
+      name: command_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique command identifier
+    TicketId:
+      name: ticket_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique ticket identifier
+  schemas:
+    ClaimDeviceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Friendly name for the device
+        space_id:
+          type: integer
+          description: Identifier of the space to assign the device
+        mac:
+          type: string
+          nullable: true
+          description: Device MAC address (optional)
+        sn:
+          type: string
+          nullable: true
+          description: Device serial number (optional)
+        cloud_id:
+          type: string
+          description: Cloud identifier for the device (optional)
+      required:
+        - name
+        - space_id
+    UpdateDeviceRequest:
+      type: object
+      properties:
+        configuration:
+          type: object
+          description: Configuration parameters for the device
+      required:
+        - configuration
+    CommandRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Command name
+        friendly_name:
+          type: string
+          description: Human-friendly command name
+        file_id:
+          type: string
+          description: File identifier if the command includes a file (optional)
+        extra_params:
+          type: object
+          description: Additional parameters for the command (if required)
+      required:
+        - name
+        - friendly_name
+    OrgInfoRequest:
+      type: object
+      properties:
+        device_id:
+          type: string
+          description: Device identifier for which to retrieve organization info
+      required:
+        - device_id
+    TicketUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: New title for the ticket
+        description:
+          type: string
+          description: New description for the ticket
+      required:
+        - title
+        - description
+    TicketMessageRequest:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Message content to send in ticket
+      required:
+        - message
