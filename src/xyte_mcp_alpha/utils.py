@@ -10,8 +10,7 @@ from .models import DeviceId, TicketId
 
 import httpx
 from prometheus_client import Counter, Histogram
-
-logger = logging.getLogger(__name__)
+from .logging_utils import log_json
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type hints only
     from mcp.server.fastmcp.server import Context
@@ -115,8 +114,8 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
         for hook in _PAYLOAD_TRANSFORMS:
             try:
                 result = hook(result)
-            except Exception:  # pragma: no cover - custom hooks may fail
-                logger.exception("payload_transform_error")
+            except Exception as exc:  # pragma: no cover - custom hooks may fail
+                log_json(logging.ERROR, event="payload_transform_error", error=str(exc))
         
         return result
         
@@ -130,6 +129,12 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
             audit_logger.warning(
                 f"Security error accessing {endpoint}",
                 extra={"status": status, "endpoint": endpoint}
+            )
+            log_json(
+                logging.WARNING,
+                event="security_error",
+                status=status,
+                endpoint=endpoint,
             )
         
         error_text = e.response.text
@@ -176,7 +181,7 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
         
     except Exception as e:
         ERROR_COUNT.labels(endpoint=endpoint, code="unknown_error").inc()
-        logger.exception(f"Unknown error in {endpoint}")
+        log_json(logging.ERROR, event="unknown_error", endpoint=endpoint, error=str(e))
         raise MCPError(
             code="unknown_error",
             message=f"Unexpected error: {type(e).__name__}"

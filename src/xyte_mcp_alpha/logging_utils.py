@@ -83,8 +83,14 @@ class StderrConsoleSpanExporter(ConsoleSpanExporter):
             return f"[{span.name}] {span.start_time} - {span.end_time}"
 
 
-def configure_logging(level: int = logging.INFO) -> None:
+def configure_logging(level: int | None = None) -> None:
     """Configure application-wide structured logging."""
+    from .config import get_settings
+
+    if level is None:
+        level_name = get_settings().log_level.upper()
+        level = getattr(logging, level_name, logging.INFO)
+
     # Configure logging to stderr to avoid interfering with MCP protocol
     logging.basicConfig(
         level=level,

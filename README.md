@@ -163,10 +163,20 @@ This opens an interactive UI where you can test tools and resources.
 
 ## Logging and Monitoring
 
-Structured JSON logs are produced for every HTTP request and Xyte API call. Each
-log entry includes a unique `request_id` for easy tracing. Prometheus metrics are
-available at the `/metrics` endpoint, including latency histograms for tools,
-resources and underlying API calls.
+The server emits structured JSON logs for all incoming requests, resource
+lookups and tool invocations. The helper `configure_logging()` function sets up
+logging on startup using the `XYTE_LOG_LEVEL` environment variable (default
+`INFO`). Supported levels are the standard Python log levels (`DEBUG`, `INFO`,
+`WARNING`, `ERROR`).
+
+Every log entry includes a `request_id` so you can trace a call across multiple
+actions. Logs are written to stderr and are also forwarded to any loaded
+plugins.
+
+Prometheus metrics are exposed at the `/metrics` endpoint. These include request
+counts and latency histograms for tools, resources and underlying API calls. You
+can visualize them using Grafana (see `docs/grafana_dashboard.json` for an
+example dashboard).
 
 ## API Reference
 
