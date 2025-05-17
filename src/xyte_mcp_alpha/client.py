@@ -31,7 +31,6 @@ from .models import (
     ClaimDeviceRequest,
     UpdateDeviceRequest,
     CommandRequest,
-    OrgInfoRequest,
     TicketUpdateRequest,
     TicketMessageRequest,
 )
