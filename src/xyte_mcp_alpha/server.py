@@ -12,7 +12,7 @@ from starlette.responses import Response
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from . import resources, tools
+from . import resources, tools, prompts
 
 # Configure structured logging
 configure_logging()
@@ -110,6 +110,10 @@ mcp.tool(
     description="Search device history records",
     annotations=ToolAnnotations(readOnlyHint=True),
 )(instrument("tool", "search_device_histories")(tools.search_device_histories))
+
+# Prompt registrations
+mcp.prompt()(prompts.reboot_device_workflow)
+mcp.prompt()(prompts.check_projectors_health)
 
 
 def get_server() -> Any:
