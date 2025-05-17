@@ -6,37 +6,19 @@ import os
 import json
 from typing import Any, Dict
 
-from . import plugin
-from .config import get_settings
+# Fix import paths for mcp dev
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-# Import the GetNextEventRequest class directly
+# Import everything using absolute imports
+import xyte_mcp_alpha.plugin as plugin
+from xyte_mcp_alpha.config import get_settings
 from xyte_mcp_alpha.events import GetNextEventRequest
-
-# Handle different import scenarios
-if __name__ == "__main__" or __name__ == "xyte_mcp_alpha.server":
-    # When run as a script or imported as part of the package
-    try:
-        # When imported as part of the package
-        from .logging_utils import configure_logging, instrument
-        from . import resources, tools, tasks, events, prompts
-    except ImportError:
-        # When run directly as a script
-        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-        from xyte_mcp_alpha.logging_utils import configure_logging, instrument
-        import xyte_mcp_alpha.resources as resources
-        import xyte_mcp_alpha.tools as tools
-        import xyte_mcp_alpha.tasks as tasks
-        import xyte_mcp_alpha.events as events
-        import xyte_mcp_alpha.prompts as prompts
-else:
-    # When imported by MCP dev or other external tools
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-    from xyte_mcp_alpha.logging_utils import configure_logging, instrument
-    import xyte_mcp_alpha.resources as resources
-    import xyte_mcp_alpha.tools as tools
-    import xyte_mcp_alpha.tasks as tasks
-    import xyte_mcp_alpha.events as events
-    import xyte_mcp_alpha.prompts as prompts
+from xyte_mcp_alpha.logging_utils import configure_logging, instrument
+import xyte_mcp_alpha.resources as resources
+import xyte_mcp_alpha.tools as tools
+import xyte_mcp_alpha.tasks as tasks
+import xyte_mcp_alpha.events as events
+import xyte_mcp_alpha.prompts as prompts
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request

@@ -16,7 +16,7 @@ from opentelemetry.sdk.trace.export import (
 from opentelemetry.sdk.trace import ReadableSpan
 from typing import Sequence
 
-from . import plugin
+import xyte_mcp_alpha.plugin as plugin
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
