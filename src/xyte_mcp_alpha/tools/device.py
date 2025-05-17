@@ -316,6 +316,8 @@ async def find_and_control_device(
         extra_params=(
             {"input": data.input_source_hint} if data.input_source_hint else {}
         ),
+        file_id=None,
+        dry_run=False
     )
     result = await send_command(cmd, ctx=ctx)
     return ToolResponse(
@@ -347,7 +349,17 @@ async def diagnose_av_issue(
 
     status = await resources.device_status(device["id"])
     histories = await search_device_histories(
-        SearchDeviceHistoriesRequest(device_id=device["id"]),
+        SearchDeviceHistoriesRequest(
+            device_id=device["id"],
+            status=None,
+            from_date=None,
+            to_date=None,
+            space_id=None,
+            name=None,
+            order=None,
+            page=None,
+            limit=None
+        ),
         ctx=ctx,
     )
 

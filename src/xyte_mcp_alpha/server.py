@@ -291,7 +291,4 @@ if __name__ == "__main__":
     from .logging_utils import log_json
 
     log_json(logging.INFO, event="server_start", mode="development")
-    import asyncio
-    from mcp.server.stdio import stdio_server
-
-    asyncio.run(stdio_server(mcp))
+    mcp.run(transport="stdio")

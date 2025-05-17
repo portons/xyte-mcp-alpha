@@ -12,6 +12,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (
     ConsoleSpanExporter,
     SimpleSpanProcessor,
+    SpanExportResult,
 )
 from opentelemetry.sdk.trace import ReadableSpan
 from typing import Sequence
@@ -70,19 +71,16 @@ COMMAND_TOOL_ACTIONS = {
 class StderrConsoleSpanExporter(ConsoleSpanExporter):
     """Console span exporter that writes to stderr instead of stdout."""
 
-    def export(self, spans: Sequence[ReadableSpan]) -> None:
+    def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
         """Export spans to stderr instead of stdout."""
         for span in spans:
             print(self._span_to_str(span), file=sys.stderr)
+        return SpanExportResult.SUCCESS
 
     def _span_to_str(self, span: ReadableSpan) -> str:
         """Convert span to string format."""
-        # Use the parent class implementation if available
-        if hasattr(super(), "_span_to_str"):
-            return super()._span_to_str(span)
-        else:
-            # Basic fallback implementation
-            return f"[{span.name}] {span.start_time} - {span.end_time}"
+        # Basic implementation since _span_to_str was removed from newer versions
+        return f"[{span.name}] {span.start_time} - {span.end_time}"
 
 
 def configure_logging(level: int | None = None) -> None:
@@ -212,7 +210,11 @@ def instrument(
 
         from inspect import signature
 
-        wrapper.__signature__ = getattr(func, "__signature__", signature(func))
+        try:
+            wrapper.__signature__ = signature(func)  # type: ignore[attr-defined]
+        except (ValueError, TypeError):
+            # If we can't get signature, don't set it
+            pass
         return wrapper
 
     return decorator

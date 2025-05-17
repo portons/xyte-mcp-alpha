@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     )
     xyte_user_token: str | None = Field(default=None, alias="XYTE_USER_TOKEN")
     xyte_cache_ttl: int = Field(default=60, alias="XYTE_CACHE_TTL")
-    environment: str = Field("prod", alias="XYTE_ENV")
+    environment: str = Field(default="prod", alias="XYTE_ENV")
     rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
     mcp_inspector_port: int = Field(default=8080, alias="MCP_INSPECTOR_PORT")
     enable_experimental_apis: bool = Field(

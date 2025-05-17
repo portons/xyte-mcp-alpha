@@ -61,7 +61,7 @@ class XyteAPIClient:
         headers = {"Content-Type": "application/json"}
         if self.oauth_token:
             headers["Authorization"] = f"Bearer {self.oauth_token}"
-        else:
+        elif self.api_key:
             headers["Authorization"] = self.api_key
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
@@ -69,7 +69,9 @@ class XyteAPIClient:
             timeout=30.0,
             transport=transport,
         )
-        self.cache = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
+        self.cache: TTLCache[str, Any] = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
+        self._failures: int = 0
+        self._circuit_open_until: float = 0.0
 
     def cache_stats(self) -> Dict[str, Any]:
         """Return simple cache statistics for monitoring."""
@@ -90,7 +92,7 @@ class XyteAPIClient:
 
     async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         """Perform an HTTP request with retries and circuit breaker."""
-        if hasattr(self, "_circuit_open_until") and time.monotonic() < self._circuit_open_until:  # type: ignore[attr-defined]
+        if time.monotonic() < self._circuit_open_until:
             raise httpx.NetworkError("backend_unavailable")
 
         backoff = 0.1
@@ -100,17 +102,19 @@ class XyteAPIClient:
                 response = await self.client.request(
                     method, url, timeout=self._request_timeout(), **kwargs
                 )
-                self._failures = 0  # type: ignore[attr-defined]
+                self._failures = 0
                 return response
             except (httpx.NetworkError, httpx.TimeoutException):
                 failures += 1
-                self._failures = failures  # type: ignore[attr-defined]
+                self._failures = failures
                 if failures >= 3:
-                    self._circuit_open_until = time.monotonic() + 30  # type: ignore[attr-defined]
+                    self._circuit_open_until = time.monotonic() + 30
                 if attempt == 2:
                     raise
                 await anyio.sleep(backoff)
                 backoff *= 2
+        # This should not be reached due to the logic above, but mypy needs it
+        raise httpx.NetworkError("Maximum retries exceeded")
 
     async def __aenter__(self) -> "XyteAPIClient":
         return self
@@ -202,6 +206,9 @@ class XyteAPIClient:
         device_id: Optional[str] = None,
         space_id: Optional[int] = None,
         name: Optional[str] = None,
+        order: Optional[str] = None,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Retrieve device history records."""
         params = {}
@@ -214,9 +221,15 @@ class XyteAPIClient:
         if device_id:
             params["device_id"] = device_id
         if space_id:
-            params["space_id"] = space_id
+            params["space_id"] = str(space_id)
         if name:
             params["name"] = name
+        if order:
+            params["order"] = order
+        if page is not None:
+            params["page"] = str(page)
+        if limit is not None:
+            params["limit"] = str(limit)
 
         response = await self._request(
             "GET",

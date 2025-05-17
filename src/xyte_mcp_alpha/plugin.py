@@ -6,7 +6,7 @@ import importlib
 import importlib.metadata
 import logging
 import os
-from typing import Iterable, List, Protocol
+from typing import Iterable, List, Protocol, Any
 from .logging_utils import log_json
 
 class MCPPlugin(Protocol):
@@ -62,9 +62,11 @@ def _load_from_paths(paths: Iterable[str]) -> None:
 def _load_from_entrypoints() -> None:
     try:
         eps = importlib.metadata.entry_points()
-        group_eps = (
-            eps.select(group=ENTRYPOINT_GROUP) if hasattr(eps, "select") else eps.get(ENTRYPOINT_GROUP, [])
-        )
+        if hasattr(eps, "select"):
+            group_eps = eps.select(group=ENTRYPOINT_GROUP)
+        else:
+            # Handle older API - just return empty list if not found
+            group_eps = eps.get(ENTRYPOINT_GROUP, [])  # type: ignore[arg-type]
         for ep in group_eps:
             try:
                 register_plugin(getattr(ep.load(), "plugin", ep.load()))

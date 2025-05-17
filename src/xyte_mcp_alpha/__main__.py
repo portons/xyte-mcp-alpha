@@ -21,7 +21,7 @@ def main() -> None:
     """Launch the MCP server."""
     print("Starting Xyte MCP server...", file=sys.stderr)
     server = get_server()
-    asyncio.run(stdio_server(server))
+    server.run(transport="stdio")
 
 
 if __name__ == "__main__":

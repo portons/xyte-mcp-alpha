@@ -123,6 +123,9 @@ class SearchDeviceHistoriesRequest(BaseModel):
     device_id: Optional[str] = Field(None, description="Filter by device")
     space_id: Optional[int] = Field(None, description="Filter by space")
     name: Optional[str] = Field(None, description="Filter by name")
+    order: Optional[str] = Field(None, description="Sort order (ASC or DESC)")
+    page: Optional[int] = Field(None, description="Page number for pagination")
+    limit: Optional[int] = Field(None, description="Number of items per page")
 
 
 class ToolResponse(BaseModel):
