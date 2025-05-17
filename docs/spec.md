@@ -16,7 +16,7 @@ Based on this understanding and the extensive research on latest MCP development
 
 This section focuses on improving the existing foundation of your `xyte-mcp-alpha` server.
 
-* [ ] **Task A1: Deep Code Review and SDK Alignment**
+* [v] **Task A1: Deep Code Review and SDK Alignment**
    * **Description:** Conduct a thorough review of `src/xyte_mcp_alpha/server.py`, `handlers.py`, `clients/xyte.py`, and `schemas.py`. Ensure consistent and optimal use of the chosen MCP SDK (e.g., FastMCP or official Python SDK).
    * **Rationale:** Identify any manual MCP protocol handling that could be simplified by SDK features, ensure type hinting is consistently used (as suggested by FastMCP for better validation and editor support), and optimize the interaction flow between MCP requests, Xyte API client, and response handling.
    * **Action Items:**
@@ -33,7 +33,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * Sanitize any free-text inputs that might be used in constructing API calls or system commands (though direct system command execution should be avoided).
       * Return clear `MCPError` (e.g., `InvalidParams`) for validation failures.
 
-* [ ] **Task A3: Strengthen Error Handling and Reporting**
+* [v] **Task A3: Strengthen Error Handling and Reporting**
    * **Description:** Expand on the existing error handling (`MCPError` exceptions, Xyte API status code translation). Implement more granular error reporting and ensure all error paths are covered.
    * **Rationale:** Provides clearer feedback to AI agents and aids debugging. The current translation of Xyte API errors is good; this task aims to make it comprehensive.
    * **Action Items:**
