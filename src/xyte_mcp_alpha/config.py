@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     environment: str = Field(default="prod", alias="XYTE_ENV")
     rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
     mcp_inspector_port: int = Field(default=8080, alias="MCP_INSPECTOR_PORT")
+    mcp_inspector_host: str = Field(default="127.0.0.1", alias="MCP_INSPECTOR_HOST")
     enable_experimental_apis: bool = Field(
         default=False, alias="XYTE_EXPERIMENTAL_APIS"
     )
