@@ -5,7 +5,7 @@ from typing import Any
 _hooks = None
 
 
-def _load_hooks():
+def _load_hooks() -> Any | None:
     global _hooks
     if _hooks is not None:
         return _hooks

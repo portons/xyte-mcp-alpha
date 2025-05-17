@@ -30,11 +30,11 @@
 
 ## 💎 **Code Quality & Style**
 
-* [ ] Run and fix all linter issues (`ruff`, `black`, or similar)
-* [ ] Add pre-commit hooks for linting and typing (`pre-commit`)
-* [ ] Add type hints to all functions/modules
-* [ ] Refactor monolithic files (e.g., `server.py`, `tools.py`) into smaller, focused modules
-* [ ] Standardize error handling (use custom exceptions where appropriate)
+* [x] Run and fix all linter issues (`ruff`, `black`, or similar)
+* [x] Add pre-commit hooks for linting and typing (`pre-commit`)
+* [x] Add type hints to all functions/modules
+* [x] Refactor monolithic files (e.g., `server.py`, `tools.py`) into smaller, focused modules
+* [x] Standardize error handling (use custom exceptions where appropriate)
 
 ## 📜 **Logging & Observability**
 

@@ -23,6 +23,7 @@ class MCPError(Exception):
         super().__init__(message)
         self.code = code
 
+
 # Prometheus metrics
 REQUEST_LATENCY = Histogram(
     "xyte_request_latency_seconds", "Latency of API calls", ["endpoint"]
@@ -37,9 +38,12 @@ audit_logger = logging.getLogger("audit")
 _PAYLOAD_TRANSFORMS: list[Callable[[Dict[str, Any]], Dict[str, Any]]] = []
 
 
-def register_payload_transform(func: Callable[[Dict[str, Any]], Dict[str, Any]]) -> None:
+def register_payload_transform(
+    func: Callable[[Dict[str, Any]], Dict[str, Any]],
+) -> None:
     """Register a callback to transform API responses."""
     _PAYLOAD_TRANSFORMS.append(func)
+
 
 # Simple in-memory rate limiter
 _REQUEST_TIMESTAMPS: deque[float] = deque()
@@ -47,23 +51,23 @@ _REQUEST_TIMESTAMPS: deque[float] = deque()
 
 def enforce_rate_limit() -> None:
     """Enforce rate limiting for API requests.
-    
+
     Raises:
         MCPError: If rate limit is exceeded
     """
     now = time.time()
     limit = get_settings().rate_limit_per_minute
-    
+
     # Remove timestamps older than 60 seconds
     while _REQUEST_TIMESTAMPS and _REQUEST_TIMESTAMPS[0] < now - 60:
         _REQUEST_TIMESTAMPS.popleft()
-    
+
     if len(_REQUEST_TIMESTAMPS) >= limit:
         raise MCPError(
             code="rate_limited",
-            message=f"Rate limit exceeded. Maximum {limit} requests per minute."
+            message=f"Rate limit exceeded. Maximum {limit} requests per minute.",
         )
-    
+
     _REQUEST_TIMESTAMPS.append(now)
 
 
@@ -96,20 +100,20 @@ def validate_payload(data: Any) -> Dict[str, Any]:
 async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
     """Handle API response with error conversion and metrics reporting."""
     enforce_rate_limit()
-    
+
     start_time = time.time()
     try:
         result = await coro
-        
+
         # Track latency
         REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.time() - start_time)
-        
+
         # Convert response to dict if needed
         if hasattr(result, "model_dump"):
             result = {"data": result.model_dump()}
         elif not isinstance(result, dict):
             result = {"data": result}
-        
+
         # Apply transform hooks
         for hook in _PAYLOAD_TRANSFORMS:
             try:
@@ -118,17 +122,17 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
                 log_json(logging.ERROR, event="payload_transform_error", error=str(exc))
         
         return result
-        
+
     except httpx.HTTPStatusError as e:
         status = str(e.response.status_code)
         STATUS_COUNT.labels(status=status).inc()
         ERROR_COUNT.labels(endpoint=endpoint, code=status).inc()
-        
+
         # Log security-related errors
         if e.response.status_code in [401, 403]:
             audit_logger.warning(
                 f"Security error accessing {endpoint}",
-                extra={"status": status, "endpoint": endpoint}
+                extra={"status": status, "endpoint": endpoint},
             )
             log_json(
                 logging.WARNING,
@@ -156,35 +160,27 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
             code = "service_unavailable"
 
         raise MCPError(code=code, message=error_message)
-        
+
     except ValidationError as e:
         ERROR_COUNT.labels(endpoint=endpoint, code="validation_error").inc()
-        err_msg = str(e).replace('\n', '; ')
+        err_msg = str(e).replace("\n", "; ")
         raise MCPError(
-            code="validation_error",
-            message=f"Invalid data format: {err_msg}"
+            code="validation_error", message=f"Invalid data format: {err_msg}"
         )
-        
+
     except httpx.TimeoutException:
         ERROR_COUNT.labels(endpoint=endpoint, code="timeout").inc()
-        raise MCPError(
-            code="timeout",
-            message="Request timed out"
-        )
-        
+        raise MCPError(code="timeout", message="Request timed out")
+
     except httpx.NetworkError as e:
         ERROR_COUNT.labels(endpoint=endpoint, code="network_error").inc()
-        raise MCPError(
-            code="network_error",
-            message=f"Network error: {str(e)}"
-        )
-        
+        raise MCPError(code="network_error", message=f"Network error: {str(e)}")
+
     except Exception as e:
         ERROR_COUNT.labels(endpoint=endpoint, code="unknown_error").inc()
         log_json(logging.ERROR, event="unknown_error", endpoint=endpoint, error=str(e))
         raise MCPError(
-            code="unknown_error",
-            message=f"Unexpected error: {type(e).__name__}"
+            code="unknown_error", message=f"Unexpected error: {type(e).__name__}"
         )
 
 
@@ -198,18 +194,12 @@ def get_session_state(ctx: "Context") -> Dict[str, Any]:
 def convert_device_id(device_id: str | int | None) -> str:
     """Convert device ID to string format."""
     if device_id is None:
-        raise MCPError(
-            code="invalid_device_id",
-            message="Device ID is required"
-        )
+        raise MCPError(code="invalid_device_id", message="Device ID is required")
     return str(DeviceId(device_id=device_id).device_id)
 
 
 def convert_ticket_id(ticket_id: str | int | None) -> str:
     """Convert ticket ID to string format."""
     if ticket_id is None:
-        raise MCPError(
-            code="invalid_ticket_id", 
-            message="Ticket ID is required"
-        )
+        raise MCPError(code="invalid_ticket_id", message="Ticket ID is required")
     return str(TicketId(ticket_id=ticket_id).ticket_id)
