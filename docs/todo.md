@@ -38,10 +38,10 @@
 
 ## 📜 **Logging & Observability**
 
-* [ ] Unify logging (one utility, consistent usage)
-* [ ] Document logging configuration and log levels
-* [ ] Ensure all core actions/events are logged
-* [ ] Provide example Grafana dashboard for Prometheus metrics
+* [x] Unify logging (one utility, consistent usage)
+* [x] Document logging configuration and log levels
+* [x] Ensure all core actions/events are logged
+* [x] Provide example Grafana dashboard for Prometheus metrics
 
 ## 🔒 **Security**
 
