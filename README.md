@@ -173,6 +173,8 @@ resources and underlying API calls.
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
 - `MCP_INSPECTOR_PORT` (optional) - Port for the MCP inspector to use (default 6277)
 
+These variables can also be configured when deploying via Helm. See `helm/values.yaml` for defaults.
+
 ### Security Considerations
 
 Ensure the value provided for `XYTE_API_KEY` has only the permissions required

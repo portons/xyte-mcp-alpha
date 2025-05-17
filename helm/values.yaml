@@ -6,3 +6,12 @@ image:
 service:
   type: ClusterIP
   port: 80
+
+env:
+  XYTE_API_KEY: ""
+  XYTE_BASE_URL: "https://hub.xyte.io/core/v1/organization"
+  XYTE_USER_TOKEN: ""
+  XYTE_CACHE_TTL: "60"
+  XYTE_ENV: "prod"
+  XYTE_RATE_LIMIT: "60"
+  MCP_INSPECTOR_PORT: "8080"
