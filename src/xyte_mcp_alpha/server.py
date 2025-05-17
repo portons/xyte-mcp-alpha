@@ -1,9 +1,38 @@
 """MCP server for Xyte Organization API."""
 
 import logging
-from typing import Any
+import sys
+import os
+from typing import Any, Dict
 
-from .logging_utils import configure_logging, instrument
+# Import the GetNextEventRequest class directly
+from xyte_mcp_alpha.events import GetNextEventRequest
+
+# Handle different import scenarios
+if __name__ == "__main__" or __name__ == "xyte_mcp_alpha.server":
+    # When run as a script or imported as part of the package
+    try:
+        # When imported as part of the package
+        from .logging_utils import configure_logging, instrument
+        from . import resources, tools, tasks, events, prompts
+    except ImportError:
+        # When run directly as a script
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+        from xyte_mcp_alpha.logging_utils import configure_logging, instrument
+        import xyte_mcp_alpha.resources as resources
+        import xyte_mcp_alpha.tools as tools
+        import xyte_mcp_alpha.tasks as tasks
+        import xyte_mcp_alpha.events as events
+        import xyte_mcp_alpha.prompts as prompts
+else:
+    # When imported by MCP dev or other external tools
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+    from xyte_mcp_alpha.logging_utils import configure_logging, instrument
+    import xyte_mcp_alpha.resources as resources
+    import xyte_mcp_alpha.tools as tools
+    import xyte_mcp_alpha.tasks as tasks
+    import xyte_mcp_alpha.events as events
+    import xyte_mcp_alpha.prompts as prompts
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
@@ -11,8 +40,6 @@ from starlette.responses import Response, JSONResponse
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
-
-from . import resources, tools, tasks, events, prompts
 
 # Configure structured logging
 configure_logging()
@@ -168,10 +195,16 @@ mcp.tool(
     description="Get status of an asynchronous task",
     annotations=ToolAnnotations(readOnlyHint=True),
 )(tasks.get_task_status)
+# Create a wrapper function with explicit type annotation
+async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
+    """Wrapper for get_next_event with explicit type annotation."""
+    return await events.get_next_event(params)
+
+# Register the wrapper function as a tool
 mcp.tool(
     description="Retrieve the next queued event",
     annotations=ToolAnnotations(readOnlyHint=True),
-)(instrument("tool", "get_next_event")(events.get_next_event))
+)(instrument("tool", "get_next_event")(get_next_event_wrapper))
 
 # Prompt registrations
 mcp.prompt()(prompts.reboot_device_workflow)
@@ -183,3 +216,12 @@ mcp.prompt()(prompts.troubleshoot_offline_device_workflow)
 def get_server() -> Any:
     """Get the MCP server instance."""
     return mcp
+
+
+# Allow direct execution for development
+if __name__ == "__main__":
+    print("Starting MCP server in development mode...")
+    import asyncio
+    from mcp.server.stdio import stdio_server
+
+    asyncio.run(stdio_server(mcp))

@@ -40,4 +40,3 @@ async def get_next_event(params: GetNextEventRequest) -> Dict[str, Any]:
             return event.model_dump()
         # Otherwise, put it back at the end of the queue and continue searching
         await _event_queue.put(event)
-

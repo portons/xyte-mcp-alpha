@@ -146,6 +146,12 @@ For development and debugging:
 mcp dev src/xyte_mcp_alpha/server.py
 ```
 
+If port 6277 is already in use, you can specify a different port:
+
+```bash
+MCP_INSPECTOR_PORT=6278 mcp dev src/xyte_mcp_alpha/server.py
+```
+
 This opens an interactive UI where you can test tools and resources.
 
 ## Logging and Monitoring
@@ -165,6 +171,7 @@ resources and underlying API calls.
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
+- `MCP_INSPECTOR_PORT` (optional) - Port for the MCP inspector to use (default 6277)
 
 ### Security Considerations
 

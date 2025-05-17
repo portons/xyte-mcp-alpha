@@ -2,6 +2,7 @@
 
 from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
+from .config import get_settings
 from fastapi.openapi.utils import get_openapi
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -26,7 +27,8 @@ def main():
     """Run the HTTP server using Uvicorn."""
     import uvicorn
 
-    uvicorn.run("xyte_mcp_alpha.http:app", host="0.0.0.0", port=8080)
+    settings = get_settings()
+    uvicorn.run("xyte_mcp_alpha.http:app", host="0.0.0.0", port=settings.mcp_inspector_port)
 
 
 if __name__ == "__main__":
