@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+import logging
 
 from .deps import get_client
 from .utils import handle_api, get_session_state, validate_device_id, MCPError
@@ -15,13 +16,14 @@ from .models import (
     UpdateDeviceArgs,
     MarkTicketResolvedRequest,
     SendTicketMessageRequest,
-    SendCommandRequest,
     SendCommandArgs,
     CancelCommandRequest,
     UpdateTicketRequest,
     SearchDeviceHistoriesRequest,
     ToolResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 async def claim_device(request: ClaimDeviceRequest) -> Dict[str, Any]:
