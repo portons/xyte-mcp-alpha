@@ -1,6 +1,10 @@
 import asyncio
 from typing import Any, Dict, Awaitable
 
+from pydantic import ValidationError
+
+from .models import DeviceId, TicketId
+
 import httpx
 from prometheus_client import Counter, Histogram
 
@@ -18,6 +22,22 @@ REQUEST_LATENCY = Histogram(
 )
 ERROR_COUNT = Counter("xyte_errors_total", "XYTE API errors", ["endpoint", "code"])
 STATUS_COUNT = Counter("xyte_status_total", "XYTE API status codes", ["status"])
+
+
+def validate_device_id(device_id: str) -> str:
+    """Validate and sanitize a device identifier."""
+    try:
+        return DeviceId(device_id=device_id).device_id.strip()
+    except ValidationError as exc:  # pragma: no cover - simple validation
+        raise MCPError(code="invalid_params", message=str(exc))
+
+
+def validate_ticket_id(ticket_id: str) -> str:
+    """Validate and sanitize a ticket identifier."""
+    try:
+        return TicketId(ticket_id=ticket_id).ticket_id.strip()
+    except ValidationError as exc:  # pragma: no cover - simple validation
+        raise MCPError(code="invalid_params", message=str(exc))
 
 
 async def handle_api(name: str, coro: Awaitable[Dict[str, Any]]) -> Dict[str, Any]:

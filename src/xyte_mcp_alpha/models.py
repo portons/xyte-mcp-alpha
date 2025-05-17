@@ -1,3 +1,5 @@
+"""Pydantic models used by server tools and resources."""
+
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 from .client import CommandRequest
@@ -7,6 +9,12 @@ class DeviceId(BaseModel):
     """Model identifying a device."""
 
     device_id: str = Field(..., description="Unique device identifier")
+
+
+class TicketId(BaseModel):
+    """Model identifying a ticket."""
+
+    ticket_id: str = Field(..., description="Unique ticket identifier")
 
 
 class CommandId(DeviceId):
@@ -21,8 +29,8 @@ class UpdateDeviceArgs(DeviceId):
     configuration: Dict[str, Any] = Field(..., description="Configuration parameters")
 
 
-class MarkTicketResolvedRequest(BaseModel):
-    ticket_id: str = Field(..., description="Unique ticket identifier")
+class MarkTicketResolvedRequest(TicketId):
+    """Request model for marking a ticket resolved."""
 
 
 class SendTicketMessageRequest(MarkTicketResolvedRequest):
