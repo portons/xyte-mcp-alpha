@@ -63,15 +63,15 @@
 
 ## Deployment & Infrastructure
 
-* [ ] Ensure Dockerfile is production-ready (multi-stage, non-root user, no build deps in image)
+* [x] Ensure Dockerfile is production-ready (multi-stage, non-root user, no build deps in image)
 
-* [ ] Add/verify K8s manifests (deployment, service, configmap/secret for keys)
+* [x] Add/verify K8s manifests (deployment, service, configmap/secret for keys)
 
-* [ ] Document all env vars in README and Helm values.yaml
+* [x] Document all env vars in README and Helm values.yaml
 
-* [ ] Use pydantic for config parsing, with `.env` file support
+* [x] Use pydantic for config parsing, with `.env` file support
 
-* [ ] Expose safe config via `/config` (protected) endpoint for ops debugging
+* [x] Expose safe config via `/config` (protected) endpoint for ops debugging
 
 ---
 

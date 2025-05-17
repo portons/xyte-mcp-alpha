@@ -21,6 +21,9 @@ spec:
             secretKeyRef:
               name: xyte-secrets
               key: api_key
+        envFrom:
+        - configMapRef:
+            name: xyte-config
         ports:
         - containerPort: 8080
         livenessProbe:

@@ -176,6 +176,8 @@ resources and underlying API calls.
 - `XYTE_API_MAPPING` (optional) - Path to JSON file overriding API endpoint mapping
 - `XYTE_HOOKS_MODULE` (optional) - Python module providing request/response hooks
 
+These variables can also be configured when deploying via Helm. See `helm/values.yaml` for defaults.
+
 ### Security Considerations
 
 Ensure the value provided for `XYTE_API_KEY` has only the permissions required

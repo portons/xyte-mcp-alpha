@@ -38,6 +38,7 @@ else:
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
+from .config import get_settings
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -69,6 +70,21 @@ async def metrics(_: Request) -> Response:
     """Expose Prometheus metrics."""
     data = generate_latest()
     return Response(data, media_type=CONTENT_TYPE_LATEST)
+
+
+@mcp.custom_route("/config", methods=["GET"])
+async def config_endpoint(request: Request) -> JSONResponse:
+    """Return sanitized configuration for debugging purposes."""
+    settings = get_settings()
+    api_key = request.headers.get("X-API-Key")
+    if api_key != settings.xyte_api_key:
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+
+    cfg = settings.model_dump()
+    cfg["xyte_api_key"] = "***"
+    if cfg.get("xyte_user_token"):
+        cfg["xyte_user_token"] = "***"
+    return JSONResponse({"config": cfg})
 
 
 @mcp.custom_route("/webhook", methods=["POST"])
