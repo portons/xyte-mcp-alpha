@@ -6,15 +6,58 @@ import uuid
 from contextvars import ContextVar
 from typing import Any, Callable, Awaitable
 from functools import wraps
-from prometheus_client import Histogram
+from prometheus_client import Histogram, Counter
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter, SpanExporter
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
 from opentelemetry.sdk.trace import ReadableSpan
 from typing import Sequence
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+
+# Prometheus metrics for HTTP and tool/resource handling
+HTTP_REQUEST_LATENCY = Histogram(
+    "xyte_http_request_latency_seconds",
+    "Latency of HTTP requests",
+    ["method", "path"],
+)
+HTTP_REQUEST_COUNT = Counter(
+    "xyte_http_requests_total",
+    "HTTP request count",
+    ["method", "path", "status"],
+)
+TOOL_LATENCY = Histogram("xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"])
+RESOURCE_LATENCY = Histogram(
+    "xyte_resource_latency_seconds",
+    "Latency of resource handlers",
+    ["resource"],
+)
+TOOL_COUNT = Counter(
+    "xyte_tool_invocations_total",
+    "Tool invocations",
+    ["tool", "status"],
+)
+DEVICE_ACTIONS = Counter(
+    "xyte_device_actions_total",
+    "Device operations",
+    ["action"],
+)
+COMMAND_ACTIONS = Counter(
+    "xyte_command_actions_total",
+    "Command operations",
+    ["action"],
+)
+
+DEVICE_TOOL_ACTIONS = {
+    "claim_device": "claim",
+    "delete_device": "delete",
+    "update_device": "update",
+}
+COMMAND_TOOL_ACTIONS = {
+    "send_command": "send",
+    "cancel_command": "cancel",
+}
 
 
 class StderrConsoleSpanExporter(ConsoleSpanExporter):
@@ -80,18 +123,24 @@ class RequestLoggingMiddleware:
             logging.INFO, event="request_start", method=method, path=path, request_id=request_id
         )
 
+        status_code: int | None = None
+
         async def send_wrapper(message: dict) -> None:
+            nonlocal status_code
             if message["type"] == "http.response.start":
-                status = message["status"]
-                log_json(logging.INFO, event="response_start", status=status, request_id=request_id)
+                status_code = message["status"]
+                log_json(logging.INFO, event="response_start", status=status_code, request_id=request_id)
             if message["type"] == "http.response.body" and not message.get("more_body", False):
-                duration_ms = (time.monotonic() - start) * 1000
+                duration = time.monotonic() - start
+                duration_ms = duration * 1000
                 log_json(
                     logging.INFO,
                     event="request_complete",
                     duration_ms=round(duration_ms),
                     request_id=request_id,
                 )
+                HTTP_REQUEST_LATENCY.labels(method, path).observe(duration)
+                HTTP_REQUEST_COUNT.labels(method, path, status_code or 200).inc()
             await send(message)
 
         try:
@@ -100,12 +149,7 @@ class RequestLoggingMiddleware:
             request_id_var.reset(token)
 
 
-# Prometheus metrics for tools and resources
 
-TOOL_LATENCY = Histogram("xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"])
-RESOURCE_LATENCY = Histogram(
-    "xyte_resource_latency_seconds", "Latency of resource handlers", ["resource"]
-)
 
 
 def instrument(kind: str, name: str):
@@ -115,12 +159,14 @@ def instrument(kind: str, name: str):
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             start = time.monotonic()
+            status = "success"
             log_json(logging.INFO, event=f"{kind}_start", name=name)
             tracer = trace.get_tracer(__name__)
             with tracer.start_as_current_span(f"{kind}:{name}"):
                 try:
                     return await func(*args, **kwargs)
                 except Exception:
+                    status = "error"
                     log_json(logging.ERROR, event=f"{kind}_error", name=name)
                     raise
                 finally:
@@ -133,6 +179,11 @@ def instrument(kind: str, name: str):
                     )
                     if kind == "tool":
                         TOOL_LATENCY.labels(name).observe(duration)
+                        TOOL_COUNT.labels(name, status).inc()
+                        if name in DEVICE_TOOL_ACTIONS:
+                            DEVICE_ACTIONS.labels(DEVICE_TOOL_ACTIONS[name]).inc()
+                        if name in COMMAND_TOOL_ACTIONS:
+                            COMMAND_ACTIONS.labels(COMMAND_TOOL_ACTIONS[name]).inc()
                     else:
                         RESOURCE_LATENCY.labels(name).observe(duration)
 

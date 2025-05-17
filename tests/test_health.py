@@ -9,12 +9,12 @@ class HealthEndpointTestCase(unittest.TestCase):
         self.client = TestClient(app)
 
     def test_health_endpoint(self):
-        resp = self.client.get('/healthz')
+        resp = self.client.get('/v1/healthz')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.text, 'ok')
 
     def test_ready_endpoint(self):
-        resp = self.client.get('/readyz')
+        resp = self.client.get('/v1/readyz')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.text, 'ok')
 
