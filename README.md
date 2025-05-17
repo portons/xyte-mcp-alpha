@@ -144,6 +144,13 @@ mcp dev src/xyte_mcp_alpha/server.py
 
 This opens an interactive UI where you can test tools and resources.
 
+## Logging and Monitoring
+
+Structured JSON logs are produced for every HTTP request and Xyte API call. Each
+log entry includes a unique `request_id` for easy tracing. Prometheus metrics are
+available at the `/metrics` endpoint, including latency histograms for tools,
+resources and underlying API calls.
+
 ## API Reference
 
 ### Environment Variables

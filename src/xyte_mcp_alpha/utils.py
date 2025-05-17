@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import time
-from collections import deque
 from typing import Any, Dict, Awaitable
+from collections import deque
 
 from pydantic import ValidationError
 from .config import get_settings
@@ -11,6 +11,7 @@ from .models import DeviceId, TicketId
 
 import httpx
 from prometheus_client import Counter, Histogram
+from .logging_utils import log_json
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ async def handle_api(name: str, coro: Awaitable[Dict[str, Any]]) -> Dict[str, An
     try:
         result = await coro
         STATUS_COUNT.labels("200").inc()
+        log_json(logging.INFO, event="xyte_api_success", endpoint=name)
         return result
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
@@ -99,19 +101,21 @@ async def handle_api(name: str, coro: Awaitable[Dict[str, Any]]) -> Dict[str, An
         else:
             code = "xyte_api_error"
         ERROR_COUNT.labels(name, code).inc()
-        logger.error("%s %s: %s", name, status, e.response.text)
+        log_json(logging.ERROR, event="xyte_api_error", endpoint=name, status=status)
         raise MCPError(code=code, message=e.response.text)
     except httpx.RequestError as e:
         ERROR_COUNT.labels(name, "network_error").inc()
-        logger.error("%s network error: %s", name, str(e))
+        log_json(logging.ERROR, event="xyte_api_network_error", endpoint=name, error=str(e))
         raise MCPError(code="network_error", message=str(e))
     except httpx.TimeoutException as e:
         ERROR_COUNT.labels(name, "timeout").inc()
-        logger.error("%s timeout: %s", name, str(e))
+        log_json(logging.ERROR, event="xyte_api_timeout", endpoint=name)
         raise MCPError(code="deadline_exceeded", message=str(e))
     except Exception as e:  # pragma: no cover - fallback
         ERROR_COUNT.labels(name, "unknown").inc()
-        logger.exception("%s unknown error: %s", name, str(e))
+        log_json(logging.ERROR, event="xyte_api_error", endpoint=name)
         raise MCPError(code="xyte_api_error", message=str(e))
     finally:
-        REQUEST_LATENCY.labels(name).observe(asyncio.get_event_loop().time() - start)
+        duration = asyncio.get_event_loop().time() - start
+        REQUEST_LATENCY.labels(name).observe(duration)
+        log_json(logging.INFO, event="xyte_api_latency", endpoint=name, duration_ms=round(duration * 1000))
