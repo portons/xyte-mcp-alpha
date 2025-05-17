@@ -220,7 +220,7 @@ def get_server() -> Any:
 
 # Allow direct execution for development
 if __name__ == "__main__":
-    print("Starting MCP server in development mode...")
+    print("Starting MCP server in development mode...", file=sys.stderr)
     import asyncio
     from mcp.server.stdio import stdio_server
 

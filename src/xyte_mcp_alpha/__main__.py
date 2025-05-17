@@ -3,7 +3,8 @@
 
 def main():
     """Main function."""
-    print("Hello from xyte-mcp-alpha!")
+    import sys
+    print("Hello from xyte-mcp-alpha!", file=sys.stderr)
 
 
 if __name__ == "__main__":

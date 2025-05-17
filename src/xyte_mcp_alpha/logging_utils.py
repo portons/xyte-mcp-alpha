@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 import time
 import uuid
 from contextvars import ContextVar
@@ -8,17 +9,43 @@ from functools import wraps
 from prometheus_client import Histogram
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter, SpanExporter
+from opentelemetry.sdk.trace import ReadableSpan
+from typing import Sequence
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 
+class StderrConsoleSpanExporter(ConsoleSpanExporter):
+    """Console span exporter that writes to stderr instead of stdout."""
+    
+    def export(self, spans: Sequence[ReadableSpan]) -> None:
+        """Export spans to stderr instead of stdout."""
+        for span in spans:
+            print(self._span_to_str(span), file=sys.stderr)
+    
+    def _span_to_str(self, span: ReadableSpan) -> str:
+        """Convert span to string format."""
+        # Use the parent class implementation if available
+        if hasattr(super(), "_span_to_str"):
+            return super()._span_to_str(span)
+        else:
+            # Basic fallback implementation
+            return f"[{span.name}] {span.start_time} - {span.end_time}"
+
+
 def configure_logging(level: int = logging.INFO) -> None:
     """Configure application-wide structured logging."""
-    logging.basicConfig(level=level, format="%(message)s")
+    # Configure logging to stderr to avoid interfering with MCP protocol
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        handlers=[logging.StreamHandler(sys.stderr)]
+    )
     provider = TracerProvider()
-    provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+    # Use our custom stderr exporter instead of the default ConsoleSpanExporter
+    provider.add_span_processor(SimpleSpanProcessor(StderrConsoleSpanExporter()))
     trace.set_tracer_provider(provider)
 
 
@@ -27,7 +54,9 @@ def log_json(level: int, **fields: Any) -> None:
     request_id = request_id_var.get()
     if request_id is not None:
         fields.setdefault("request_id", request_id)
-    logging.getLogger("xyte_mcp_alpha").log(level, json.dumps(fields))
+    # Get the logger and ensure it logs to stderr
+    logger = logging.getLogger("xyte_mcp_alpha")
+    logger.log(level, json.dumps(fields))
 
 
 class RequestLoggingMiddleware:
