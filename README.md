@@ -163,8 +163,9 @@ for the tools you expose. Avoid logging this key or any per-user token. Run
 
 ### Error Handling
 
-Errors are surfaced to clients using `MCPError` exceptions. XYTE API status codes are translated to
-meaningful MCP error codes like `unauthorized`, `not_found` and `rate_limited`.
+Errors are surfaced to clients using `MCPError` exceptions. Xyte API status codes are translated to
+meaningful MCP error codes such as `unauthorized`, `invalid_params`, `not_found`, `method_not_allowed`,
+`rate_limited`, or `xyte_server_error`. Network issues are returned as `network_error`.
 All errors are logged for debugging purposes.
 
 ## License
