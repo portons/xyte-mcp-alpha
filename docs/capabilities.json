@@ -1,0 +1,548 @@
+{
+  "capabilities": {
+    "experimental": {},
+    "logging": null,
+    "prompts": {
+      "listChanged": false
+    },
+    "resources": {
+      "subscribe": false,
+      "listChanged": false
+    },
+    "tools": {
+      "listChanged": false
+    }
+  },
+  "tools": [
+    {
+      "name": "claim_device",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "ClaimDeviceRequest": {
+            "description": "Request model for claiming a device.",
+            "properties": {
+              "name": {
+                "description": "Friendly name for the device",
+                "title": "Name",
+                "type": "string"
+              },
+              "space_id": {
+                "description": "Identifier of the space to assign the device",
+                "title": "Space Id",
+                "type": "integer"
+              },
+              "mac": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Device MAC address (optional)",
+                "title": "Mac"
+              },
+              "sn": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Device serial number (optional)",
+                "title": "Sn"
+              },
+              "cloud_id": {
+                "default": "",
+                "description": "Cloud identifier for the device (optional)",
+                "title": "Cloud Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "space_id"
+            ],
+            "title": "ClaimDeviceRequest",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "request": {
+            "$ref": "#/$defs/ClaimDeviceRequest"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "title": "claim_deviceArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "delete_device",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "DeviceId": {
+            "description": "Model identifying a device.",
+            "properties": {
+              "device_id": {
+                "description": "Unique device identifier",
+                "title": "Device Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "device_id"
+            ],
+            "title": "DeviceId",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DeviceId"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "delete_deviceArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "update_device",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "UpdateDeviceArgs": {
+            "description": "Parameters for updating a device.",
+            "properties": {
+              "device_id": {
+                "description": "Unique device identifier",
+                "title": "Device Id",
+                "type": "string"
+              },
+              "configuration": {
+                "additionalProperties": true,
+                "description": "Configuration parameters",
+                "title": "Configuration",
+                "type": "object"
+              }
+            },
+            "required": [
+              "device_id",
+              "configuration"
+            ],
+            "title": "UpdateDeviceArgs",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UpdateDeviceArgs"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "update_deviceArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "send_command",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "SendCommandRequest": {
+            "description": "Parameters for sending a command.",
+            "properties": {
+              "name": {
+                "description": "Command name",
+                "title": "Name",
+                "type": "string"
+              },
+              "friendly_name": {
+                "description": "Human-friendly command name",
+                "title": "Friendly Name",
+                "type": "string"
+              },
+              "file_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "File identifier if the command includes a file",
+                "title": "File Id"
+              },
+              "extra_params": {
+                "additionalProperties": true,
+                "description": "Additional parameters",
+                "title": "Extra Params",
+                "type": "object"
+              },
+              "device_id": {
+                "description": "Unique device identifier",
+                "title": "Device Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "friendly_name",
+              "device_id"
+            ],
+            "title": "SendCommandRequest",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/SendCommandRequest"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "send_commandArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "cancel_command",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "CancelCommandRequest": {
+            "description": "Parameters for canceling a command.",
+            "properties": {
+              "name": {
+                "description": "Command name",
+                "title": "Name",
+                "type": "string"
+              },
+              "friendly_name": {
+                "description": "Human-friendly command name",
+                "title": "Friendly Name",
+                "type": "string"
+              },
+              "file_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "File identifier if the command includes a file",
+                "title": "File Id"
+              },
+              "extra_params": {
+                "additionalProperties": true,
+                "description": "Additional parameters",
+                "title": "Extra Params",
+                "type": "object"
+              },
+              "device_id": {
+                "description": "Unique device identifier",
+                "title": "Device Id",
+                "type": "string"
+              },
+              "command_id": {
+                "description": "Unique command identifier",
+                "title": "Command Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "friendly_name",
+              "device_id",
+              "command_id"
+            ],
+            "title": "CancelCommandRequest",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/CancelCommandRequest"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "cancel_commandArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "update_ticket",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "UpdateTicketRequest": {
+            "properties": {
+              "ticket_id": {
+                "description": "Unique ticket identifier",
+                "title": "Ticket Id",
+                "type": "string"
+              },
+              "title": {
+                "description": "New title for the ticket",
+                "title": "Title",
+                "type": "string"
+              },
+              "description": {
+                "description": "New description",
+                "title": "Description",
+                "type": "string"
+              }
+            },
+            "required": [
+              "ticket_id",
+              "title",
+              "description"
+            ],
+            "title": "UpdateTicketRequest",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UpdateTicketRequest"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "update_ticketArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "mark_ticket_resolved",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "MarkTicketResolvedRequest": {
+            "properties": {
+              "ticket_id": {
+                "description": "Unique ticket identifier",
+                "title": "Ticket Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "ticket_id"
+            ],
+            "title": "MarkTicketResolvedRequest",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/MarkTicketResolvedRequest"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "mark_ticket_resolvedArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "send_ticket_message",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "SendTicketMessageRequest": {
+            "properties": {
+              "ticket_id": {
+                "description": "Unique ticket identifier",
+                "title": "Ticket Id",
+                "type": "string"
+              },
+              "message": {
+                "description": "Message content to send",
+                "title": "Message",
+                "type": "string"
+              }
+            },
+            "required": [
+              "ticket_id",
+              "message"
+            ],
+            "title": "SendTicketMessageRequest",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/SendTicketMessageRequest"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "send_ticket_messageArguments",
+        "type": "object"
+      },
+      "annotations": null
+    },
+    {
+      "name": "search_device_histories",
+      "description": "",
+      "inputSchema": {
+        "$defs": {
+          "SearchDeviceHistoriesRequest": {
+            "properties": {
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Filter by status",
+                "title": "Status"
+              },
+              "from_date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Start ISO time",
+                "title": "From Date"
+              },
+              "to_date": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "End ISO time",
+                "title": "To Date"
+              },
+              "device_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Filter by device",
+                "title": "Device Id"
+              },
+              "space_id": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Filter by space",
+                "title": "Space Id"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Filter by name",
+                "title": "Name"
+              }
+            },
+            "title": "SearchDeviceHistoriesRequest",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "params": {
+            "$ref": "#/$defs/SearchDeviceHistoriesRequest"
+          }
+        },
+        "required": [
+          "params"
+        ],
+        "title": "search_device_historiesArguments",
+        "type": "object"
+      },
+      "annotations": null
+    }
+  ],
+  "resources": [
+    {
+      "uri": "devices://",
+      "name": "list_devices",
+      "description": "",
+      "mimeType": "text/plain",
+      "size": null,
+      "annotations": null
+    },
+    {
+      "uri": "incidents://",
+      "name": "list_incidents",
+      "description": "",
+      "mimeType": "text/plain",
+      "size": null,
+      "annotations": null
+    },
+    {
+      "uri": "tickets://",
+      "name": "list_tickets",
+      "description": "",
+      "mimeType": "text/plain",
+      "size": null,
+      "annotations": null
+    }
+  ],
+  "prompts": []
+}
