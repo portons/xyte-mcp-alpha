@@ -9,7 +9,7 @@ from functools import wraps
 from prometheus_client import Histogram
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter, SpanExporter
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
 from opentelemetry.sdk.trace import ReadableSpan
 from typing import Sequence
 
