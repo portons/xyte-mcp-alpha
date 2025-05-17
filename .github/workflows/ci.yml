@@ -43,7 +43,7 @@ jobs:
       - name: Security scan
         run: scripts/security_scan.sh || true
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@v0.4.1
+        uses: aquasecurity/trivy-action@0.23.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
