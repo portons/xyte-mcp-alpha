@@ -3,7 +3,14 @@ from typing import Any, Dict, Awaitable
 
 import httpx
 from prometheus_client import Counter, Histogram
-from mcp.server.errors import MCPError
+
+
+class MCPError(Exception):
+    """Simple error class used for MCP responses."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
 
 # Prometheus metrics
 REQUEST_LATENCY = Histogram(

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyte-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xyte-mcp
+  template:
+    metadata:
+      labels:
+        app: xyte-mcp
+    spec:
+      containers:
+      - name: xyte-mcp
+        image: xyte-mcp:latest
+        env:
+        - name: XYTE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: api_key
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10

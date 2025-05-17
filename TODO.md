@@ -18,19 +18,19 @@
 - [x] 3.4 Prometheus metrics
 
 ## Security & configuration
-- [ ] 4.1 Secret management
-- [ ] 4.2 Per-user tokens option
+- [x] 4.1 Secret management
+- [x] 4.2 Per-user tokens option
 
 ## Testing & CI
-- [ ] 5.1 Unit tests
-- [ ] 5.2 Integration tests
-- [ ] 5.3 Static analysis
-- [ ] 5.4 GitHub Actions
+- [x] 5.1 Unit tests
+- [x] 5.2 Integration tests
+- [x] 5.3 Static analysis
+- [x] 5.4 GitHub Actions
 
 ## Deployment artefacts
-- [ ] 6.1 Dockerfile
-- [ ] 6.2 K8s manifests / Helm chart
-- [ ] 6.3 Health & readiness probes
+- [x] 6.1 Dockerfile
+- [x] 6.2 K8s manifests / Helm chart
+- [x] 6.3 Health & readiness probes
 
 ## Documentation
 - [ ] 7.1 Auto-generate MCP capability JSON
