@@ -13,6 +13,8 @@ from . import resources, tools
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger("audit")
+audit_logger.setLevel(logging.INFO)
 
 # Initialize MCP server
 mcp = FastMCP("Xyte Organization MCP Server")
