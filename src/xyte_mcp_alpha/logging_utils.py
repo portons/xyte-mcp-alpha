@@ -9,9 +9,15 @@ from functools import wraps
 from prometheus_client import Histogram
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter, SpanExporter
+from opentelemetry.sdk.trace.export import (
+    ConsoleSpanExporter,
+    SimpleSpanProcessor,
+    SpanExporter,
+)
 from opentelemetry.sdk.trace import ReadableSpan
 from typing import Sequence
+
+from . import plugin
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
@@ -56,7 +62,9 @@ def log_json(level: int, **fields: Any) -> None:
         fields.setdefault("request_id", request_id)
     # Get the logger and ensure it logs to stderr
     logger = logging.getLogger("xyte_mcp_alpha")
-    logger.log(level, json.dumps(fields))
+    message = json.dumps(fields)
+    logger.log(level, message)
+    plugin.fire_log(message, level)
 
 
 class RequestLoggingMiddleware:

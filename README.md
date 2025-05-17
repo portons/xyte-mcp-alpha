@@ -172,6 +172,7 @@ resources and underlying API calls.
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
 - `MCP_INSPECTOR_PORT` (optional) - Port for the MCP inspector to use (default 6277)
+- `XYTE_EXPERIMENTAL_APIS` (optional) - Enable registration of experimental tools
 
 ### Security Considerations
 

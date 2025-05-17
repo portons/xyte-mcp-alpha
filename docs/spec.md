@@ -110,5 +110,5 @@
 
 ## Future-Ready
 
-* [ ] Prepare hooks for AI agent integration (eventing/logging/plugin interfaces)
-* [ ] Allow feature flags for experimental APIs
+* [x] Prepare hooks for AI agent integration (eventing/logging/plugin interfaces)
+* [x] Allow feature flags for experimental APIs

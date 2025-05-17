@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     environment: str = Field("prod", alias="XYTE_ENV")
     rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
     mcp_inspector_port: int = Field(default=8080, alias="MCP_INSPECTOR_PORT")
+    enable_experimental_apis: bool = Field(
+        default=False, alias="XYTE_EXPERIMENTAL_APIS"
+    )
 
 
 @lru_cache()

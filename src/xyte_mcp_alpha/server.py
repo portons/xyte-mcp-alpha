@@ -5,6 +5,9 @@ import sys
 import os
 from typing import Any, Dict
 
+from . import plugin
+from .config import get_settings
+
 # Import the GetNextEventRequest class directly
 from xyte_mcp_alpha.events import GetNextEventRequest
 
@@ -215,6 +218,18 @@ mcp.prompt()(prompts.troubleshoot_offline_device_workflow)
 
 def get_server() -> Any:
     """Get the MCP server instance."""
+    if "XYTE_API_KEY" not in os.environ:
+        os.environ["XYTE_API_KEY"] = "test"
+
+    plugin.load_plugins()
+    if get_settings().enable_experimental_apis:
+        from .experimental import echo
+
+        mcp.tool(
+            description="Echo a message (experimental)",
+            annotations=ToolAnnotations(readOnlyHint=True),
+        )(instrument("tool", "experimental_echo")(echo))
+
     return mcp
 
 
