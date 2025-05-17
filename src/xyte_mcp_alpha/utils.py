@@ -79,6 +79,13 @@ def validate_ticket_id(ticket_id: str) -> str:
         raise MCPError(code="invalid_params", message=str(exc))
 
 
+def validate_payload(data: Any) -> Dict[str, Any]:
+    """Ensure payloads are dictionaries."""
+    if isinstance(data, dict):
+        return data
+    raise MCPError(code="invalid_payload", message="Payload must be a JSON object")
+
+
 async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
     """Handle API response with error conversion and metrics reporting."""
     enforce_rate_limit()
@@ -92,10 +99,12 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
         
         # Convert response to dict if needed
         if hasattr(result, "model_dump"):
-            return {"data": result.model_dump()}
+            data = {"data": result.model_dump()}
         elif not isinstance(result, dict):
-            return {"data": result}
-        return result
+            data = {"data": result}
+        else:
+            data = result
+        return validate_payload(data)
         
     except httpx.HTTPStatusError as e:
         status = str(e.response.status_code)

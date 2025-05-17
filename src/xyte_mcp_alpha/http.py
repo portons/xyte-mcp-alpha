@@ -11,6 +11,8 @@ from starlette.responses import JSONResponse, HTMLResponse
 from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
 from .config import get_settings
+from .http_utils import RateLimitMiddleware
+from starlette.middleware.cors import CORSMiddleware
 
 
 def build_openapi(app: Starlette) -> Dict[str, Any]:
@@ -29,6 +31,16 @@ def build_openapi(app: Starlette) -> Dict[str, Any]:
 
 internal_app = get_server().streamable_http_app()
 internal_app.add_middleware(RequestLoggingMiddleware)
+settings = get_settings()
+internal_app.add_middleware(
+    RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute
+)
+internal_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 routes = [Mount("/v1", app=internal_app)]
 
