@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from .server import get_server
 from .config import get_settings, reload_settings
 from .plugins import sample  # noqa: F401
+from . import plugin
 import signal
 
 
@@ -13,6 +14,7 @@ def _setup_reload() -> None:
 
     def handler(_sig, _frame) -> None:
         reload_settings()
+        plugin.reload_plugins()
 
     signal.signal(signal.SIGHUP, handler)
 
