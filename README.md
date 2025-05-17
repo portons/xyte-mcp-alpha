@@ -148,6 +148,13 @@ mcp dev src/xyte_mcp_alpha/server.py
 
 This opens an interactive UI where you can test tools and resources.
 
+## Logging and Monitoring
+
+Structured JSON logs are produced for every HTTP request and Xyte API call. Each
+log entry includes a unique `request_id` for easy tracing. Prometheus metrics are
+available at the `/metrics` endpoint, including latency histograms for tools,
+resources and underlying API calls.
+
 ## API Reference
 
 ### Environment Variables
@@ -167,8 +174,9 @@ for the tools you expose. Avoid logging this key or any per-user token. Run
 
 ### Error Handling
 
-Errors are surfaced to clients using `MCPError` exceptions. XYTE API status codes are translated to
-meaningful MCP error codes like `unauthorized`, `not_found` and `rate_limited`.
+Errors are surfaced to clients using `MCPError` exceptions. Xyte API status codes are translated to
+meaningful MCP error codes such as `unauthorized`, `invalid_params`, `not_found`, `method_not_allowed`,
+`rate_limited`, or `xyte_server_error`. Network issues are returned as `network_error`.
 All errors are logged for debugging purposes.
 
 ## License

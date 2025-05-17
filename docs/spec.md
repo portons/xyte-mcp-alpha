@@ -61,7 +61,7 @@ This section focuses on improving the existing foundation of your `xyte-mcp-alph
       * **Audit Logging for Security Events:** Log all significant security-related events (e.g., authentication attempts, authorization failures, critical tool invocations).
       * **Dependency Vulnerability Scanning:** Regularly scan dependencies for known vulnerabilities.
 
-* [ ] **Task A6: Improve Logging and Monitoring Capabilities**
+* [x] **Task A6: Improve Logging and Monitoring Capabilities**
    * **Description:** Enhance the existing error logging to be more comprehensive and structured. Implement performance and usage monitoring.
    * **Rationale:** Essential for debugging, understanding server usage, identifying performance bottlenecks, and detecting anomalies. Official MCP documentation and AWS best practices emphasize this.
    * **Action Items:**
@@ -96,7 +96,7 @@ This section focuses on leveraging the full potential of the Model Context Proto
       * Consider caching for frequently accessed, slowly changing resources to improve performance.
       * Ensure resources are read-only or have minimal side effects.
 
-* [ ] **Task B3: Develop and Utilize Prompts for Common Workflows**
+* [v] **Task B3: Develop and Utilize Prompts for Common Workflows**
    * **Description:** Define MCP prompts for common AV automation workflows that AI agents can use.
    * **Rationale:** Prompts are reusable instruction templates, guiding AI agents on how to interact with your server for specific tasks, simplifying complex operations.
    * **Action Items:**
@@ -104,7 +104,7 @@ This section focuses on leveraging the full potential of the Model Context Proto
       * Create MCP prompt templates that structure the necessary information and tool calls for these tasks.
       * Expose these prompts through the MCP server.
 
-* [ ] **Task B4: Implement Advanced Context Management**
+* [v] **Task B4: Implement Advanced Context Management**
    * **Description:** If complex, multi-turn interactions are expected, explore more sophisticated context management techniques.
    * **Rationale:** For AI agents performing complex AV diagnostic or control sequences, maintaining context across multiple requests is crucial.
    * **Action Items:**
@@ -118,14 +118,14 @@ This section focuses on leveraging the full potential of the Model Context Proto
 
 This section outlines new features to expand the server's capabilities.
 
-* [ ] **Task C1: Support for Dynamic Tool/Resource Discovery (If applicable)**
+* [v] **Task C1: Support for Dynamic Tool/Resource Discovery (If applicable)**
    * **Description:** If the range of Xyte devices or available actions changes frequently, consider mechanisms for AI agents to dynamically discover available tools and resources.
    * **Rationale:** Makes the MCP server more adaptive to changes in the underlying Xyte platform or device capabilities. MCP specification includes `tools/list` and `resources/list` methods.
    * **Action Items:**
       * Ensure your server correctly implements the standard MCP methods for listing available tools and resources with up-to-date information.
       * If capabilities can change during a session, implement `notifications/tools/list_changed` and `notifications/resources/list_changed`.
 
-* [ ] **Task C2: Event-Driven Interactions for AV Automation**
+* [v] **Task C2: Event-Driven Interactions for AV Automation**
    * **Description:** Explore integration with event streams from the Xyte platform or AV devices to enable proactive AI agent responses.
    * **Rationale:** AV systems often generate events (e.g., device offline, error detected). MCP could enable AI agents to subscribe to or be notified of these events and take autonomous action.
    * **Action Items:**
