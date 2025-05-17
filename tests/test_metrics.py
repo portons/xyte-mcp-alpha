@@ -10,8 +10,8 @@ class MetricsEndpointTestCase(unittest.TestCase):
 
     def test_metrics_endpoint(self):
         # trigger a simple request to generate metrics
-        self.client.get('/healthz')
-        resp = self.client.get('/metrics')
+        self.client.get('/v1/healthz')
+        resp = self.client.get('/v1/metrics')
         self.assertEqual(resp.status_code, 200)
         data = resp.text
         # basic sanity checks that our metrics are present

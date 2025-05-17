@@ -1,18 +1,18 @@
 ## General Codebase Health
 
-* [ ] Ensure 100% test coverage (unit + integration), covering edge cases and error handling
+* [x] Ensure 100% test coverage (unit + integration), covering edge cases and error handling
 
-* [ ] Parameterize repetitive tests for all MCP scenarios
+* [x] Parameterize repetitive tests for all MCP scenarios
 
-* [ ] Set up CI for PR lint/test enforcement
+* [x] Set up CI for PR lint/test enforcement
 
-* [ ] Add end-to-end tests for server lifecycle: start, registration, discovery, command flow, telemetry
+* [x] Add end-to-end tests for server lifecycle: start, registration, discovery, command flow, telemetry
 
-* [ ] Enforce black/ruff/flake8 formatting across all code
+* [x] Enforce black/ruff/flake8 formatting across all code
 
-* [ ] Achieve full mypy coverage, fix type/lint issues
+* [x] Achieve full mypy coverage, fix type/lint issues
 
-* [ ] Fix discovered lint/type issues in scripts, server, and utils
+* [x] Fix discovered lint/type issues in scripts, server, and utils
 
 ---
 
@@ -20,32 +20,32 @@
 
 * [ ] Verify MCP API adherence for all endpoints (cross-check with MCP 1.9.0 spec)
 
-* [ ] Implement versioned API routing
+* [x] Implement versioned API routing
 
-* [ ] Add OpenAPI schema docs with live generation
+* [x] Add OpenAPI schema docs with live generation
 
-* [ ] Ensure device discovery, claiming, updating, and deletion match MCP spec exactly
+* [x] Ensure device discovery, claiming, updating, and deletion match MCP spec exactly
 
-* [ ] Implement robust device event streaming (SSE/WebSocket fallback as needed)
+* [x] Implement robust device event streaming (SSE/WebSocket fallback as needed)
 
-* [ ] Fully implement command send/cancel/query lifecycle (all state transitions)
+* [x] Fully implement command send/cancel/query lifecycle (all state transitions)
 
-* [ ] Implement ticketing endpoints, matching input/output schemas
+* [x] Implement ticketing endpoints, matching input/output schemas
 
 ---
 
 ## Extensibility & Integration
 
-* [ ] Validate mapping of all MCP flows to XYTE’s external API (configurable, not hardcoded)
-* [ ] Allow for custom mapping/transform hooks (pluggable Python, securely sandboxed)
+* [x] Validate mapping of all MCP flows to XYTE’s external API (configurable, not hardcoded)
+* [x] Allow for custom mapping/transform hooks (pluggable Python, securely sandboxed)
 
 ---
 
 ## Authentication & Security
 
-* [ ] Ensure API key or OAuth2 support (user-supplied key)
-* [ ] Validate all inbound and outbound payloads
-* [ ] Harden HTTP endpoints (rate limiting, input validation, CORS, etc.)
+* [x] Ensure API key or OAuth2 support (user-supplied key)
+* [x] Validate all inbound and outbound payloads
+* [x] Harden HTTP endpoints (rate limiting, input validation, CORS, etc.)
 
 ---
 

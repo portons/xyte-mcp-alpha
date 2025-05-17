@@ -14,7 +14,7 @@ class ErrorMappingTestCase(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(MCPError) as cm:
             await handle_api("test", failing())
-        self.assertEqual(cm.exception.code, "invalid_params")
+        self.assertEqual(cm.exception.code, "http_400")
 
     async def test_request_error_mapping_network_error(self):
         request = httpx.Request("GET", "http://example.com")
