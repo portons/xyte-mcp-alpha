@@ -126,6 +126,7 @@ class RequestLoggingMiddleware:
         status_code: int | None = None
 
         async def send_wrapper(message: dict) -> None:
+            nonlocal status_code
             if message["type"] == "http.response.start":
                 status_code = message["status"]
                 log_json(logging.INFO, event="response_start", status=status_code, request_id=request_id)
