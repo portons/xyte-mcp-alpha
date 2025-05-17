@@ -3,6 +3,8 @@ import logging
 import os
 from typing import List, Protocol
 
+PLUGIN_API_VERSION = "1.0"
+
 class MCPPlugin(Protocol):
     """Plugin interface for AI agent integration."""
 
@@ -23,6 +25,14 @@ def load_plugins() -> None:
             module = importlib.import_module(path)
             plugin = getattr(module, "plugin", module)
             if hasattr(plugin, "on_event") or hasattr(plugin, "on_log"):
+                version = getattr(plugin, "PLUGIN_API_VERSION", "1.0")
+                if version != PLUGIN_API_VERSION:
+                    logging.warning(
+                        "Plugin %s targets API version %s but server supports %s",
+                        path,
+                        version,
+                        PLUGIN_API_VERSION,
+                    )
                 _PLUGINS.append(plugin)  # type: ignore[arg-type]
         except Exception:  # pragma: no cover - plugin loading should not fail tests
             logging.exception("Failed to load plugin %s", path)
