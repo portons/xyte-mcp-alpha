@@ -117,7 +117,9 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
             error_message = error_text or f"HTTP {status} error"
 
         code = f"http_{status}"
-        if e.response.status_code == 404:
+        if e.response.status_code == 400:
+            code = "invalid_params"
+        elif e.response.status_code == 404:
             if "device" in endpoint:
                 code = "device_not_found"
             elif "ticket" in endpoint:

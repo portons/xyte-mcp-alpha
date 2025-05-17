@@ -109,14 +109,10 @@ async def list_tools(_: Request) -> JSONResponse:
 
 @mcp.custom_route("/resources", methods=["GET"])
 async def list_resources_route(_: Request) -> JSONResponse:
-    """List registered resources."""
-    res_infos = await mcp.list_resources()
+    """List available resources."""
     resources_list = [
-        {
-            "uri": str(r.uri),
-            "description": r.description,
-        }
-        for r in res_infos
+        {"uri": str(r.uri), "name": r.name, "description": r.description}
+        for r in await mcp.list_resources()
     ]
     return JSONResponse(resources_list)
 
