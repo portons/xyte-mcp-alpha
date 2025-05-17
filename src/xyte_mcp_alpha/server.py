@@ -7,11 +7,11 @@ import json
 from typing import Any, Dict
 
 # Fix import paths for mcp dev
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 # Import everything using absolute imports
 import xyte_mcp_alpha.plugin as plugin
-from xyte_mcp_alpha.config import get_settings
+from xyte_mcp_alpha.config import get_settings, validate_settings
 from xyte_mcp_alpha.events import GetNextEventRequest
 from xyte_mcp_alpha.logging_utils import configure_logging, instrument
 import xyte_mcp_alpha.resources as resources
@@ -75,7 +75,9 @@ async def config_endpoint(request: Request) -> JSONResponse:
 async def webhook(req: Request) -> JSONResponse:
     """Receive external events and enqueue them for streaming."""
     payload = await req.json()
-    event = events.Event(type=payload.get("type", "unknown"), data=payload.get("data", {}))
+    event = events.Event(
+        type=payload.get("type", "unknown"), data=payload.get("data", {})
+    )
     await events.push_event(event)
     return JSONResponse({"queued": True})
 
@@ -83,6 +85,7 @@ async def webhook(req: Request) -> JSONResponse:
 @mcp.custom_route("/events", methods=["GET"])
 async def stream_events(_: Request) -> Response:
     """Stream events to clients using Server-Sent Events."""
+
     async def event_gen():
         while True:
             ev = await events.get_next_event(events.GetNextEventRequest())
@@ -100,7 +103,9 @@ async def list_tools(_: Request) -> JSONResponse:
             "name": t.name,
             "description": t.description,
             "readOnlyHint": t.annotations.readOnlyHint if t.annotations else True,
-            "destructiveHint": t.annotations.destructiveHint if t.annotations else False,
+            "destructiveHint": (
+                t.annotations.destructiveHint if t.annotations else False
+            ),
         }
         for t in tool_infos
     ]
@@ -225,7 +230,7 @@ mcp.tool(
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "log_automation_attempt")(tools.log_automation_attempt))
 mcp.tool(
-    description="Echo a message back", 
+    description="Echo a message back",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "echo_command")(tools.echo_command))
 mcp.tool(
@@ -243,10 +248,13 @@ async def task_status(task_id: str) -> JSONResponse:
     """Expose async task status via HTTP."""
     result = await tasks.get_task_status(task_id)
     return JSONResponse(result)
+
+
 # Create a wrapper function with explicit type annotation
 async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
     """Wrapper for get_next_event with explicit type annotation."""
     return await events.get_next_event(params)
+
 
 # Register the wrapper function as a tool
 mcp.tool(
@@ -263,8 +271,8 @@ mcp.prompt()(prompts.troubleshoot_offline_device_workflow)
 
 def get_server() -> Any:
     """Get the MCP server instance."""
-    if "XYTE_API_KEY" not in os.environ:
-        os.environ["XYTE_API_KEY"] = "test"
+    settings = get_settings()
+    validate_settings(settings)
 
     plugin.load_plugins()
     if get_settings().enable_experimental_apis:
@@ -280,8 +288,7 @@ def get_server() -> Any:
 
 # Allow direct execution for development
 if __name__ == "__main__":
-    print("Starting MCP server in development mode...", file=sys.stderr)
-    import asyncio
-    from mcp.server.stdio import stdio_server
+    from .logging_utils import log_json
 
-    asyncio.run(stdio_server(mcp))
+    log_json(logging.INFO, event="server_start", mode="development")
+    mcp.run(transport="stdio")

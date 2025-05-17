@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from xyte_mcp_alpha.config import Settings, get_settings
+from xyte_mcp_alpha.config import Settings, get_settings, validate_settings
 
 
 class SettingsTestCase(unittest.TestCase):
@@ -16,6 +16,12 @@ class SettingsTestCase(unittest.TestCase):
         self.assertEqual(s.xyte_base_url, 'http://test')
         self.assertEqual(s.xyte_cache_ttl, 30)
         self.assertEqual(s.rate_limit_per_minute, 10)
+
+    def test_missing_required_api_key(self):
+        os.environ.pop('XYTE_API_KEY', None)
+        get_settings.cache_clear()
+        with self.assertRaises(ValueError):
+            validate_settings(Settings())
 
 
 if __name__ == '__main__':

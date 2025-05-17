@@ -1,43 +1,42 @@
-from typing import Any, Dict, Optional
+"""Device-related tool implementations."""
+
+import json
 import logging
 from pathlib import Path
-import json
+from typing import Any, Dict, Optional
+
 import anyio
 
-from .deps import get_client
-from .utils import handle_api, get_session_state, validate_device_id, MCPError
-from . import resources
-from mcp.server.fastmcp.server import Context
-from .client import (
+from ..deps import get_client
+from ..utils import (
+    MCPError,
+    get_session_state,
+    handle_api,
+    validate_device_id,
+)
+from .. import resources
+from ..client import (
     ClaimDeviceRequest,
     UpdateDeviceRequest,
     CommandRequest,
-    TicketUpdateRequest,
-    TicketMessageRequest,
 )
-from .models import (
+from ..models import (
     UpdateDeviceArgs,
-    MarkTicketResolvedRequest,
-    SendTicketMessageRequest,
     SendCommandArgs,
     CancelCommandRequest,
-    UpdateTicketRequest,
     SearchDeviceHistoriesRequest,
     ToolResponse,
     DeleteDeviceArgs,
     FindAndControlDeviceRequest,
     DiagnoseAVIssueRequest,
 )
+from mcp.server.fastmcp.server import Context
 
-from .logging_utils import log_json
+logger = logging.getLogger(__name__)
 
 
 async def claim_device(request: ClaimDeviceRequest) -> Dict[str, Any]:
-    """Claim a new device and assign it to the organization.
-
-    Example:
-        `claim_device({"name": "Display", "space_id": 1})`
-    """
+    """Claim a new device and assign it to the organization."""
     async with get_client() as client:
         return await handle_api("claim_device", client.claim_device(request))
 
@@ -45,13 +44,10 @@ async def claim_device(request: ClaimDeviceRequest) -> Dict[str, Any]:
 async def delete_device(data: DeleteDeviceArgs) -> ToolResponse:
     """Delete an existing device by its identifier."""
     if data.dry_run:
-        log_json(
-            logging.INFO,
-            event="delete_device_dry_run",
-            device_id=data.device_id,
-        )
+        logger.info("Dry run: would delete device", extra={"device_id": data.device_id})
         return ToolResponse(
-            data={"dry_run": True}, summary=f"Dry run: Would delete device {data.device_id}"
+            data={"dry_run": True},
+            summary=f"Dry run: Would delete device {data.device_id}",
         )
     async with get_client() as client:
         result = await handle_api("delete_device", client.delete_device(data.device_id))
@@ -64,7 +60,9 @@ async def update_device(data: UpdateDeviceArgs) -> Dict[str, Any]:
     """Apply configuration updates to a device."""
     async with get_client() as client:
         req = UpdateDeviceRequest(configuration=data.configuration)
-        return await handle_api("update_device", client.update_device(data.device_id, req))
+        return await handle_api(
+            "update_device", client.update_device(data.device_id, req)
+        )
 
 
 async def send_command(
@@ -77,10 +75,8 @@ async def send_command(
         state = get_session_state(ctx)
         device_id = state.get("current_device_id")
         if device_id:
-            log_json(
-                logging.INFO,
-                event="default_device_context",
-                device_id=device_id,
+            logger.info(
+                "Defaulting device_id from context", extra={"device_id": device_id}
             )
     if not device_id:
         raise MCPError(code="missing_device_id", message="device_id is required")
@@ -99,15 +95,15 @@ async def send_command(
             await ctx.report_progress(0.0, 1.0, "sending")
 
         if data.dry_run:
-            log_json(
-                logging.INFO,
-                event="send_command_dry_run",
-                device_id=device_id,
-                command=data.name,
+            logger.info(
+                "Dry run: would send command",
+                extra={"device_id": device_id, "command": data.name},
             )
             result = {"dry_run": True}
         else:
-            result = await handle_api("send_command", client.send_command(device_id, req))
+            result = await handle_api(
+                "send_command", client.send_command(device_id, req)
+            )
 
         if ctx:
             await ctx.report_progress(1.0, 1.0, "done")
@@ -135,28 +131,6 @@ async def cancel_command(data: CancelCommandRequest) -> Dict[str, Any]:
         return await handle_api(
             "cancel_command",
             client.cancel_command(data.device_id, data.command_id, req),
-        )
-
-
-async def update_ticket(data: UpdateTicketRequest) -> Dict[str, Any]:
-    """Modify the title or description of a support ticket."""
-    async with get_client() as client:
-        req = TicketUpdateRequest(title=data.title, description=data.description)
-        return await handle_api("update_ticket", client.update_ticket(data.ticket_id, req))
-
-
-async def mark_ticket_resolved(data: MarkTicketResolvedRequest) -> Dict[str, Any]:
-    """Mark a ticket as resolved."""
-    async with get_client() as client:
-        return await handle_api("mark_ticket_resolved", client.mark_ticket_resolved(data.ticket_id))
-
-
-async def send_ticket_message(data: SendTicketMessageRequest) -> Dict[str, Any]:
-    """Post a new message to a ticket conversation."""
-    async with get_client() as client:
-        req = TicketMessageRequest(message=data.message)
-        return await handle_api(
-            "send_ticket_message", client.send_ticket_message(data.ticket_id, req)
         )
 
 
@@ -238,7 +212,6 @@ async def start_meeting_room_preset(
     if ctx:
         await ctx.info(f"Configuring {room_name} for {preset_name}")
         await ctx.report_progress(0.0, 1.0, "starting")
-    # Placeholder logic. Real implementation would orchestrate multiple commands
     await anyio.sleep(0)  # yield control
     if ctx:
         await ctx.report_progress(1.0, 1.0, "done")
@@ -287,7 +260,7 @@ async def log_automation_attempt(
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")
-    log_json(logging.INFO, event="automation_attempt", **entry)
+    logger.info("automation_attempt", extra=entry)
     if ctx:
         await ctx.info("Automation attempt logged")
     return ToolResponse(data=entry, summary="Attempt recorded")
@@ -296,7 +269,7 @@ async def log_automation_attempt(
 async def echo_command(device_id: str, message: str) -> ToolResponse:
     """Example command that echoes a message back."""
     validate_device_id(device_id)
-    log_json(logging.INFO, event="echo", device_id=device_id, message=message)
+    logger.info("echo", extra={"device_id": device_id, "message": message})
     return ToolResponse(data={"device_id": device_id, "echo": message})
 
 
@@ -340,7 +313,11 @@ async def find_and_control_device(
         device_id=device.get("id"),
         name=data.action,
         friendly_name=data.action.replace("_", " "),
-        extra_params={"input": data.input_source_hint} if data.input_source_hint else {},
+        extra_params=(
+            {"input": data.input_source_hint} if data.input_source_hint else {}
+        ),
+        file_id=None,
+        dry_run=False
     )
     result = await send_command(cmd, ctx=ctx)
     return ToolResponse(
@@ -372,7 +349,17 @@ async def diagnose_av_issue(
 
     status = await resources.device_status(device["id"])
     histories = await search_device_histories(
-        SearchDeviceHistoriesRequest(device_id=device["id"]),
+        SearchDeviceHistoriesRequest(
+            device_id=device["id"],
+            status=None,
+            from_date=None,
+            to_date=None,
+            space_id=None,
+            name=None,
+            order=None,
+            page=None,
+            limit=None
+        ),
         ctx=ctx,
     )
 

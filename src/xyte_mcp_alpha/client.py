@@ -1,8 +1,9 @@
 """Xyte Organization API client."""
 
 import logging
-from typing import Any, Dict, Optional
 import httpx
+from types import TracebackType
+from typing import Any, Dict, Optional
 from cachetools import TTLCache
 from datetime import datetime
 import anyio
@@ -35,6 +36,7 @@ CACHE_MISSES = Counter(
     ["key"],
 )
 
+
 class XyteAPIClient:
     """Client for interacting with Xyte Organization API."""
 
@@ -59,7 +61,7 @@ class XyteAPIClient:
         headers = {"Content-Type": "application/json"}
         if self.oauth_token:
             headers["Authorization"] = f"Bearer {self.oauth_token}"
-        else:
+        elif self.api_key:
             headers["Authorization"] = self.api_key
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
@@ -67,7 +69,9 @@ class XyteAPIClient:
             timeout=30.0,
             transport=transport,
         )
-        self.cache = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
+        self.cache: TTLCache[str, Any] = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
+        self._failures: int = 0
+        self._circuit_open_until: float = 0.0
 
     def cache_stats(self) -> Dict[str, Any]:
         """Return simple cache statistics for monitoring."""
@@ -88,33 +92,42 @@ class XyteAPIClient:
 
     async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         """Perform an HTTP request with retries and circuit breaker."""
-        if hasattr(self, "_circuit_open_until") and time.monotonic() < self._circuit_open_until:  # type: ignore[attr-defined]
+        if time.monotonic() < self._circuit_open_until:
             raise httpx.NetworkError("backend_unavailable")
 
         backoff = 0.1
         failures = getattr(self, "_failures", 0)
         for attempt in range(3):
             try:
-                response = await self.client.request(method, url, timeout=self._request_timeout(), **kwargs)
-                self._failures = 0  # type: ignore[attr-defined]
+                response = await self.client.request(
+                    method, url, timeout=self._request_timeout(), **kwargs
+                )
+                self._failures = 0
                 return response
             except (httpx.NetworkError, httpx.TimeoutException):
                 failures += 1
-                self._failures = failures  # type: ignore[attr-defined]
+                self._failures = failures
                 if failures >= 3:
-                    self._circuit_open_until = time.monotonic() + 30  # type: ignore[attr-defined]
+                    self._circuit_open_until = time.monotonic() + 30
                 if attempt == 2:
                     raise
                 await anyio.sleep(backoff)
                 backoff *= 2
+        # This should not be reached due to the logic above, but mypy needs it
+        raise httpx.NetworkError("Maximum retries exceeded")
 
     async def __aenter__(self) -> "XyteAPIClient":
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         await self.close()
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP client."""
         await self.client.aclose()
 
@@ -138,7 +151,9 @@ class XyteAPIClient:
 
     async def claim_device(self, device_data: ClaimDeviceRequest) -> Dict[str, Any]:
         """Register (claim) a new device under the organization."""
-        payload = transform_request("claim_device", device_data.model_dump(exclude_none=True))
+        payload = transform_request(
+            "claim_device", device_data.model_dump(exclude_none=True)
+        )
         response = await self._request(
             "POST",
             self._endpoint("claim_device"),
@@ -154,7 +169,9 @@ class XyteAPIClient:
             CACHE_HITS.labels(key="device").inc()
             return self.cache[cache_key]
         CACHE_MISSES.labels(key="device").inc()
-        response = await self._request("GET", self._endpoint("get_device", device_id=device_id))
+        response = await self._request(
+            "GET", self._endpoint("get_device", device_id=device_id)
+        )
         response.raise_for_status()
         data = transform_response("get_device", response.json())
         self.cache[cache_key] = data
@@ -162,7 +179,9 @@ class XyteAPIClient:
 
     async def delete_device(self, device_id: str) -> Dict[str, Any]:
         """Delete (remove) a device by its ID."""
-        response = await self._request("DELETE", self._endpoint("delete_device", device_id=device_id))
+        response = await self._request(
+            "DELETE", self._endpoint("delete_device", device_id=device_id)
+        )
         response.raise_for_status()
         return transform_response("delete_device", response.json())
 
@@ -187,6 +206,9 @@ class XyteAPIClient:
         device_id: Optional[str] = None,
         space_id: Optional[int] = None,
         name: Optional[str] = None,
+        order: Optional[str] = None,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Retrieve device history records."""
         params = {}
@@ -199,9 +221,15 @@ class XyteAPIClient:
         if device_id:
             params["device_id"] = device_id
         if space_id:
-            params["space_id"] = space_id
+            params["space_id"] = str(space_id)
         if name:
             params["name"] = name
+        if order:
+            params["order"] = order
+        if page is not None:
+            params["page"] = str(page)
+        if limit is not None:
+            params["limit"] = str(limit)
 
         response = await self._request(
             "GET",
@@ -224,7 +252,9 @@ class XyteAPIClient:
         return transform_response("get_device_analytics", response.json())
 
     # Command Operations
-    async def send_command(self, device_id: str, command_data: CommandRequest) -> Dict[str, Any]:
+    async def send_command(
+        self, device_id: str, command_data: CommandRequest
+    ) -> Dict[str, Any]:
         """Send a command to the specified device."""
         payload = transform_request("send_command", command_data.model_dump())
         response = await self._request(
@@ -252,7 +282,9 @@ class XyteAPIClient:
 
     async def get_commands(self, device_id: str) -> Dict[str, Any]:
         """List all commands for the specified device."""
-        response = await self._request("GET", self._endpoint("get_commands", device_id=device_id))
+        response = await self._request(
+            "GET", self._endpoint("get_commands", device_id=device_id)
+        )
         response.raise_for_status()
         return transform_response("get_commands", response.json())
 
@@ -297,7 +329,9 @@ class XyteAPIClient:
 
     async def get_ticket(self, ticket_id: str) -> Dict[str, Any]:
         """Retrieve a specific support ticket by ID."""
-        response = await self._request("GET", self._endpoint("get_ticket", ticket_id=ticket_id))
+        response = await self._request(
+            "GET", self._endpoint("get_ticket", ticket_id=ticket_id)
+        )
         response.raise_for_status()
         return transform_response("get_ticket", response.json())
 
@@ -316,7 +350,9 @@ class XyteAPIClient:
 
     async def mark_ticket_resolved(self, ticket_id: str) -> Dict[str, Any]:
         """Mark the specified ticket as resolved."""
-        response = await self._request("POST", self._endpoint("mark_ticket_resolved", ticket_id=ticket_id))
+        response = await self._request(
+            "POST", self._endpoint("mark_ticket_resolved", ticket_id=ticket_id)
+        )
         response.raise_for_status()
         return transform_response("mark_ticket_resolved", response.json())
 

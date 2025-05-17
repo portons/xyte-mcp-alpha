@@ -1,18 +1,22 @@
 """Main entry point for xyte-mcp-alpha."""
+# ruff: noqa: E402
 
-import asyncio
+from __future__ import annotations
+
+import os
 import sys
+
+
+from xyte_mcp_alpha.server import get_server
 
 from mcp.server.stdio import stdio_server
 
-from .server import get_server
-
 
 def main() -> None:
-    """Start the MCP server via stdio."""
+    """Launch the MCP server."""
     print("Starting Xyte MCP server...", file=sys.stderr)
     server = get_server()
-    asyncio.run(stdio_server(server))
+    server.run(transport="stdio")
 
 
 if __name__ == "__main__":
