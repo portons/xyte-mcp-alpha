@@ -22,11 +22,7 @@ jobs:
         run: |
           pip install .
           pip install ruff mypy pytest pytest-cov coverage
-      - name: Format code with ruff
-        run: |
-          ruff check src tests --fix
-          git diff --exit-code || (echo "Code was formatted. Please run 'ruff check --fix' locally and commit the changes." && exit 1)
-      - name: Lint
+      - name: Check code formatting and lint with ruff
         run: ruff check src tests
       - name: Type checks
         run: mypy src || true
