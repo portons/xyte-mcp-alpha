@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from .logging_utils import configure_logging, instrument, RequestLoggingMiddleware
+from .logging_utils import configure_logging, instrument
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request

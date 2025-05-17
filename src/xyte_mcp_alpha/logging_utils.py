@@ -5,6 +5,7 @@ import uuid
 from contextvars import ContextVar
 from typing import Any, Callable, Awaitable
 from functools import wraps
+from prometheus_client import Histogram
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
@@ -63,7 +64,6 @@ class RequestLoggingMiddleware:
 
 
 # Prometheus metrics for tools and resources
-from prometheus_client import Histogram
 
 TOOL_LATENCY = Histogram("xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"])
 RESOURCE_LATENCY = Histogram(
