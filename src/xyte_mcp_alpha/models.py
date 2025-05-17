@@ -1,20 +1,23 @@
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
-from .api_client import CommandRequest
+from .client import CommandRequest
 
 
 class DeviceId(BaseModel):
     """Model identifying a device."""
+
     device_id: str = Field(..., description="Unique device identifier")
 
 
 class CommandId(DeviceId):
     """Model identifying a command for a device."""
+
     command_id: str = Field(..., description="Unique command identifier")
 
 
 class UpdateDeviceArgs(DeviceId):
     """Parameters for updating a device."""
+
     configuration: Dict[str, Any] = Field(..., description="Configuration parameters")
 
 
@@ -28,11 +31,13 @@ class SendTicketMessageRequest(MarkTicketResolvedRequest):
 
 class SendCommandRequest(DeviceId, CommandRequest):
     """Parameters for sending a command."""
+
     pass
 
 
 class CancelCommandRequest(CommandId, CommandRequest):
     """Parameters for canceling a command."""
+
     pass
 
 
