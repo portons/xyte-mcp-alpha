@@ -1,9 +1,7 @@
-from datetime import datetime
 from typing import Any, Dict
 
 from .deps import get_client
 from .utils import handle_api
-from .models import SearchDeviceHistoriesRequest
 
 
 async def list_devices() -> Dict[str, Any]:

@@ -18,6 +18,6 @@ jobs:
           pip install .
           pip install ruff
       - name: Run static analysis
-        run: ruff src tests
+        run: ruff check src tests
       - name: Run tests
         run: python -m unittest discover -v
