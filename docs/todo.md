@@ -66,10 +66,10 @@
 
 ## 🔌 **Plugin System**
 
-* [ ] Document plugin lifecycle (install, register, reload, validate)
-* [ ] Add realistic plugin integration test(s)
-* [ ] (Optional) Implement entry-point-based plugin discovery
-* [ ] Validate plugins on load (schema, compatibility)
+* [x] Document plugin lifecycle (install, register, reload, validate)
+* [x] Add realistic plugin integration test(s)
+* [x] (Optional) Implement entry-point-based plugin discovery
+* [x] Validate plugins on load (schema, compatibility)
 
 ## 🗂️ **API & Config**
 

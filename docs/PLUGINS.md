@@ -1,9 +1,57 @@
 # Plugin System
 
-This server supports lightweight plugins that can react to events and logs.
-Plugins are regular Python modules referenced in the `XYTE_PLUGINS` environment
-variable as a comma separated list. Each module should expose an object with
-`on_event` and/or `on_log` methods.
+This document explains how to extend the MCP server with Python plugins.
+
+## Installation
+
+Plugins are standard Python packages. Install them alongside the server using
+`pip`:
+
+```bash
+pip install my-plugin
+```
+
+A plugin should expose an instance called `plugin` that implements one or both
+of the following callbacks:
+
+```python
+class MyPlugin:
+    API_VERSION = 1
+    def on_event(self, event: dict) -> None: ...
+    def on_log(self, message: str, level: int) -> None: ...
+
+plugin = MyPlugin()
+```
+
+## Registration
+
+Plugins can be registered in two ways:
+
+1. **Environment variable** – set `XYTE_PLUGINS` to a comma separated list of
+   import paths. Each path should point to a module containing a `plugin`
+   object or a module implementing the callbacks directly.
+2. **Entry points** – packages may declare an entry point in the group
+   `xyte_mcp_alpha.plugins`. The loader will automatically discover and
+   register these plugins on startup.
+
+The server calls `plugin.load_plugins()` during boot which collects plugins from
+both mechanisms.
+
+## Reloading
+
+When the process receives `SIGHUP` or `plugin.reload_plugins()` is called, all
+loaded plugins are cleared and discovered again. This allows deploying updates
+without restarting the whole service.
+
+## Validation
+
+During loading each plugin is validated:
+
+* It must implement `on_event` or `on_log`.
+* If an `API_VERSION` attribute is present it must match the server's plugin API
+  version.
+
+Invalid plugins are skipped and a warning is logged.
 
 ## Writing a Plugin
 
@@ -13,29 +61,40 @@ variable as a comma separated list. Each module should expose an object with
 3. Export an instance named `plugin` so the loader can discover it.
 4. Set `XYTE_PLUGINS=myplugin` before starting the server.
 
-````python
-# myplugin.py
-class MyPlugin:
+## Example
+
+```python
+# my_plugin.py
+from xyte_mcp_alpha import plugin
+
+class Logger:
+    API_VERSION = 1
     def on_event(self, event: dict) -> None:
         print("event", event)
 
     def on_log(self, message: str, level: int) -> None:
         print("log", level, message)
 
-plugin = MyPlugin()
-````
+plugin_instance = Logger()
+```
+
+Register via environment variable:
+
+```bash
+export XYTE_PLUGINS=my_plugin:plugin_instance
+```
+
+Or in `pyproject.toml`:
+
+```toml
+[project.entry-points."xyte_mcp_alpha.plugins"]
+logger = "my_plugin:plugin_instance"
+```
+
+After installation the server will automatically load the plugin.
 
 Plugins may also call `register_payload_transform` to modify API responses before
 they reach the client.
-
-## Registration
-
-Set the environment variable and restart the server:
-
-```bash
-export XYTE_PLUGINS=myplugin,other.plugin
-python -m xyte_mcp_alpha
-```
 
 All listed plugins will be loaded at startup. Failures are logged but do not stop
 startup.
