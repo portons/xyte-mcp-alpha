@@ -4,11 +4,22 @@ import logging
 from typing import Any, Dict, Optional
 import httpx
 from cachetools import TTLCache
-from pydantic import BaseModel, Field
 from datetime import datetime
 import anyio
+import time
 from prometheus_client import Counter
 from .config import get_settings
+from .mapping import load_mapping
+from .hooks import transform_request, transform_response
+
+from .models import (
+    ClaimDeviceRequest,
+    UpdateDeviceRequest,
+    CommandRequest,
+    TicketUpdateRequest,
+    TicketMessageRequest,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -24,57 +35,6 @@ CACHE_MISSES = Counter(
     ["key"],
 )
 
-
-class ClaimDeviceRequest(BaseModel):
-    """Request model for claiming a device."""
-
-    name: str = Field(..., description="Friendly name for the device")
-    space_id: int = Field(..., description="Identifier of the space to assign the device")
-    mac: Optional[str] = Field(None, description="Device MAC address (optional)")
-    sn: Optional[str] = Field(None, description="Device serial number (optional)")
-    cloud_id: str = Field("", description="Cloud identifier for the device (optional)")
-
-
-class UpdateDeviceRequest(BaseModel):
-    """Request model for updating a device."""
-
-    configuration: Dict[str, Any] = Field(
-        ..., description="Configuration parameters for the device"
-    )
-
-
-class CommandRequest(BaseModel):
-    """Request model for sending a command to device."""
-
-    name: str = Field(..., description="Command name")
-    friendly_name: str = Field(..., description="Human-friendly command name")
-    file_id: Optional[str] = Field(
-        None, description="File identifier if the command includes a file"
-    )
-    extra_params: Dict[str, Any] = Field(default_factory=dict, description="Additional parameters")
-
-
-class OrgInfoRequest(BaseModel):
-    """Request model for getting organization info."""
-
-    device_id: str = Field(
-        ..., description="Device identifier for which to retrieve organization info"
-    )
-
-
-class TicketUpdateRequest(BaseModel):
-    """Request model for updating a ticket."""
-
-    title: str = Field(..., description="New title for the ticket")
-    description: str = Field(..., description="New description for the ticket")
-
-
-class TicketMessageRequest(BaseModel):
-    """Request model for sending a ticket message."""
-
-    message: str = Field(..., description="Message content to send in ticket")
-
-
 class XyteAPIClient:
     """Client for interacting with Xyte Organization API."""
 
@@ -86,19 +46,24 @@ class XyteAPIClient:
             base_url: Base URL for the API. Defaults to production URL.
         """
         settings = get_settings()
+        self.mapping = load_mapping()
+
         self.api_key = api_key or settings.xyte_api_key
-        if not self.api_key:
-            raise ValueError("XYTE_API_KEY must be provided or set in environment")
+        self.oauth_token = settings.xyte_oauth_token
+        if not (self.api_key or self.oauth_token):
+            raise ValueError("XYTE_API_KEY or XYTE_OAUTH_TOKEN must be provided")
 
         self.base_url = base_url or settings.xyte_base_url
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
         transport = httpx.AsyncHTTPTransport(retries=3, limits=limits)
+        headers = {"Content-Type": "application/json"}
+        if self.oauth_token:
+            headers["Authorization"] = f"Bearer {self.oauth_token}"
+        else:
+            headers["Authorization"] = self.api_key
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
-            headers={
-                "Authorization": self.api_key,
-                "Content-Type": "application/json",
-            },
+            headers=headers,
             timeout=30.0,
             transport=transport,
         )
@@ -121,6 +86,28 @@ class XyteAPIClient:
             raise httpx.TimeoutException("Deadline exceeded")
         return remaining
 
+    async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        """Perform an HTTP request with retries and circuit breaker."""
+        if hasattr(self, "_circuit_open_until") and time.monotonic() < self._circuit_open_until:  # type: ignore[attr-defined]
+            raise httpx.NetworkError("backend_unavailable")
+
+        backoff = 0.1
+        failures = getattr(self, "_failures", 0)
+        for attempt in range(3):
+            try:
+                response = await self.client.request(method, url, timeout=self._request_timeout(), **kwargs)
+                self._failures = 0  # type: ignore[attr-defined]
+                return response
+            except (httpx.NetworkError, httpx.TimeoutException):
+                failures += 1
+                self._failures = failures  # type: ignore[attr-defined]
+                if failures >= 3:
+                    self._circuit_open_until = time.monotonic() + 30  # type: ignore[attr-defined]
+                if attempt == 2:
+                    raise
+                await anyio.sleep(backoff)
+                backoff *= 2
+
     async def __aenter__(self) -> "XyteAPIClient":
         return self
 
@@ -131,6 +118,10 @@ class XyteAPIClient:
         """Close the HTTP client."""
         await self.client.aclose()
 
+    def _endpoint(self, name: str, **params: Any) -> str:
+        path = self.mapping.get(name, "")
+        return path.format(**params)
+
     # Device Operations
     async def get_devices(self) -> Dict[str, Any]:
         """List all devices in the organization."""
@@ -138,21 +129,23 @@ class XyteAPIClient:
             CACHE_HITS.labels(key="devices").inc()
             return self.cache["devices"]
         CACHE_MISSES.labels(key="devices").inc()
-        response = await self.client.get("/devices", timeout=self._request_timeout())
+        path = self._endpoint("get_devices")
+        response = await self._request("GET", path)
         response.raise_for_status()
-        data = response.json()
+        data = transform_response("get_devices", response.json())
         self.cache["devices"] = data
         return data
 
     async def claim_device(self, device_data: ClaimDeviceRequest) -> Dict[str, Any]:
         """Register (claim) a new device under the organization."""
-        response = await self.client.post(
-            "/devices/claim",
-            json=device_data.model_dump(exclude_none=True),
-            timeout=self._request_timeout(),
+        payload = transform_request("claim_device", device_data.model_dump(exclude_none=True))
+        response = await self._request(
+            "POST",
+            self._endpoint("claim_device"),
+            json=payload,
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("claim_device", response.json())
 
     async def get_device(self, device_id: str) -> Dict[str, Any]:
         """Return details and status for a single device."""
@@ -161,31 +154,30 @@ class XyteAPIClient:
             CACHE_HITS.labels(key="device").inc()
             return self.cache[cache_key]
         CACHE_MISSES.labels(key="device").inc()
-        response = await self.client.get(f"/devices/{device_id}", timeout=self._request_timeout())
+        response = await self._request("GET", self._endpoint("get_device", device_id=device_id))
         response.raise_for_status()
-        data = response.json()
+        data = transform_response("get_device", response.json())
         self.cache[cache_key] = data
         return data
 
     async def delete_device(self, device_id: str) -> Dict[str, Any]:
         """Delete (remove) a device by its ID."""
-        response = await self.client.delete(
-            f"/devices/{device_id}", timeout=self._request_timeout()
-        )
+        response = await self._request("DELETE", self._endpoint("delete_device", device_id=device_id))
         response.raise_for_status()
-        return response.json()
+        return transform_response("delete_device", response.json())
 
     async def update_device(
         self, device_id: str, device_data: UpdateDeviceRequest
     ) -> Dict[str, Any]:
         """Update configuration or details of a specific device."""
-        response = await self.client.patch(
-            f"/devices/{device_id}",
-            json=device_data.model_dump(),
-            timeout=self._request_timeout(),
+        payload = transform_request("update_device", device_data.model_dump())
+        response = await self._request(
+            "PATCH",
+            self._endpoint("update_device", device_id=device_id),
+            json=payload,
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("update_device", response.json())
 
     async def get_device_histories(
         self,
@@ -211,69 +203,71 @@ class XyteAPIClient:
         if name:
             params["name"] = name
 
-        response = await self.client.get(
-            "/devices/histories",
-            params=params,
-            timeout=self._request_timeout(),
+        response = await self._request(
+            "GET",
+            self._endpoint("get_device_histories"),
+            params=transform_request("get_device_histories", params),
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("get_device_histories", response.json())
 
     async def get_device_analytics(
         self, device_id: str, period: str = "last_30_days"
     ) -> Dict[str, Any]:
         """Retrieve usage analytics for a device."""
-        response = await self.client.get(
-            f"/devices/{device_id}/analytics",
+        response = await self._request(
+            "GET",
+            self._endpoint("get_device_analytics", device_id=device_id),
             params={"period": period},
-            timeout=self._request_timeout(),
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("get_device_analytics", response.json())
 
     # Command Operations
     async def send_command(self, device_id: str, command_data: CommandRequest) -> Dict[str, Any]:
         """Send a command to the specified device."""
-        response = await self.client.post(
-            f"/devices/{device_id}/commands",
-            json=command_data.model_dump(),
-            timeout=self._request_timeout(),
+        payload = transform_request("send_command", command_data.model_dump())
+        response = await self._request(
+            "POST",
+            self._endpoint("send_command", device_id=device_id),
+            json=payload,
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("send_command", response.json())
 
     async def cancel_command(
         self, device_id: str, command_id: str, command_data: CommandRequest
     ) -> Dict[str, Any]:
         """Cancel a previously sent command on the device."""
-        response = await self.client.delete(
-            f"/devices/{device_id}/commands/{command_id}",
-            json=command_data.model_dump(),
-            timeout=self._request_timeout(),
+        payload = transform_request("cancel_command", command_data.model_dump())
+        response = await self._request(
+            "DELETE",
+            self._endpoint(
+                "cancel_command", device_id=device_id, command_id=command_id
+            ),
+            json=payload,
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("cancel_command", response.json())
 
     async def get_commands(self, device_id: str) -> Dict[str, Any]:
         """List all commands for the specified device."""
-        response = await self.client.get(
-            f"/devices/{device_id}/commands", timeout=self._request_timeout()
-        )
+        response = await self._request("GET", self._endpoint("get_commands", device_id=device_id))
         response.raise_for_status()
-        return response.json()
+        return transform_response("get_commands", response.json())
 
     # Organization Operations
     async def get_organization_info(self, device_id: str) -> Dict[str, Any]:
         """Retrieve information about the organization."""
         # Note: This is a GET request with a body, which is unusual but as specified in the API
-        response = await self.client.request(
+        payload = transform_request("get_organization_info", {"device_id": device_id})
+        response = await self._request(
             "GET",
-            "/info",
-            json={"device_id": device_id},
-            timeout=self._request_timeout(),
+            self._endpoint("get_organization_info", device_id=device_id),
+            json=payload,
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("get_organization_info", response.json())
 
     # Incident Operations
     async def get_incidents(self) -> Dict[str, Any]:
@@ -282,9 +276,9 @@ class XyteAPIClient:
             CACHE_HITS.labels(key="incidents").inc()
             return self.cache["incidents"]
         CACHE_MISSES.labels(key="incidents").inc()
-        response = await self.client.get("/incidents", timeout=self._request_timeout())
+        response = await self._request("GET", self._endpoint("get_incidents"))
         response.raise_for_status()
-        data = response.json()
+        data = transform_response("get_incidents", response.json())
         self.cache["incidents"] = data
         return data
 
@@ -295,46 +289,46 @@ class XyteAPIClient:
             CACHE_HITS.labels(key="tickets").inc()
             return self.cache["tickets"]
         CACHE_MISSES.labels(key="tickets").inc()
-        response = await self.client.get("/tickets", timeout=self._request_timeout())
+        response = await self._request("GET", self._endpoint("get_tickets"))
         response.raise_for_status()
-        data = response.json()
+        data = transform_response("get_tickets", response.json())
         self.cache["tickets"] = data
         return data
 
     async def get_ticket(self, ticket_id: str) -> Dict[str, Any]:
         """Retrieve a specific support ticket by ID."""
-        response = await self.client.get(f"/tickets/{ticket_id}", timeout=self._request_timeout())
+        response = await self._request("GET", self._endpoint("get_ticket", ticket_id=ticket_id))
         response.raise_for_status()
-        return response.json()
+        return transform_response("get_ticket", response.json())
 
     async def update_ticket(
         self, ticket_id: str, ticket_data: TicketUpdateRequest
     ) -> Dict[str, Any]:
         """Update the details of a specific ticket."""
-        response = await self.client.put(
-            f"/tickets/{ticket_id}",
-            json=ticket_data.model_dump(),
-            timeout=self._request_timeout(),
+        payload = transform_request("update_ticket", ticket_data.model_dump())
+        response = await self._request(
+            "PUT",
+            self._endpoint("update_ticket", ticket_id=ticket_id),
+            json=payload,
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("update_ticket", response.json())
 
     async def mark_ticket_resolved(self, ticket_id: str) -> Dict[str, Any]:
         """Mark the specified ticket as resolved."""
-        response = await self.client.post(
-            f"/tickets/{ticket_id}/resolved", timeout=self._request_timeout()
-        )
+        response = await self._request("POST", self._endpoint("mark_ticket_resolved", ticket_id=ticket_id))
         response.raise_for_status()
-        return response.json()
+        return transform_response("mark_ticket_resolved", response.json())
 
     async def send_ticket_message(
         self, ticket_id: str, message_data: TicketMessageRequest
     ) -> Dict[str, Any]:
         """Send a new message to the specified ticket thread."""
-        response = await self.client.post(
-            f"/tickets/{ticket_id}/message",
-            json=message_data.model_dump(),
-            timeout=self._request_timeout(),
+        payload = transform_request("send_ticket_message", message_data.model_dump())
+        response = await self._request(
+            "POST",
+            self._endpoint("send_ticket_message", ticket_id=ticket_id),
+            json=payload,
         )
         response.raise_for_status()
-        return response.json()
+        return transform_response("send_ticket_message", response.json())

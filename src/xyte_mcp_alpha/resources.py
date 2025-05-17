@@ -36,6 +36,13 @@ async def device_status(device_id: str) -> Dict[str, Any]:
         return await handle_api("get_device", client.get_device(device_id))
 
 
+async def device_logs(device_id: str) -> Dict[str, Any]:
+    """Return recent logs for a device (sample resource)."""
+    device_id = validate_device_id(device_id)
+    # Placeholder implementation
+    return {"device_id": device_id, "logs": ["log entry 1", "log entry 2"]}
+
+
 async def organization_info(device_id: str) -> Dict[str, Any]:
     """Fetch organization information for a device."""
     device_id = validate_device_id(device_id)

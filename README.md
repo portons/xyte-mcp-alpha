@@ -2,6 +2,13 @@
 
 An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
 
+## Quickstart
+
+1. Ensure Python 3.11+ is installed and clone the repo.
+2. Create a virtualenv and install the project: `pip install -e .`.
+3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` (and optional `XYTE_USER_TOKEN`).
+4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
+
 ## Features
 
 This MCP server exposes the following capabilities:
@@ -166,13 +173,21 @@ resources and underlying API calls.
 ### Environment Variables
 
 - `XYTE_API_KEY` (required) - Your Xyte organization API key
+- `XYTE_OAUTH_TOKEN` (optional) - OAuth2 access token instead of API key
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
 - `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
 - `MCP_INSPECTOR_PORT` (optional) - Port for the MCP inspector to use (default 6277)
+<<<<<<< HEAD
 - `XYTE_EXPERIMENTAL_APIS` (optional) - Enable registration of experimental tools
+=======
+- `XYTE_API_MAPPING` (optional) - Path to JSON file overriding API endpoint mapping
+- `XYTE_HOOKS_MODULE` (optional) - Python module providing request/response hooks
+
+These variables can also be configured when deploying via Helm. See `helm/values.yaml` for defaults.
+>>>>>>> 027fe7871d9911d28c1c81ba6df3bed5fa10b5cd
 
 ### Security Considerations
 
@@ -203,6 +218,10 @@ Use `start_meeting_room_preset` and `shutdown_meeting_room` to quickly prepare o
 ### Dry Run Mode
 
 Destructive tools like `send_command` and `delete_device` now accept a `dry_run` flag. When true, the server will log the intended action but skip calling the Xyte API.
+
+## Troubleshooting
+
+If you receive `unauthorized` errors, verify that `XYTE_API_KEY` is correct and has the required permissions. Use `XYTE_USER_TOKEN` when acting on behalf of a specific user. Increase `XYTE_RATE_LIMIT` if you hit rate limit errors during development.
 
 ## License
 

@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 from .server import get_server
 from .config import get_settings, reload_settings
+from .plugins import sample  # noqa: F401
 import signal
 
 

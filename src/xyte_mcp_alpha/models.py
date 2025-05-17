@@ -2,7 +2,54 @@
 
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
-from .client import CommandRequest
+class ClaimDeviceRequest(BaseModel):
+    """Request model for claiming a device."""
+
+    name: str = Field(..., description="Friendly name for the device")
+    space_id: int = Field(..., description="Identifier of the space to assign the device")
+    mac: Optional[str] = Field(None, description="Device MAC address (optional)")
+    sn: Optional[str] = Field(None, description="Device serial number (optional)")
+    cloud_id: str = Field("", description="Cloud identifier for the device (optional)")
+
+
+class UpdateDeviceRequest(BaseModel):
+    """Request model for updating a device."""
+
+    configuration: Dict[str, Any] = Field(
+        ..., description="Configuration parameters for the device"
+    )
+
+
+class CommandRequest(BaseModel):
+    """Request model for sending a command to device."""
+
+    name: str = Field(..., description="Command name")
+    friendly_name: str = Field(..., description="Human-friendly command name")
+    file_id: Optional[str] = Field(
+        None, description="File identifier if the command includes a file"
+    )
+    extra_params: Dict[str, Any] = Field(default_factory=dict, description="Additional parameters")
+
+
+class OrgInfoRequest(BaseModel):
+    """Request model for getting organization info."""
+
+    device_id: str = Field(
+        ..., description="Device identifier for which to retrieve organization info"
+    )
+
+
+class TicketUpdateRequest(BaseModel):
+    """Request model for updating a ticket."""
+
+    title: str = Field(..., description="New title for the ticket")
+    description: str = Field(..., description="New description for the ticket")
+
+
+class TicketMessageRequest(BaseModel):
+    """Request model for sending a ticket message."""
+
+    message: str = Field(..., description="Message content to send in ticket")
 
 
 class DeviceId(BaseModel):

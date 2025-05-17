@@ -3,6 +3,7 @@
 import logging
 import sys
 import os
+import json
 from typing import Any, Dict
 
 from . import plugin
@@ -40,6 +41,7 @@ else:
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
+from .config import get_settings
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -73,18 +75,65 @@ async def metrics(_: Request) -> Response:
     return Response(data, media_type=CONTENT_TYPE_LATEST)
 
 
+@mcp.custom_route("/config", methods=["GET"])
+async def config_endpoint(request: Request) -> JSONResponse:
+    """Return sanitized configuration for debugging purposes."""
+    settings = get_settings()
+    api_key = request.headers.get("X-API-Key")
+    if api_key != settings.xyte_api_key:
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+
+    cfg = settings.model_dump()
+    cfg["xyte_api_key"] = "***"
+    if cfg.get("xyte_user_token"):
+        cfg["xyte_user_token"] = "***"
+    return JSONResponse({"config": cfg})
+
+
+@mcp.custom_route("/webhook", methods=["POST"])
+async def webhook(req: Request) -> JSONResponse:
+    """Receive external events and enqueue them for streaming."""
+    payload = await req.json()
+    event = events.Event(type=payload.get("type", "unknown"), data=payload.get("data", {}))
+    await events.push_event(event)
+    return JSONResponse({"queued": True})
+
+
+@mcp.custom_route("/events", methods=["GET"])
+async def stream_events(_: Request) -> Response:
+    """Stream events to clients using Server-Sent Events."""
+    async def event_gen():
+        while True:
+            ev = await events.get_next_event(events.GetNextEventRequest())
+            yield f"event: {ev['type']}\ndata: {json.dumps(ev['data'])}\n\n"
+
+    return Response(event_gen(), media_type="text/event-stream")
+
+
 @mcp.custom_route("/tools", methods=["GET"])
 async def list_tools(_: Request) -> JSONResponse:
     """List available tools."""
-    tools_list = []
-    for tool_name, tool_def in mcp.server.tools.items():
-        tools_list.append({
-            "name": tool_name,
-            "description": tool_def.description,
-            "readOnlyHint": tool_def.annotations.readOnlyHint if tool_def.annotations else True,
-            "destructiveHint": tool_def.annotations.destructiveHint if tool_def.annotations else False,
-        })
-    return JSONResponse({"tools": tools_list})
+    tool_infos = await mcp.list_tools()
+    tools_list = [
+        {
+            "name": t.name,
+            "description": t.description,
+            "readOnlyHint": t.annotations.readOnlyHint if t.annotations else True,
+            "destructiveHint": t.annotations.destructiveHint if t.annotations else False,
+        }
+        for t in tool_infos
+    ]
+    return JSONResponse(tools_list)
+
+
+@mcp.custom_route("/resources", methods=["GET"])
+async def list_resources_route(_: Request) -> JSONResponse:
+    """List available resources."""
+    resources_list = [
+        {"uri": str(r.uri), "name": r.name, "description": r.description}
+        for r in await mcp.list_resources()
+    ]
+    return JSONResponse(resources_list)
 
 
 # Resource registrations
@@ -103,6 +152,10 @@ mcp.resource(
     "device://{device_id}/status",
     description="Current status of a device",
 )(instrument("resource", "device_status")(resources.device_status))
+mcp.resource(
+    "device://{device_id}/logs",
+    description="Recent logs for a device",
+)(instrument("resource", "device_logs")(resources.device_logs))
 mcp.resource(
     "organization://info/{device_id}",
     description="Organization info for a device",
@@ -191,6 +244,10 @@ mcp.tool(
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "log_automation_attempt")(tools.log_automation_attempt))
 mcp.tool(
+    description="Echo a message back", 
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+)(instrument("tool", "echo_command")(tools.echo_command))
+mcp.tool(
     description="Send a command asynchronously",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
 )(tasks.send_command_async)
@@ -198,6 +255,13 @@ mcp.tool(
     description="Get status of an asynchronous task",
     annotations=ToolAnnotations(readOnlyHint=True),
 )(tasks.get_task_status)
+
+
+@mcp.custom_route("/task/{task_id}", methods=["GET"])
+async def task_status(task_id: str) -> JSONResponse:
+    """Expose async task status via HTTP."""
+    result = await tasks.get_task_status(task_id)
+    return JSONResponse(result)
 # Create a wrapper function with explicit type annotation
 async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
     """Wrapper for get_next_event with explicit type annotation."""
