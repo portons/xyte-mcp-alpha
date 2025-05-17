@@ -123,25 +123,7 @@ Alternatively, with a Python virtual environment:
 
 ## Example Usage
 
-Once connected, you can interact with Xyte through Claude:
-
-**List devices:**
-- "Show me all devices in the organization"
-- "What devices are available?"
-
-**Device operations:**
-- "Claim a new device named 'Test Device' in space 13244"
-- "Update the configuration of device XYZ with {a: 1}"
-- "Send a reboot command to device ABC"
-
-**Ticket management:**
-- "Show me all open tickets"
-- "Update ticket #123 with a new title"
-- "Send a message to ticket #456"
-
-**History search:**
-- "Search device histories for the last 24 hours"
-- "Find histories for device XYZ from last week"
+![mcp dev demo](docs/mcp-dev.gif)
 
 ## Development
 

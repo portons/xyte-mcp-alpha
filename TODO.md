@@ -33,13 +33,13 @@
 - [x] 6.3 Health & readiness probes
 
 ## Documentation
-- [ ] 7.1 Auto-generate MCP capability JSON
-- [ ] 7.2 Swagger-style docs for XYTE wrappers
-- [ ] 7.3 Replace README usage examples with runnable `mcp dev` GIF
+- [x] 7.1 Auto-generate MCP capability JSON
+- [x] 7.2 Swagger-style docs for XYTE wrappers
+- [x] 7.3 Replace README usage examples with runnable `mcp dev` GIF
 
 ## Versioning & release
-- [ ] 8.1 Semantic version bump to 1.0.0
-- [ ] 8.2 CHANGELOG.md with release notes
+- [x] 8.1 Semantic version bump to 1.0.0
+- [x] 8.2 CHANGELOG.md with release notes
 
 ## Community & contribution
 - [ ] 9.1 Contributing guide + code-of-conduct
