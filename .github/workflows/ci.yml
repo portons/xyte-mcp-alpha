@@ -13,10 +13,16 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+      - name: Setup PYTHONPATH
+        run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
       - name: Install dependencies
         run: |
           pip install .
           pip install ruff pytest pytest-cov
+      - name: Format code with ruff
+        run: |
+          ruff check src tests --fix
+          git diff --exit-code || (echo "Code was formatted. Please run 'ruff check --fix' locally and commit the changes." && exit 1)
       - name: Run static analysis
         run: ruff check src tests
       - name: Run tests
