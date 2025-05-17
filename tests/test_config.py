@@ -19,6 +19,7 @@ class SettingsTestCase(unittest.TestCase):
 
     def test_missing_required_api_key(self):
         os.environ.pop('XYTE_API_KEY', None)
+        os.environ.pop('XYTE_OAUTH_TOKEN', None)
         get_settings.cache_clear()
         with self.assertRaises(ValueError):
             validate_settings(Settings())
