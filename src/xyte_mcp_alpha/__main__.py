@@ -4,12 +4,13 @@ import sys
 import asyncio
 import os
 
+from xyte_mcp_alpha.server import get_server
+
 # Add the parent directory to the path to help with imports
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from xyte_mcp_alpha.server import get_server
 
 def main():
     """Main function."""
