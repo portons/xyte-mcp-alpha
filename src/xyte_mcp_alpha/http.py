@@ -3,7 +3,7 @@
 from .server import get_server
 
 # Expose ASGI app for Uvicorn or other ASGI servers
-app = get_server().asgi_app()
+app = get_server().streamable_http_app()
 
 
 def main():

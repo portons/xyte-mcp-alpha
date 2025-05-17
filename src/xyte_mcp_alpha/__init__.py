@@ -1,6 +1,10 @@
 """xyte-mcp-alpha package."""
 
+from dotenv import load_dotenv
+
 from .server import get_server
+
+load_dotenv()
 
 __version__ = "0.1.0"
 __all__ = ["get_server", "__version__"]

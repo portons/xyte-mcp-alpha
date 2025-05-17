@@ -2,7 +2,7 @@
 
 import os
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 import httpx
 from cachetools import TTLCache
 from pydantic import BaseModel, Field

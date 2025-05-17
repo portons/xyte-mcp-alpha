@@ -27,3 +27,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xyte_mcp_alpha"]
+
+[tool.ruff]
+line-length = 100

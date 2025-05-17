@@ -18,6 +18,18 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("Xyte Organization MCP Server")
 
 
+@mcp.custom_route("/healthz", methods=["GET"])
+async def health(_: Request) -> Response:
+    """Liveness probe."""
+    return Response("ok")
+
+
+@mcp.custom_route("/readyz", methods=["GET"])
+async def ready(_: Request) -> Response:
+    """Readiness probe."""
+    return Response("ok")
+
+
 @mcp.custom_route("/metrics", methods=["GET"])
 async def metrics(_: Request) -> Response:
     """Expose Prometheus metrics."""
@@ -46,14 +58,6 @@ mcp.tool()(tools.send_ticket_message)
 mcp.tool()(tools.search_device_histories)
 
 
-async def on_shutdown() -> None:
-    """Handle server shutdown."""
-    logger.info("Server shutdown complete")
-
-
-mcp.server.on_shutdown(on_shutdown)
-
-
 def get_server() -> Any:
     """Get the MCP server instance."""
-    return mcp.server
+    return mcp

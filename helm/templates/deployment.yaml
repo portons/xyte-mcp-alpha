@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyte-mcp
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: xyte-mcp
+  template:
+    metadata:
+      labels:
+        app: xyte-mcp
+    spec:
+      containers:
+      - name: xyte-mcp
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: XYTE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: api_key
+        ports:
+        - containerPort: 8080
