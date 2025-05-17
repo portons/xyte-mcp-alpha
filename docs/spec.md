@@ -118,14 +118,14 @@ This section focuses on leveraging the full potential of the Model Context Proto
 
 This section outlines new features to expand the server's capabilities.
 
-* [ ] **Task C1: Support for Dynamic Tool/Resource Discovery (If applicable)**
+* [v] **Task C1: Support for Dynamic Tool/Resource Discovery (If applicable)**
    * **Description:** If the range of Xyte devices or available actions changes frequently, consider mechanisms for AI agents to dynamically discover available tools and resources.
    * **Rationale:** Makes the MCP server more adaptive to changes in the underlying Xyte platform or device capabilities. MCP specification includes `tools/list` and `resources/list` methods.
    * **Action Items:**
       * Ensure your server correctly implements the standard MCP methods for listing available tools and resources with up-to-date information.
       * If capabilities can change during a session, implement `notifications/tools/list_changed` and `notifications/resources/list_changed`.
 
-* [ ] **Task C2: Event-Driven Interactions for AV Automation**
+* [v] **Task C2: Event-Driven Interactions for AV Automation**
    * **Description:** Explore integration with event streams from the Xyte platform or AV devices to enable proactive AI agent responses.
    * **Rationale:** AV systems often generate events (e.g., device offline, error detected). MCP could enable AI agents to subscribe to or be notified of these events and take autonomous action.
    * **Action Items:**

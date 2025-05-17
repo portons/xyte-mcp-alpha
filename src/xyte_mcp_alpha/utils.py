@@ -27,8 +27,11 @@ STATUS_COUNT = Counter("xyte_status_total", "XYTE API status codes", ["status"])
 def validate_device_id(device_id: str) -> str:
     """Validate and sanitize a device identifier."""
     try:
-        return DeviceId(device_id=device_id).device_id.strip()
-    except ValidationError as exc:  # pragma: no cover - simple validation
+        value = DeviceId(device_id=device_id).device_id.strip()
+        if not value:
+            raise ValueError("device_id cannot be empty")
+        return value
+    except (ValidationError, ValueError) as exc:  # pragma: no cover - simple validation
         raise MCPError(code="invalid_params", message=str(exc))
 
 
