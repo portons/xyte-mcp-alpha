@@ -1,38 +1,69 @@
-"""HTTP entrypoint for the MCP server."""
+"""HTTP entrypoint for the MCP server with versioned routing."""
+
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.responses import JSONResponse, HTMLResponse
 
 from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
 from .config import get_settings
 from .http_utils import RateLimitMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from fastapi.openapi.utils import get_openapi
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import JSONResponse, HTMLResponse
 
-# Expose ASGI app for Uvicorn or other ASGI servers
-app = get_server().streamable_http_app()
-app.add_middleware(RequestLoggingMiddleware)
+
+def build_openapi(app: Starlette) -> Dict[str, Any]:
+    """Return a minimal OpenAPI schema describing the mounted routes."""
+
+    paths: Dict[str, Any] = {}
+    for route in app.routes:
+        if hasattr(route, "path"):
+            paths["/v1" + route.path] = {}
+    return {
+        "openapi": "3.0.0",
+        "info": {"title": "Xyte MCP API", "version": "1.0"},
+        "paths": paths,
+    }
+
+
+internal_app = get_server().streamable_http_app()
+internal_app.add_middleware(RequestLoggingMiddleware)
 settings = get_settings()
-app.add_middleware(
+internal_app.add_middleware(
     RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute
 )
-app.add_middleware(
+internal_app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+routes = [Mount("/v1", app=internal_app)]
 
-@app.get("/openapi.json")
-async def openapi_spec() -> JSONResponse:
-    schema = get_openapi(title="Xyte MCP API", version="1.0", routes=app.routes)
+app = Starlette(routes=routes)
+
+
+@app.route("/v1/openapi.json")
+async def openapi_spec(request) -> JSONResponse:
+    schema = build_openapi(internal_app)
     return JSONResponse(schema)
 
 
-@app.get("/api/docs")
-async def api_docs() -> HTMLResponse:
-    return get_swagger_ui_html(openapi_url="/openapi.json", title="Xyte MCP API")
+@app.route("/v1/docs")
+async def api_docs(request) -> HTMLResponse:
+    html = """
+    <html>
+      <body>
+        <h1>Xyte MCP API</h1>
+        <p>OpenAPI specification available at <a href='/v1/openapi.json'>/v1/openapi.json</a></p>
+      </body>
+    </html>
+    """
+    return HTMLResponse(html)
 
 
 def main():
@@ -45,3 +76,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

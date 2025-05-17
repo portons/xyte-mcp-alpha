@@ -9,7 +9,7 @@ class MetricsEndpointTestCase(unittest.TestCase):
         self.client = TestClient(app)
 
     def test_metrics_endpoint(self):
-        resp = self.client.get('/metrics')
+        resp = self.client.get('/v1/metrics')
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.text)
 
