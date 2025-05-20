@@ -5,7 +5,7 @@ from mcp.types import ToolAnnotations # Added
 from ..logging_utils import instrument # Added
 from .. import tasks # Added
 from .. import events # Added
-from ..events import GetNextEventRequest # Added to help MCP resolve the type
+# from ..events import GetNextEventRequest # Removed as it's unused
 
 from .device import ( # Tools remaining in device.py
     claim_device,

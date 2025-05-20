@@ -1,7 +1,7 @@
 """Room and AV related tool implementations."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Optional # Removed Any, Dict
 
 import anyio # For start_meeting_room_preset, shutdown_meeting_room
 
@@ -108,7 +108,7 @@ async def diagnose_av_issue(
     status = await resources.device_status(device["id"]) # Requires ..resources import
 
     # Direct call to client.get_device_histories as search_device_histories is in device.py
-    from datetime import datetime # Add this import
+    # from datetime import datetime # Removed this unused import
     histories_result = await handle_api( # Requires handle_api from ..utils
         "search_device_histories_direct", # Changed name to avoid confusion
         client.get_device_histories(device_id=device["id"]) # Simplified call

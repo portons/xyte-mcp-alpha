@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Optional, ForwardRef # Removed update_forward_refs again
+from typing import Any, Dict, Optional # ForwardRef removed
 
 from . import plugin
 from .logging_utils import log_json

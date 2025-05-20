@@ -28,7 +28,7 @@ from ..utils import (
 # The tool functions in tools/device.py (original) import these from ..client.
 # This is confusing. Let's assume the versions in `models.py` are the ones to be co-located.
 
-from ..client import ClaimDeviceRequest as XyteClaimDeviceRequest # Alias to avoid clash if defined locally
+# from ..client import ClaimDeviceRequest as XyteClaimDeviceRequest # Removed unused import
 from ..client import UpdateDeviceRequest as XyteUpdateDeviceRequest # Alias
 from ..client import CommandRequest as XyteCommandRequest # Alias
 

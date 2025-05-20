@@ -1,6 +1,6 @@
 """Support ticket related tools."""
 
-from typing import Any, Dict, Optional # Added Optional for models
+from typing import Any, Dict # Optional removed
 from pydantic import BaseModel, Field # For defining models locally
 
 from ..deps import get_client
