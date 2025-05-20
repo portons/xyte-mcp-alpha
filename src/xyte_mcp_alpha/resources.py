@@ -3,8 +3,11 @@
 from typing import Any, Dict
 
 from .deps import get_client
+from .logging_utils import instrument # Added import
 from .utils import handle_api, validate_device_id, validate_ticket_id
 from .user import get_preferences
+# Forward declaration for mcp type hint, actual type is FastMCP
+# from mcp.server.fastmcp import FastMCP -> Using Any to avoid potential circular dependencies
 
 
 async def list_devices() -> Dict[str, Any]:
@@ -91,4 +94,48 @@ async def list_user_devices(user_token: str) -> Dict[str, Any]:
     else:
         devices = device_list
     return devices
+
+
+def register_resources(mcp: Any) -> None:
+    """Registers all resources with the MCP server."""
+    mcp.resource("devices://", description="List all devices")(
+        instrument("resource", "list_devices")(list_devices)
+    )
+    mcp.resource(
+        "device://{device_id}/commands",
+        description="Commands issued to a device",
+    )(instrument("resource", "list_device_commands")(list_device_commands))
+    mcp.resource(
+        "device://{device_id}/histories",
+        description="History records for a device",
+    )(instrument("resource", "list_device_histories")(list_device_histories))
+    mcp.resource(
+        "device://{device_id}/status",
+        description="Current status of a device",
+    )(instrument("resource", "device_status")(device_status))
+    mcp.resource(
+        "device://{device_id}/logs",
+        description="Recent logs for a device",
+    )(instrument("resource", "device_logs")(device_logs))
+    mcp.resource(
+        "organization://info/{device_id}",
+        description="Organization info for a device",
+    )(instrument("resource", "organization_info")(organization_info))
+    mcp.resource("incidents://", description="Current incidents")(
+        instrument("resource", "list_incidents")(list_incidents)
+    )
+    mcp.resource("tickets://", description="All support tickets")(
+        instrument("resource", "list_tickets")(list_tickets)
+    )
+    mcp.resource("ticket://{ticket_id}", description="Single support ticket")(
+        instrument("resource", "get_ticket")(get_ticket)
+    )
+    mcp.resource(
+        "user://{user_token}/preferences",
+        description="Preferences for a user",
+    )(get_user_preferences) # instrument decorator not used here in original
+    mcp.resource(
+        "user://{user_token}/devices",
+        description="Devices filtered by user",
+    )(list_user_devices) # instrument decorator not used here in original
 

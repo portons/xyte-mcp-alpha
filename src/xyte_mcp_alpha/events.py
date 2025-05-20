@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, ForwardRef # Removed update_forward_refs again
 
 from . import plugin
 from .logging_utils import log_json
@@ -48,3 +48,13 @@ async def get_next_event(params: GetNextEventRequest) -> Dict[str, Any]:
             return event.model_dump()
         # Otherwise, put it back at the end of the queue and continue searching
         await _event_queue.put(event)
+
+
+# Wrapper for get_next_event with explicit type annotation for tool registration (MOVED FROM SERVER.PY)
+# This is the single, corrected definition.
+async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
+    """Wrapper for get_next_event with explicit type annotation."""
+    return await get_next_event(params)
+
+# Rebuild model to resolve forward references
+GetNextEventRequest.model_rebuild() # Keep this, it's good practice for Pydantic models
