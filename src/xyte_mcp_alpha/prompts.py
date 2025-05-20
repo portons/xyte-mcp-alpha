@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Any # Added Any
 from mcp.server.fastmcp.prompts import base
+# Forward declaration for mcp type hint, actual type is FastMCP
+# from mcp.server.fastmcp import FastMCP -> Using Any to avoid potential circular dependencies
 
 
 def reboot_device_workflow(device_id: str) -> List[base.Message]:
@@ -58,3 +60,11 @@ def troubleshoot_offline_device_workflow(device_id: str, room_name: str) -> List
             f"Re-check device://{device_id}/status. If still offline, create a ticket detailing steps taken and escalate."
         ),
     ]
+
+
+def register_prompts(mcp: Any) -> None:
+    """Registers all prompts with the MCP server."""
+    mcp.prompt()(reboot_device_workflow)
+    mcp.prompt()(check_projectors_health)
+    mcp.prompt()(proactive_projector_maintenance_check)
+    mcp.prompt()(troubleshoot_offline_device_workflow)
