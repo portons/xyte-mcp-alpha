@@ -12,7 +12,7 @@ from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
 from .config import get_settings
 from .http_utils import RateLimitMiddleware
-from .auth_xyte import AuthHeaderMiddleware
+from .auth import AuthHeaderMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
 
@@ -33,7 +33,6 @@ def build_openapi(app: Starlette) -> Dict[str, Any]:
 
 internal_app = get_server().streamable_http_app()
 internal_app.add_middleware(RequestLoggingMiddleware)
-internal_app.add_middleware(AuthHeaderMiddleware)
 settings = get_settings()
 internal_app.add_middleware(
     RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute
@@ -44,6 +43,7 @@ internal_app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+internal_app.add_middleware(AuthHeaderMiddleware)
 
 routes = [Mount("/v1", app=internal_app)]
 
