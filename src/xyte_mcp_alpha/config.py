@@ -9,7 +9,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     xyte_api_key: str | None = Field(default=None, alias="XYTE_API_KEY")
-    xyte_oauth_token: str | None = Field(default=None, alias="XYTE_OAUTH_TOKEN")
     xyte_base_url: str = Field(
         default="https://hub.xyte.io/core/v1/organization", alias="XYTE_BASE_URL"
     )
@@ -42,8 +41,8 @@ def reload_settings() -> None:
 
 def validate_settings(settings: Settings) -> None:
     """Validate critical configuration values and raise ``ValueError`` if invalid."""
-    if not (settings.xyte_api_key or settings.xyte_oauth_token):
-        raise ValueError("XYTE_API_KEY or XYTE_OAUTH_TOKEN must be set")
+    if not settings.xyte_api_key:
+        raise ValueError("XYTE_API_KEY must be set")
     if settings.rate_limit_per_minute <= 0:
         raise ValueError("XYTE_RATE_LIMIT must be positive")
     if settings.xyte_cache_ttl <= 0:

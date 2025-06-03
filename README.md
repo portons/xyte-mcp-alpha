@@ -229,7 +229,6 @@ example dashboard).
 ### Environment Variables
 
 - `XYTE_API_KEY` (required) - Your Xyte organization API key
-- `XYTE_OAUTH_TOKEN` (optional) - OAuth2 access token instead of API key
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
