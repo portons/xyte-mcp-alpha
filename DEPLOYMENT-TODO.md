@@ -67,6 +67,10 @@ pip install \
   "prometheus-client>=0.19" "opentelemetry-sdk>=1.25" \
   "pyyaml>=6.0" \
   "pyjwt>=2.8" \
+  "mcp[cli]>=1.1.0" \
+  "python-dotenv>=1.0.0" \
+  "cachetools>=5.3.0" \
+  "pydantic>=2.0.0" \
   "pytest>=8.2" "httpx>=0.27" \
   "ruff>=0.4" "pyright>=1.1" \
   "safety>=3.2" \
