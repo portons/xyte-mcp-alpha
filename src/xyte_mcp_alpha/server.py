@@ -79,7 +79,7 @@ async def config_endpoint(request: Request) -> JSONResponse:
     """Return sanitized configuration for debugging purposes."""
     settings = get_settings()
     api_key = request.headers.get("X-API-Key")
-    if api_key != settings.xyte_api_key:
+    if settings.multi_tenant or api_key != settings.xyte_api_key:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
 
     cfg = settings.model_dump()
@@ -213,10 +213,13 @@ mcp.resource(
     "device://{device_id}/status",
     description="Current status of a device",
 )(instrument("resource", "device_status")(_device_status_wrapper))
-mcp.resource(
-    "device://{device_id}/logs",
-    description="Recent logs for a device",
-)(instrument("resource", "device_logs")(_device_logs_wrapper))
+if get_settings().enable_experimental_apis:
+    mcp.resource(
+        "device://{device_id}/logs",
+        description="Recent logs for a device",
+    )(
+        instrument("resource", "device_logs")(_device_logs_wrapper)
+    )
 mcp.resource(
     "organization://info/{device_id}",
     description="Organization info for a device",

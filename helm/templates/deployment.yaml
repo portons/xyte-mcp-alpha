@@ -12,16 +12,21 @@ spec:
       labels:
         app: xyte-mcp
     spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 1000
       containers:
       - name: xyte-mcp
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if not .Values.multiTenant }}
         env:
         - name: XYTE_API_KEY
           valueFrom:
             secretKeyRef:
               name: xyte-secrets
               key: api_key
+        {{- end }}
         envFrom:
         - configMapRef:
             name: xyte-config

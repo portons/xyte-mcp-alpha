@@ -10,8 +10,14 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 1. Ensure Python 3.11+ is installed and clone the repo.
 2. Create a virtualenv and install the project: `pip install -e .`.
-3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` if running in single-tenant mode (leave blank for hosted).
-4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
+3. Copy `.env.example` to `.env` and then decide which mode to run:
+
+|                     | Local (Single-tenant) | Hosted (Multi-tenant) |
+|---------------------|----------------------|-----------------------|
+| Env vars            | `XYTE_API_KEY=<key>` | *(leave blank)*       |
+| Start server        | `python -m xyte_mcp_alpha.http` | `python -m xyte_mcp_alpha.http` |
+| Auth header         | none                 | `Authorization: <key>` |
+| Example curl        | `curl http://localhost:8080/v1/devices` | `curl -H "Authorization: $KEY" http://localhost:8080/v1/devices` |
 ## Setup
 
 ### Development

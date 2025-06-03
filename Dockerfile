@@ -20,4 +20,4 @@ COPY README.md CHANGELOG.md ./
 
 USER appuser
 
-CMD ["serve"]
+CMD ["python", "-m", "xyte_mcp_alpha.http"]
