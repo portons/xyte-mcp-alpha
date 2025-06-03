@@ -1,64 +1,61 @@
-
-import asyncio
-from uuid import uuid4
-from typing import Dict, Any
+import uuid
 import logging
+from datetime import datetime
+from typing import Any, Dict
 
+from sqlmodel import SQLModel, Field
+from sqlalchemy import JSON, Column
 from mcp.server.fastmcp import Context
 
-from .deps import get_client
-from .utils import handle_api
-from .models import SendCommandRequest
+from .db import get_session
+from .models import SendCommandRequest, ToolResponse
 from .logging_utils import log_json
 
 
-class TaskInfo:
-    def __init__(self) -> None:
-        self.status: str = "pending"
-        self.result: Dict[str, Any] | None = None
-        self.error: str | None = None
+class Task(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    status: str
+    payload: dict | None = Field(default=None, sa_column=Column(JSON))
+    result: dict | None = Field(default=None, sa_column=Column(JSON))
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-TASKS: Dict[str, TaskInfo] = {}
+async def save(task: "Task") -> None:
+    async with get_session() as session:
+        await session.merge(task)
+        await session.commit()
+
+
+async def fetch(tid: str) -> Task | None:
+    async with get_session() as session:
+        return await session.get(Task, tid)
 
 
 async def send_command_async(
     data: SendCommandRequest, ctx: Context | None = None
-) -> Dict[str, Any]:
+) -> ToolResponse:
     """Initiate a command asynchronously and return a task ID."""
 
     if ctx is None:
         raise ValueError("Context required")
 
-    task_id = str(uuid4())
-    info = TaskInfo()
-    TASKS[task_id] = info
-    log_json(logging.INFO, event="task_created", task_id=task_id)
+    req = ctx.request_context.request
+    if req is None:
+        raise ValueError("Request object missing")
 
-    async def _runner() -> None:
-        try:
-            await ctx.report_progress(0, 100)
-            async with get_client() as client:
-                result = await handle_api("send_command", client.send_command(data.device_id, data))
-            info.result = result
-            info.status = "done"
-            await ctx.report_progress(100, 100)
-            log_json(logging.INFO, event="task_complete", task_id=task_id)
-        except Exception as e:  # pragma: no cover - background
-            info.status = "error"
-            info.error = str(e)
-            log_json(logging.ERROR, event="task_error", task_id=task_id, error=str(e))
-
-    asyncio.create_task(_runner())
-    return {"task_id": task_id}
+    tid = str(uuid.uuid4())
+    await save(Task(id=tid, status="queued", payload=data.dict()))
+    from .worker.long import send_command_long
+    send_command_long.delay(tid, data.dict(), req.state.xyte_key)
+    log_json(logging.INFO, event="task_created", task_id=tid)
+    return ToolResponse(summary="queued", data={"task_id": tid})
 
 
 async def get_task_status(task_id: str) -> Dict[str, Any]:
     """Return status information about a previously started task."""
-    info = TASKS.get(task_id)
-    if not info:
+    task = await fetch(task_id)
+    if not task:
         log_json(logging.INFO, event="task_status_unknown", task_id=task_id)
         return {"status": "unknown"}
-    log_json(logging.INFO, event="task_status", task_id=task_id, status=info.status)
-    return {"status": info.status, "result": info.result, "error": info.error}
-
+    log_json(logging.INFO, event="task_status", task_id=task_id, status=task.status)
+    return {"status": task.status, "result": task.result}
