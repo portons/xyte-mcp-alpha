@@ -5,6 +5,8 @@ import sys
 import os
 import json
 from typing import Any, Dict
+from starlette.applications import Starlette
+from xyte_mcp_alpha.auth_xyte import RequireXyteKey
 
 # Fix import paths for mcp dev
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
@@ -32,6 +34,10 @@ configure_logging()
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("audit")
 audit_logger.setLevel(logging.INFO)
+
+# Starlette application with per-request Xyte key middleware
+app = Starlette()
+app.add_middleware(RequireXyteKey)
 
 # Initialize MCP server
 mcp = FastMCP("Xyte Organization MCP Server")

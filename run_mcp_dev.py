@@ -5,11 +5,12 @@ import sys
 import os
 
 # Add the src directory to the path
-src_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src')
-sys.path.insert(0, src_dir)
+src_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src")
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
 
 # Import the server
-from xyte_mcp_alpha.server import get_server
+from xyte_mcp_alpha.server import get_server  # noqa: E402
 
 # Export the server to be used by mcp dev
 server = get_server()
