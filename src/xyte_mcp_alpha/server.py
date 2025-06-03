@@ -144,6 +144,13 @@ async def list_resources_route(_: Request) -> JSONResponse:
     return JSONResponse(resources_list)
 
 
+@mcp.custom_route("/devices", methods=["GET"])
+async def list_devices_route(_: Request) -> JSONResponse:
+    """Compatibility endpoint returning all devices."""
+    devices = await resources.list_devices()
+    return JSONResponse(devices)
+
+
 # Resource registrations
 mcp.resource("devices://", description="List all devices")(
     instrument("resource", "list_devices")(resources.list_devices)
