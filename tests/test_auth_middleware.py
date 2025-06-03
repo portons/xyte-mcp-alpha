@@ -1,5 +1,8 @@
+import os
 import pytest
 import httpx
+
+os.environ.pop("XYTE_API_KEY", None)
 
 from xyte_mcp_alpha import http as http_mod
 

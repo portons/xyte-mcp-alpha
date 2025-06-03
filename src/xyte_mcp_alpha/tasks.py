@@ -1,6 +1,6 @@
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from sqlmodel import SQLModel, Field
@@ -17,7 +17,7 @@ class Task(SQLModel, table=True):  # type: ignore[misc,call-arg]
     status: str
     payload: dict | None = Field(default=None, sa_column=Column(JSON))
     result: dict | None = Field(default=None, sa_column=Column(JSON))
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 async def save(task: "Task") -> None:
@@ -44,9 +44,9 @@ async def send_command_async(
         raise ValueError("Request object missing")
 
     tid = str(uuid.uuid4())
-    await save(Task(id=tid, status="queued", payload=data.dict()))
+    await save(Task(id=tid, status="queued", payload=data.model_dump()))
     from .worker.long import send_command_long
-    send_command_long.delay(tid, data.dict(), req.state.xyte_key)
+    send_command_long.delay(tid, data.model_dump(), req.state.xyte_key)
     log_json(logging.INFO, event="task_created", task_id=tid)
     return ToolResponse(summary="queued", data={"task_id": tid})
 
