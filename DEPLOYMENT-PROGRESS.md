@@ -6,3 +6,6 @@ This file tracks which tasks from `DEPLOYMENT-TODO.md` have been completed.
 - [x] **4 Distributed Rate-Limiter (Redis Lua)**
 - [x] **5 Redis Streams Event Bus**
 
+- [x] **11 Dockerfile (non-root + healthcheck)**
+- [x] **12 Docker-Compose Stack (dev / single VM)**
+- [x] **13 systemd Service (bare metal)**
