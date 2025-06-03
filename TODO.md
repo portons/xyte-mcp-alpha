@@ -1,5 +1,7 @@
 ### Detailed Work Plan — XYTE MCP Server “Local + Multi-Tenant” Upgrade
 
+**Sections 1 and 2 completed.**
+
 This roadmap breaks every change into **purpose → action → rationale** blocks, so an implementation agent always knows *what to do* and *why it matters*.
 No branch-flow instructions are included—just the work itself.
 
