@@ -96,5 +96,8 @@ After installation the server will automatically load the plugin.
 Plugins may also call `register_payload_transform` to modify API responses before
 they reach the client.
 
+> **Warning**: plugins execute inside the server process. Only install plugins
+> from sources you trust.
+
 All listed plugins will be loaded at startup. Failures are logged but do not stop
 startup.

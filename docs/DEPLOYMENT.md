@@ -37,3 +37,59 @@ If something goes wrong you can roll back:
 ```bash
 helm rollback xyte
 ```
+
+## docker-compose Example
+
+This repo ships a `docker-compose.yml` that starts the MCP server, Redis,
+Postgres and a Celery worker:
+
+```yaml
+version: '3.9'
+services:
+  mcp:
+    image: ghcr.io/xyte/mcp:latest
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+    depends_on: [redis, pg]
+  redis:
+    image: redis:7
+  pg:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: mcp
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: pass
+  worker:
+    image: ghcr.io/xyte/mcp:latest
+    command: celery -A xyte_mcp_alpha.celery_app worker -Q long -c 2
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+```
+
+## Multi-tenant Helm Values
+
+To deploy in hosted (multi-tenant) mode, set `multiTenant=true` and omit the API
+key:
+
+```yaml
+multiTenant: true
+env:
+  XYTE_API_KEY: ""
+```
+
+## Health Probes
+
+Include the following liveness and readiness probes in your deployment:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: 8080
+```

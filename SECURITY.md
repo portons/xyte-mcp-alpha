@@ -8,6 +8,7 @@ This document outlines best practices for keeping deployments of the Xyte MCP se
 - **Run the server in a minimal container.** Use the provided Dockerfile or a similarly hardened image and avoid running as the root user.
 - **Restrict network access.** Only expose the necessary ports and run the server behind your firewall when possible.
 - **Use least privilege.** API keys and user tokens should have the minimal permissions required for their task.
+- **Always use TLS.** Terminate HTTPS in front of the server to prevent credential leakage.
 
 ## Reporting Vulnerabilities
 
