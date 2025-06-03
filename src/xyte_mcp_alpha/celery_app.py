@@ -5,7 +5,8 @@ celery_app = Celery(
     "xyte_mcp",
     broker=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
     backend=os.getenv(
-        "DATABASE_URL", "postgresql+asyncpg://mcp:pass@127.0.0.1/mcp"
+        "RESULT_BACKEND_URL",
+        os.getenv("DATABASE_URL", "postgresql+asyncpg://mcp:pass@127.0.0.1/mcp"),
     ),
 )
 celery_app.conf.update(

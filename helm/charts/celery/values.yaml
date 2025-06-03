@@ -1,0 +1,7 @@
+worker:
+  replicas: 1
+image:
+  repository: xyte-mcp
+  tag: latest
+redis:
+  image: redis:7

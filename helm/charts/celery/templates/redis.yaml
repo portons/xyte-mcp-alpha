@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-redis
+  template:
+    metadata:
+      labels:
+        app: mcp-redis
+    spec:
+      containers:
+      - name: redis
+        image: {{ .Values.redis.image }}
+        args: ["--save","60","1","--loglevel","warning"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-redis
+spec:
+  selector:
+    app: mcp-redis
+  ports:
+  - port: 6379
+    targetPort: 6379

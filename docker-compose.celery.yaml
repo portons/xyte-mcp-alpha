@@ -1,0 +1,27 @@
+version: '3.9'
+services:
+  mcp:
+    image: ghcr.io/xyte/mcp:latest
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      RESULT_BACKEND_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      ENABLE_ASYNC_TASKS: 'true'
+    depends_on: [redis, pg]
+  redis:
+    image: redis:7
+  pg:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: mcp
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: pass
+  worker:
+    image: ghcr.io/xyte/mcp:latest
+    command: celery -A xyte_mcp_alpha.celery_app worker -Q long -c 2
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      RESULT_BACKEND_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      ENABLE_ASYNC_TASKS: 'true'
+    depends_on: [redis, pg]

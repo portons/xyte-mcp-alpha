@@ -71,6 +71,13 @@ services:
       ENABLE_ASYNC_TASKS: "true"
 ```
 
+### Async Task Strategy
+
+When `ENABLE_ASYNC_TASKS` is disabled the `send_command_async` tool simply
+executes the command synchronously and returns the result. Enabling the flag
+requires running Redis and a Celery worker (see sample `docker-compose.celery.yaml`)
+and tasks will persist across restarts.
+
 ## Multi-tenant Helm Values
 
 To deploy in hosted (multi-tenant) mode, set `multiTenant=true` and omit the API key.

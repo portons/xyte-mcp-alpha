@@ -36,8 +36,8 @@ async def send_command_async(
 ) -> ToolResponse:
     """Initiate a command asynchronously and return a task ID.
 
-    When ``ENABLE_ASYNC_TASKS`` is ``False`` return a deterministic
-    ``{"error": "async_disabled"}`` payload instead of executing.
+    When ``ENABLE_ASYNC_TASKS`` is ``False`` the command is executed
+    synchronously and the final result is returned directly.
     """
 
     if ctx is None:
@@ -46,7 +46,11 @@ async def send_command_async(
     from .config import get_settings
 
     if not get_settings().enable_async_tasks:
-        return ToolResponse(summary="async_disabled", data={"error": "async_disabled"})
+        # Execute synchronously when async tasks are disabled
+        from .tools.device import send_command, SendCommandArgs
+
+        result = await send_command(SendCommandArgs(**data.model_dump()), ctx)
+        return ToolResponse(summary="done", data={"status": "done", "result": result.data})
 
     req = ctx.request_context.request
     if req is None:
