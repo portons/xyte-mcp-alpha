@@ -19,6 +19,14 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 | Start server        | `python -m xyte_mcp_alpha.http` | `python -m xyte_mcp_alpha.http` |
 | Auth header         | none                 | `Authorization: <key>` |
 | Example curl        | `curl http://localhost:8080/v1/devices` | `curl -H "Authorization: $KEY" http://localhost:8080/v1/devices` |
+
+### Async Tasks
+
+By default the `send_command_async` tool runs commands synchronously and returns
+the result immediately.  Set `ENABLE_ASYNC_TASKS=true` and provide
+`REDIS_URL` along with `RESULT_BACKEND_URL` to enable Celery based background
+processing. When enabled, tasks survive restarts and workers can be scaled
+independently.
 ## Setup
 
 ### Development

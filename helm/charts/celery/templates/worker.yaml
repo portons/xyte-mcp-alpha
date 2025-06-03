@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: mcp-worker
+  template:
+    metadata:
+      labels:
+        app: mcp-worker
+    spec:
+      containers:
+      - name: worker
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        command: ["celery","-A","xyte_mcp_alpha.celery_app","worker","-Q","long","-c","2"]
+        env:
+        - name: REDIS_URL
+          value: "{{ .Values.redis.url | default \"redis://mcp-redis:6379/0\" }}"
+        - name: RESULT_BACKEND_URL
+          value: "{{ .Values.resultBackend | default \"postgresql+asyncpg://mcp:pass@pg/mcp\" }}"
+        - name: ENABLE_ASYNC_TASKS
+          value: "true"
