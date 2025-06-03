@@ -10,6 +10,7 @@ class UserPreferences(BaseModel):
     default_room: str | None = None
 
 # Example in-memory store mapping user tokens to preferences
+# This is for **demo purposes only** and is not persisted.
 USER_PREFERENCES: Dict[str, UserPreferences] = {
     "demo-token": UserPreferences(preferred_devices=["device1"], default_room="101"),
 }

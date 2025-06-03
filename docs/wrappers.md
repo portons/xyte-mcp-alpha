@@ -30,5 +30,5 @@
 | `ticket://{ticket_id}` | get_ticket |
 | `user://{user_token}/preferences` | get_user_preferences |
 | `user://{user_token}/devices` | list_user_devices |
-| `device://{device_id}/logs` | device_logs |
+| `device://{device_id}/logs` | device_logs *(requires `XYTE_EXPERIMENTAL_APIS`)* |
 
