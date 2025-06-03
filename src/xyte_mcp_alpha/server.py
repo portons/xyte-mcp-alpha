@@ -20,7 +20,6 @@ from xyte_mcp_alpha.logging_utils import configure_logging, instrument
 import xyte_mcp_alpha.resources as resources
 import xyte_mcp_alpha.tools as tools
 import xyte_mcp_alpha.tasks as tasks
-import xyte_mcp_alpha.events as events
 import xyte_mcp_alpha.prompts as prompts
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
