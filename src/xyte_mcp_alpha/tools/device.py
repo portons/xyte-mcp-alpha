@@ -203,22 +203,6 @@ async def set_context(
     return ToolResponse(data=state, summary="Context updated")
 
 
-async def start_meeting_room_preset(
-    room_name: str,
-    preset_name: str,
-    ctx: Context | None = None,
-) -> ToolResponse:
-    """Configure a meeting room for a preset workflow."""
-    if ctx:
-        await ctx.info(f"Configuring {room_name} for {preset_name}")
-        await ctx.report_progress(0.0, 1.0, "starting")
-    await anyio.sleep(0)  # yield control
-    if ctx:
-        await ctx.report_progress(1.0, 1.0, "done")
-    return ToolResponse(
-        data={"room_name": room_name, "preset_name": preset_name},
-        summary=f"Room {room_name} set to {preset_name} preset",
-    )
 
 
 async def shutdown_meeting_room(

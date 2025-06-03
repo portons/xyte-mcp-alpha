@@ -77,7 +77,7 @@ async def get_user_preferences(user_token: str) -> Dict[str, Any]:
     return prefs.model_dump()
 
 
-async def list_user_devices(user_token: str) -> Dict[str, Any]:
+async def list_user_devices(user_token: str) -> Any:
     """List devices filtered by a user's preferred devices."""
     prefs = get_preferences(user_token)
     async with get_client(user_token) as client:

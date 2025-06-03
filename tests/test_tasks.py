@@ -75,7 +75,12 @@ class TaskStatusTestCase(unittest.IsolatedAsyncioTestCase):
 
         with patch("xyte_mcp_alpha.worker.long.send_command_long.delay", side_effect=fake_delay):
             ctx = DummyCtx()
-            req = SendCommandRequest(device_id="1", name="ping", friendly_name="Ping")
+            req = SendCommandRequest(
+                device_id="1",
+                name="ping",
+                friendly_name="Ping",
+                file_id=None,
+            )
             resp = await tasks.send_command_async(req, ctx)
             tid = resp.data["task_id"]
             await asyncio.sleep(0.05)

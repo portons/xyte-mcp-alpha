@@ -5,7 +5,7 @@ from mcp.client.stdio import stdio_client, StdioServerParameters
 
 
 async def main() -> None:
-    params = StdioServerParameters(command=["serve"])
+    params = StdioServerParameters(command="serve")
     async with stdio_client(params) as client:
         result = await client.call_tool("list_devices")
         print("Devices:", result)

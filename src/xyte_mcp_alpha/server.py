@@ -266,9 +266,10 @@ mcp.tool(
 
 
 @mcp.custom_route("/task/{task_id}", methods=["GET"])
-async def task_status(task_id: str) -> JSONResponse:
+async def task_status(request: Request) -> JSONResponse:
     """Expose async task status via HTTP."""
-    result = await tasks.get_task_status(task_id)
+    tid = request.path_params.get("task_id", "")
+    result = await tasks.get_task_status(tid)
     return JSONResponse(result)
 
 

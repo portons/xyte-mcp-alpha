@@ -20,8 +20,9 @@ def build_openapi(app: Starlette) -> Dict[str, Any]:
 
     paths: Dict[str, Any] = {}
     for route in app.routes:
-        if hasattr(route, "path"):
-            paths["/v1" + route.path] = {}
+        path = getattr(route, "path", None)
+        if path:
+            paths["/v1" + path] = {}
     return {
         "openapi": "3.0.0",
         "info": {"title": "Xyte MCP API", "version": "1.0"},
