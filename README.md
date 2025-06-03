@@ -186,7 +186,9 @@ The plugin system loads modules listed in `XYTE_PLUGINS`, allowing hooks on even
 
 ### Running Tests
 
+Activate the provided virtual environment first:
 ```bash
+source venv/bin/activate
 pytest
 ```
 
