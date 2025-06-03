@@ -84,8 +84,6 @@ async def config_endpoint(request: Request) -> JSONResponse:
 
     cfg = settings.model_dump()
     cfg["xyte_api_key"] = "***"
-    if cfg.get("xyte_user_token"):
-        cfg["xyte_user_token"] = "***"
     return JSONResponse({"config": cfg})
 
 
@@ -93,10 +91,12 @@ async def config_endpoint(request: Request) -> JSONResponse:
 async def webhook(req: Request) -> JSONResponse:
     """Receive external events and enqueue them for streaming."""
     payload = await req.json()
-    await push_event({
-        "type": payload.get("type", "unknown"),
-        "data": payload.get("data", {}),
-    })
+    await push_event(
+        {
+            "type": payload.get("type", "unknown"),
+            "data": payload.get("data", {}),
+        }
+    )
     return JSONResponse({"queued": True})
 
 

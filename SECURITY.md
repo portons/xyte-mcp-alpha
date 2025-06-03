@@ -15,7 +15,7 @@ If you believe you have found a security vulnerability, please responsibly discl
 
 ## Token and Secret Management
 
-- **Environment files.** Store secrets such as `XYTE_API_KEY` or `XYTE_USER_TOKEN` in an `.env` file or as environment variables. Never commit secrets to version control.
+- **Environment files.** Store secrets such as `XYTE_API_KEY` in an `.env` file or as environment variables. Never commit secrets to version control.
 - **Secret rotation.** Rotate API keys and tokens on a regular schedule. When rotating, update the `.env` file or your secret store and restart the server so new credentials take effect.
 - **Centralized secret stores.** In production, prefer a dedicated secrets manager (like HashiCorp Vault or your cloud provider's solution) over plain files.
 

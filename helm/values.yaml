@@ -10,7 +10,6 @@ service:
 env:
   XYTE_API_KEY: ""
   XYTE_BASE_URL: "https://hub.xyte.io/core/v1/organization"
-  XYTE_USER_TOKEN: ""
   XYTE_CACHE_TTL: "60"
   XYTE_ENV: "prod"
   XYTE_RATE_LIMIT: "60"
