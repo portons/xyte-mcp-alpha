@@ -1,4 +1,11 @@
 """MCP server for Xyte Organization API."""
+# ruff: noqa: E402
+
+from starlette.applications import Starlette
+from xyte_mcp_alpha.auth_xyte import RequireXyteKey
+
+app = Starlette()
+app.add_middleware(RequireXyteKey)
 
 import logging
 import sys

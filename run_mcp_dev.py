@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Helper script to run the MCP server with proper imports."""
+# ruff: noqa: E402
 
 import sys
 import os
