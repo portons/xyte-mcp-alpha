@@ -34,10 +34,19 @@ async def fetch(tid: str) -> Task | None:
 async def send_command_async(
     data: SendCommandRequest, ctx: Context | None = None
 ) -> ToolResponse:
-    """Initiate a command asynchronously and return a task ID."""
+    """Initiate a command asynchronously and return a task ID.
+
+    When ``ENABLE_ASYNC_TASKS`` is ``False`` return a deterministic
+    ``{"error": "async_disabled"}`` payload instead of executing.
+    """
 
     if ctx is None:
         raise ValueError("Context required")
+
+    from .config import get_settings
+
+    if not get_settings().enable_async_tasks:
+        return ToolResponse(summary="async_disabled", data={"error": "async_disabled"})
 
     req = ctx.request_context.request
     if req is None:

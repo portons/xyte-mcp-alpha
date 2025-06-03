@@ -15,6 +15,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 |                     | Local (Single-tenant) | Hosted (Multi-tenant) |
 |---------------------|----------------------|-----------------------|
 | Env vars            | `XYTE_API_KEY=<key>` | *(leave blank)*       |
+| Optional async      | `ENABLE_ASYNC_TASKS=true` | `ENABLE_ASYNC_TASKS=true` |
 | Start server        | `python -m xyte_mcp_alpha.http` | `python -m xyte_mcp_alpha.http` |
 | Auth header         | none                 | `Authorization: <key>` |
 | Example curl        | `curl http://localhost:8080/v1/devices` | `curl -H "Authorization: $KEY" http://localhost:8080/v1/devices` |

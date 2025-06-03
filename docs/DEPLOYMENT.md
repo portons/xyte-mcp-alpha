@@ -41,7 +41,8 @@ helm rollback xyte
 ## docker-compose Example
 
 This repo ships a `docker-compose.yml` that starts the MCP server, Redis,
-Postgres and a Celery worker:
+Postgres and a Celery worker. Set `ENABLE_ASYNC_TASKS=true` to activate
+background processing:
 
 ```yaml
 version: '3.9'
@@ -51,6 +52,7 @@ services:
     environment:
       REDIS_URL: "redis://redis:6379/0"
       DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      ENABLE_ASYNC_TASKS: "true"
     depends_on: [redis, pg]
   redis:
     image: redis:7
@@ -66,17 +68,19 @@ services:
     environment:
       REDIS_URL: "redis://redis:6379/0"
       DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      ENABLE_ASYNC_TASKS: "true"
 ```
 
 ## Multi-tenant Helm Values
 
-To deploy in hosted (multi-tenant) mode, set `multiTenant=true` and omit the API
-key:
+To deploy in hosted (multi-tenant) mode, set `multiTenant=true` and omit the API key.
+Add `ENABLE_ASYNC_TASKS=true` and run a worker deployment if you need asynchronous commands:
 
 ```yaml
 multiTenant: true
 env:
   XYTE_API_KEY: ""
+  ENABLE_ASYNC_TASKS: "true"
 ```
 
 ## Health Probes

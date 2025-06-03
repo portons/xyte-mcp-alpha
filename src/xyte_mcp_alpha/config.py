@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     xyte_hooks_module: str | None = Field(default=None, alias="XYTE_HOOKS_MODULE")
     log_level: str = Field(default="INFO", alias="XYTE_LOG_LEVEL")
     enable_swagger: bool = Field(default=False, alias="XYTE_ENABLE_SWAGGER")
+    enable_async_tasks: bool = Field(
+        default=False, alias="ENABLE_ASYNC_TASKS"
+    )
 
     @property
     def multi_tenant(self) -> bool:

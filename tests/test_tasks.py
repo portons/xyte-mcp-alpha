@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+import os
 from unittest.mock import patch
 
 from sqlmodel import SQLModel, Session, create_engine
@@ -74,6 +75,9 @@ class TaskStatusTestCase(unittest.IsolatedAsyncioTestCase):
             )
 
         with patch("xyte_mcp_alpha.worker.long.send_command_long.delay", side_effect=fake_delay):
+            os.environ["ENABLE_ASYNC_TASKS"] = "true"
+            from xyte_mcp_alpha.config import reload_settings
+            reload_settings()
             ctx = DummyCtx()
             req = SendCommandRequest(
                 device_id="1",
