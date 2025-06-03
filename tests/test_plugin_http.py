@@ -2,8 +2,9 @@ import os
 import unittest
 from starlette.testclient import TestClient
 
-from xyte_mcp_alpha import plugin
+from xyte_mcp_alpha import plugin, events
 from xyte_mcp_alpha.http import app
+from tests.dummy_redis import DummyRedis
 
 
 class PluginHTTPIntegrationTestCase(unittest.TestCase):
@@ -14,6 +15,7 @@ class PluginHTTPIntegrationTestCase(unittest.TestCase):
         import tests.helper_plugin as helper
         helper.received_events.clear()
         self.client = TestClient(app)
+        events.redis = DummyRedis()
 
     def test_webhook_triggers_plugin(self):
         payload = {"type": "test", "data": {"x": 1}}

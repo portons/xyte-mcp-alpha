@@ -6,14 +6,13 @@ from starlette.testclient import TestClient
 os.environ.setdefault("XYTE_API_KEY", "test")
 from xyte_mcp_alpha.http import app
 from xyte_mcp_alpha import events
+from tests.dummy_redis import DummyRedis
 
 
 class DiscoveryEventTestCase(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
-        # Clear event queue
-        while not events._event_queue.empty():
-            events._event_queue.get_nowait()
+        events.redis = DummyRedis()
 
     def test_tool_and_resource_listing(self):
         resp = self.client.get('/v1/tools')
@@ -32,10 +31,7 @@ class DiscoveryEventTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
 
         async def wait_event():
-            return await asyncio.wait_for(
-                events.get_next_event(events.GetNextEventRequest(event_type="device_offline")),
-                1,
-            )
+            return await asyncio.wait_for(events.pull_event("test"), 1)
 
         event = asyncio.run(wait_event())
         self.assertEqual(event['data']['id'], 'abc')

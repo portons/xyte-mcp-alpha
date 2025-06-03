@@ -22,4 +22,9 @@ class RequireXyteKey(BaseHTTPMiddleware):
 
         req.state.xyte_key = raw.strip()
         req.state.key_id = hashlib.sha256(raw.encode()).hexdigest()[:8]
+
+        from xyte_mcp_alpha.rate_limiter import consume
+        if not await consume(req.state.key_id, limit=60):
+            return JSONResponse({"error": "rate_limit"}, 429)
+
         return await call_next(req)

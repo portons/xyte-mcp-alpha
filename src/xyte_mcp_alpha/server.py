@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 # Import everything using absolute imports
 import xyte_mcp_alpha.plugin as plugin
 from xyte_mcp_alpha.config import get_settings, validate_settings
-from xyte_mcp_alpha.events import GetNextEventRequest
+from xyte_mcp_alpha.events import push_event, pull_event
+from mcp.server.fastmcp.server import Context
 from xyte_mcp_alpha.logging_utils import configure_logging, instrument
 import xyte_mcp_alpha.resources as resources
 import xyte_mcp_alpha.tools as tools
@@ -81,10 +82,10 @@ async def config_endpoint(request: Request) -> JSONResponse:
 async def webhook(req: Request) -> JSONResponse:
     """Receive external events and enqueue them for streaming."""
     payload = await req.json()
-    event = events.Event(
-        type=payload.get("type", "unknown"), data=payload.get("data", {})
-    )
-    await events.push_event(event)
+    await push_event({
+        "type": payload.get("type", "unknown"),
+        "data": payload.get("data", {}),
+    })
     return JSONResponse({"queued": True})
 
 
@@ -92,10 +93,14 @@ async def webhook(req: Request) -> JSONResponse:
 async def stream_events(_: Request) -> Response:
     """Stream events to clients using Server-Sent Events."""
 
+    import uuid
+
     async def event_gen():
+        consumer = str(uuid.uuid4())
         while True:
-            ev = await events.get_next_event(events.GetNextEventRequest())
-            yield f"event: {ev['type']}\ndata: {json.dumps(ev['data'])}\n\n"
+            ev = await pull_event(consumer)
+            if ev:
+                yield f"event: {ev['type']}\ndata: {json.dumps(ev['data'])}\n\n"
 
     return Response(event_gen(), media_type="text/event-stream")
 
@@ -257,9 +262,10 @@ async def task_status(task_id: str) -> JSONResponse:
 
 
 # Create a wrapper function with explicit type annotation
-async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
-    """Wrapper for get_next_event with explicit type annotation."""
-    return await events.get_next_event(params)
+async def get_next_event_wrapper(ctx: Context) -> Dict[str, Any]:
+    """Return the next queued event for this context."""
+    evt = await pull_event(ctx.request_id)
+    return evt or {}
 
 
 # Register the wrapper function as a tool
