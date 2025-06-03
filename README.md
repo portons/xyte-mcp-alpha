@@ -220,7 +220,7 @@ plugins.
 
 Prometheus metrics are exposed at the `/metrics` endpoint. These include request
 counts and latency histograms for tools, resources and underlying API calls. You
-can visualize them using Grafana (see `docs/grafana_dashboard.json` for an
+can visualize them using Grafana (see `grafana/xyte_mcp_dashboard.json` for an
 example dashboard).
 
 ## API Reference
