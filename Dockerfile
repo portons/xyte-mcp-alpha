@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 WORKDIR /app
 COPY pyproject.toml README.md CHANGELOG.md ./
 COPY src ./src
@@ -7,7 +7,7 @@ RUN pip install --upgrade pip && \
     pip wheel --no-deps --wheel-dir /wheels .
 
 # Runtime stage
-FROM python:3.11-slim
+FROM python:3.13-slim
 WORKDIR /app
 COPY --from=builder /wheels /tmp/wheels
 
