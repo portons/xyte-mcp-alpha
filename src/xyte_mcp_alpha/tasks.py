@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 import asyncio
 from uuid import uuid4
@@ -23,8 +22,13 @@ class TaskInfo:
 TASKS: Dict[str, TaskInfo] = {}
 
 
-async def send_command_async(data: SendCommandRequest, ctx: Context) -> Dict[str, Any]:
+async def send_command_async(
+    data: SendCommandRequest, ctx: Context | None = None
+) -> Dict[str, Any]:
     """Initiate a command asynchronously and return a task ID."""
+
+    if ctx is None:
+        raise ValueError("Context required")
 
     task_id = str(uuid4())
     info = TaskInfo()
