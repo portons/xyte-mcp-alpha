@@ -39,6 +39,18 @@ audit_logger.setLevel(logging.INFO)
 app = Starlette()
 app.add_middleware(RequireXyteKey)
 
+# Optional Swagger UI using FastAPI
+settings = get_settings()
+if settings.enable_swagger:
+    try:
+        from fastapi import FastAPI
+    except ModuleNotFoundError:  # pragma: no cover - optional dependency
+        logging.getLogger(__name__).warning("FastAPI not installed; Swagger disabled")
+    else:
+        fast = FastAPI(openapi_url="/openapi.json", docs_url="/docs")
+        fast.mount("", app)
+        app = fast
+
 # Initialize MCP server
 mcp = FastMCP("Xyte Organization MCP Server")
 

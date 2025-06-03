@@ -8,3 +8,5 @@ data:
   XYTE_ENV: {{ .Values.env.XYTE_ENV | quote }}
   XYTE_RATE_LIMIT: {{ .Values.env.XYTE_RATE_LIMIT | quote }}
   MCP_INSPECTOR_PORT: {{ .Values.env.MCP_INSPECTOR_PORT | quote }}
+  REDIS_URL: {{ .Values.env.REDIS_URL | quote }}
+  DATABASE_URL: {{ .Values.env.DATABASE_URL | quote }}
