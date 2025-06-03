@@ -50,13 +50,11 @@ routes = [Mount("/v1", app=internal_app)]
 app = Starlette(routes=routes)
 
 
-@app.route("/v1/openapi.json")
 async def openapi_spec(request) -> JSONResponse:
     schema = build_openapi(internal_app)
     return JSONResponse(schema)
 
 
-@app.route("/v1/docs")
 async def api_docs(request) -> HTMLResponse:
     html = """
     <html>
@@ -67,6 +65,9 @@ async def api_docs(request) -> HTMLResponse:
     </html>
     """
     return HTMLResponse(html)
+
+app.add_route("/v1/openapi.json", openapi_spec, methods=["GET"])
+app.add_route("/v1/docs", api_docs, methods=["GET"])
 
 
 def main() -> None:
