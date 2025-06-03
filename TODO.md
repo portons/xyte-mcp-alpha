@@ -1,125 +1,111 @@
-### Detailed Work Plan — XYTE MCP Server “Local + Multi-Tenant” Upgrade
+## Fix-up Road-map — “deployment-setup” Branch
 
-**Sections 1 and 2 completed.**
+This checklist converts the audit findings into **actionable work units**.  Each task block shows:
 
-This roadmap breaks every change into **purpose → action → rationale** blocks, so an implementation agent always knows *what to do* and *why it matters*.
-No branch-flow instructions are included—just the work itself.
+* **What** the agent edits or adds
+* **Why** it matters (security, reliability, clarity)
+* **Key acceptance hints** so tests/docs can prove it’s done.
 
----
-
-## 1  Configuration Layer
-
-| Step | Action                                                                                                                                       | Rationale                                                                                     |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [x] 1.1 | Convert `Settings.xyte_api_key` from **required** → **optional** (`str \| None`).                                                            | Allows the service to run without a baked-in key when operating in hosted, multi-tenant mode. |
-| [x] 1.2 | Add computed property `settings.multi_tenant = xyte_api_key is None`.                                                                        | Gives downstream code a single flag to switch behaviour.                                      |
-| [x] 1.3 | In `validate_settings()`: remove the “API key must exist” hard-fail. Instead, log whether we boot in single- or multi-tenant mode.           | Keeps dev UX unchanged while removing the blocker for multi-tenant deployments.               |
-| [x] 1.4 | Update `.env.example` & README configuration table so `XYTE_API_KEY` is blank by default and clearly labelled “leave empty for hosted mode”. | Prevents accidental single-tenant assumptions in production.                                  |
+> **Scope legend**
+> `PY` = Python source edit `DOCKER` = Dockerfile
+> `HELM` = Helm chart/templates `DOC` = Markdown/README
+> `CI` = GitHub Actions / tests
 
 ---
 
-## 2  Request Authentication
+### 1  Introduce Multi-Tenant Authentication
 
-| Step | Action                                                                                                                                                                                                                                           | Rationale                                                                                         |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| [x] 2.1 | Implement `AuthHeaderMiddleware` (Starlette). Logic:  <br>• skip `/healthz`, `/readyz`, `/metrics`  <br>• if `settings.multi_tenant` **require** `Authorization` header (raw Xyte key) else 401  <br>• store header in `request.state.xyte_key`. | Enforces per-request credentials only when the build actually needs them—no duplicate code paths. |
-| [x] 2.2 | Sanitize logs inside existing `RequestLoggingMiddleware`: mask `Authorization` values (e.g., `abcd****`).                                                                                                                                        | Prevents accidental secret disclosure in central logging.                                         |
-| [x] 2.3 | Wire middleware into app in `http.py`.                                                                                                                                                                                                           | Central location keeps bootstrapping predictable.                                                 |
-
----
-
-## 3  Xyte API Client Injection
-
-| Step | Action                                                                                                                                               | Rationale                                                                        |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| [x] 3.1 | Extend `deps.get_client()` signature to accept `Request`; resolve key:  <br>`key = request.state.xyte_key or settings.xyte_api_key`.                 | Single function now covers both modes—call-sites don’t need to think about auth. |
-| [x] 3.2 | Refactor every resource/tool/task that currently calls `get_client()` to pass `request` (use dependency injection where FastAPI routes are defined). | Keeps call signatures explicit but lightweight; no hidden globals.               |
-| [x] 3.3 | Delete any accidental use of `settings.xyte_api_key` elsewhere in code except as the single-tenant fallback.                                         | Guarantees header override always wins in multi-tenant mode.                     |
+| #   | File(s)                                           | What to do                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Why / Acceptance                                                                                                                                                           |
+| --- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1 | `src/xyte_mcp_alpha/auth.py` (PY)                 | Create **AuthHeaderMiddleware**.<br>Logic:  <br>• Bypass only `/healthz`, `/readyz`, `/metrics`.  <br>• If `settings.xyte_api_key` **is `None`** → *multi-tenant mode*:  <br>  – Read `Authorization` header (raw Xyte key).  <br>  – 401 JSON error when missing/empty.  <br>• Store key in `request.state.xyte_key = header_val`.<br>• If `settings.xyte_api_key` **is not None** → *single-tenant*: header optional; if present and ≠ env key, 403 JSON `{"error":"invalid_token"}`. | Guarantees every request carries a key in hosted deployments while preserving local DX. <br>**Accept**: Curl without header = 401 when no env key. Curl with header = 200. |
+| 1.2 | `src/xyte_mcp_alpha/http.py` (PY)                 | `app.add_middleware(AuthHeaderMiddleware)` directly after CORS middleware.                                                                                                                                                                                                                                                                                                                                                                                                              | Activates enforcement globally.                                                                                                                                            |
+| 1.3 | `src/xyte_mcp_alpha/deps.py` (or existing helper) | Refactor `get_client(request: Request)` to:  <br>`key = request.state.xyte_key or settings.xyte_api_key` <br>Instantiate `XyteAPIClient(api_key=key)`.                                                                                                                                                                                                                                                                                                                                  | Unifies credential handling; call-sites no longer care where key came from.                                                                                                |
+| 1.4 | **All resource & tool handlers** (PY)             | Ensure they now receive `Request` via FastAPI dependency injection and pass it to `get_client`. Example pattern:  <br>`async def list_devices(request: Request):`  <br>` async with get_client(request) as client:` ...                                                                                                                                                                                                                                                                 | Makes every handler multi-tenant aware.                                                                                                                                    |
+| 1.5 | `tests/test_auth.py` (CI)                         | New parametrised tests:  <br>• mode = multi-tenant (no env key) + no header → 401  <br>• mode = multi-tenant + header → 200  <br>• mode = single-tenant (env key) + no header → 200  <br>• mode = single-tenant + wrong header → 403                                                                                                                                                                                                                                                    | Locks spec in test suite.                                                                                                                                                  |
 
 ---
 
-## 4  Clean-up Legacy Paths & Placeholders
+### 2  Make `xyte_api_key` Optional & Advertise Mode
 
-| Step | Action                                                                                                                                                                           | Rationale                                                                                             |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 4.1  | **`user_token` routes**: treat token purely as a local filter key (preferences), never as an auth credential. Replace `get_client(user_token)` with plain `get_client(request)`. | Removes broken assumption that `user_token` was a valid Xyte key while preserving demo functionality. |
-| 4.2  | Wrap `device_logs` and other stub endpoints behind `settings.enable_experimental_apis`. Disable by default.                                                                      | Users can’t trip on half-baked features in production, but devs keep a toggle for future work.        |
-| 4.3  | Restrict `/config` debug endpoint to `settings.multi_tenant is False` *and* a matching header. Optionally remove entirely.                                                       | Prevents a mis-configured cloud deployment from leaking environment details.                          |
-
----
-
-## 5  Security Hardening
-
-| Step | Action                                                                                                                                                                   | Rationale                                                                           |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| 5.1  | Create `SECURITY.md`:  <br>• disclosure process  <br>• TLS-only recommendation  <br>• secret-management pointers (K8s Secrets, .env not committed).                      | Gives ops clear guidance and satisfies basic open-source hygiene.                   |
-| 5.2  | Dockerfile cleanup:  <br>• multi-stage build  <br>• run as non-root user  <br>• `CMD ["python", "-m", "xyte_mcp_alpha.http"]`.                                           | Shrinks image, aligns with container best practices, prevents privilege-escalation. |
-| 5.3  | Helm chart: add `securityContext` (`runAsNonRoot`, `fsGroup`), make `XYTE_API_KEY` optional, add `multiTenant: true` flag that toggles auth middleware config in values. | Secure defaults + one-line switch between single/multi tenant deployments.          |
-| 5.4  | Confirm every structured log helper redacts secrets; add test that asserts no key strings appear in captured logs during request cycle.                                  | Stops regressions in future logging changes.                                        |
+| #   | File(s)                             | What to do                                                                                                                                                                                             | Why / Acceptance                             |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| 2.1 | `src/xyte_mcp_alpha/config.py` (PY) | Change `xyte_api_key: str` → `Optional[str]`. Remove hard-fail in `validate_settings()`; instead:  <br>`if not self.xyte_api_key: logger.info("Running in multi-tenant mode")` else log single-tenant. | Allows container to boot without global key. |
+| 2.2 | `.env.example` (DOC)                | Leave `XYTE_API_KEY=` blank; comment “leave blank for hosted mode”. List `XYTE_PLUGINS`, `XYTE_OAUTH_TOKEN`, `XYTE_USER_TOKEN`.                                                                        | Developers copy example with right defaults. |
 
 ---
 
-## 6  Documentation Overhaul
+### 3  Logging & CORS Hardening
 
-| Step | Action                                                                                                                                                                                   | Rationale                                                 |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| 6.1  | **README**: replace single quick-start with dual-mode table:  <br>Local (single-tenant) vs Hosted (multi-tenant) → prerequisites, env vars, auth pattern, example `curl`.                | New users immediately see which path applies to them.     |
-| 6.2  | Expand `docs/DEPLOYMENT.md`:  <br>• docker-compose (app + Redis + Postgres + Celery worker)  <br>• Helm multi-tenant values snippet  <br>• liveness/readiness probe examples.            | Gives operators copy-paste manifests for any environment. |
-| 6.3  | Write `docs/API_USAGE.md`: for each exposed resource/tool, include:  <br>– purpose  <br>– HTTP verb/route  <br>– minimal request  <br>– canonical JSON response  <br>– edge-case errors. | Lets agents craft correct calls without spelunking code.  |
-| 6.4  | Update `docs/PLUGINS.md`: plugin skeleton, registration via `XYTE_PLUGINS`, warning about untrusted code.                                                                                | Encourages safe extensibility.                            |
-
----
-
-## 7  Test-Suite Expansion
-
-| Step | Action                                                                                                                                         | Rationale                                        |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 7.1  | Parametrized auth tests:  <br>• multi-tenant + missing header ⇒ 401  <br>• multi-tenant + header ⇒ 200  <br>• single-tenant + no header ⇒ 200. | Locks in the new contract.                       |
-| 7.2  | Mocked httpx verification: assert forwarded `Authorization` matches incoming header for multi-tenant and matches env key for single-tenant.    | Prevents silent regressions in auth propagation. |
-| 7.3  | Capture logs in test; assert masked keys (e.g., `'****'` present, raw key absent).                                                             | Guarantees log-sanitizer works.                  |
-| 7.4  | Maintain coverage ≥ 95 %. Update CI threshold.                                                                                                 | Forces new code to be tested.                    |
+| #   | File(s)                                                                                                                 | What / Why                                                                                                  |                                                                   |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 3.1 | `RequestLoggingMiddleware` (PY)                                                                                         | Redact `Authorization` value: replace with `abcd****` before emitting log\_json.                            |                                                                   |
+| 3.2 | `src/xyte_mcp_alpha/settings.py` (PY)                                                                                   | Add `allow_all_cors: bool = False` default. In `http.py`, configure CORS origins `["*"]` only if flag true. | Prevents wild-card CORS in production; devs can enable if needed. |
+| 3.3 | Replace stray `logger.info(..., extra=...)` calls with `log_json` helper—or configure JSON formatter to include extras. | Keeps logs machine-parseable.                                                                               |                                                                   |
 
 ---
 
-## 8  CI/CD Enhancements
+### 4  Docker & Helm Alignment
 
-| Step | Action                                                                                                               | Rationale                                               |
-| ---- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 8.1  | CI matrix: run full test-suite twice—once with `XYTE_API_KEY=dummy` (single-tenant) and once without (multi-tenant). | Ensures both modes compile and pass tests.              |
-| 8.2  | Add Ruff + mypy jobs; fail on warnings.                                                                              | Automatic style/type discipline.                        |
-| 8.3  | Build Docker image on every tag; push to GHCR; attach image digest as workflow output.                               | Gives ops a reproducible artifact without manual steps. |
-| 8.4  | Dependabot configs for Python, Dockerfile, GitHub Actions.                                                           | Continuous security updates.                            |
-
----
-
-## 9  Async-Task Toggle (Optional but Valuable)
-
-| Step | Action                                                                                                             | Rationale                                                            |
-| ---- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| 9.1  | Introduce `ENABLE_ASYNC_TASKS` env var (default `false`).                                                          | Makes heavy Celery/DB stack opt-in.                                  |
-| 9.2  | Wrap `send_command_async` entrypoint: if disabled, return deterministic JSON error (`{"error":"async_disabled"}`). | API remains stable; users get clear feedback instead of stack-trace. |
-| 9.3  | Extend docs with compose/Helm snippets spinning up Redis + Worker when async enabled.                              | Smooth path for those who need background operations.                |
+| #   | File(s)                                 | Action                                                                                                                                                                                                  | Why                                                    |
+| --- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 4.1 | `Dockerfile` (DOCKER)                   | Switch `CMD` from `["serve"]` to `["python","-m","xyte_mcp_alpha.http"]`. Add non-root user stage.                                                                                                      | Container now exposes HTTP :8080 matching Helm probes. |
+| 4.2 | `helm/templates/deployment.yaml` (HELM) | Remove explicit `command:` override if present; rely on new Docker CMD.                                                                                                                                 | Prevent drift between image and chart.                 |
+| 4.3 | `helm/values.yaml` + templates (HELM)   | Parameters:  <br>`multiTenant: true/false` (bool)  <br>`userToken`, `oauthToken` → mount as K8s Secret when non-empty. Chart logic:  <br>if `multiTenant` true then **omit** `XYTE_API_KEY` secret env. | Lets operators flip mode and supply alt creds cleanly. |
+| 4.4 | Readiness/Liveness Probes               | Verify `/readyz` & `/healthz` on port 8080 succeed with new entrypoint. Update probe initialDelaySeconds if needed.                                                                                     |                                                        |
 
 ---
 
-## 10  Release Criteria & Final Polishing
+### 5  Async Task Strategy
 
-| Criterion                                                                            | Why it matters             |
-|--------------------------------------------------------------------------------------| -------------------------- |
-| [ ] README quick-start commands succeed verbatim in both modes.                      | First-impression fidelity. |
-| [ ] All tests green, coverage ≥ 95 %.                                                | Regression safety net.     |
-| [ ] Helm install (`multiTenant=true`) passes readiness probes in < 20 s.             | Deployment confidence.     |
-| [ ] No secret substrings found in runtime logs under test.                           | Confidentiality assurance. |
-| [ ] Docker image starts as non-root, listens on `0.0.0.0`, exits cleanly on SIGTERM. | Container best practice.   |
-
-After these boxes tick, tag **v1.0.0** and ship.
+| #   | File(s)                                                                                                                                                                                         | What to do                                    | Why |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | --- |
+| 5.1 | Add `ENABLE_ASYNC_TASKS` (Settings). Default `false`.                                                                                                                                           | Allows deployments without extra infra.       |     |
+| 5.2 | In `tools/send_command_async`:  <br>if flag off, call `send_command` synchronously and return `{"status":"done","result":...}`.                                                                 | Ensures feature works without Celery.         |     |
+| 5.3 | If flag on, integrate Celery:  <br>• broker from `REDIS_URL`, result backend from `RESULT_BACKEND_URL`.  <br>• Provide `docker-compose.celery.yaml` sample & Helm sub-chart for worker + Redis. | Makes background tasks persistent & scalable. |     |
+| 5.4 | Docs: clearly list trade-offs & how to enable.                                                                                                                                                  |                                               |     |
 
 ---
 
-### Implementation Notes for the Agent
+### 6  Helm & Deployment Docs
 
-* **Sequence Dependency:** Sections 1 → 2 → 3 must be implemented in order; everything else can proceed in parallel once those are stable.
-* **Guard Rails:** Keep edits surgical—avoid re-architecting beyond scope. If an external dependency forces a larger change, record it in CHANGELOG and adjust tests first.
-* **Fallback Strategy:** Commit after each main section; if any later test fails, bisect quickly.
+| #   | File(s)                                                                                                                              | What / Why                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 6.1 | `docs/DEPLOYMENT.md` (DOC)                                                                                                           | New **Mode Matrix** table: single-tenant vs multi-tenant vs multi-tenant+Celery. Include sample `values.yaml` snippets. |
+| 6.2 | README quick-start: two subsections “Local / single-tenant” and “Cloud / multi-tenant”. Include `curl` of `/v1/devices` with header. |                                                                                                                         |
+| 6.3 | `.env.example` comments: flag meaning, async toggle, plugin path.                                                                    |                                                                                                                         |
+| 6.4 | `docs/PLUGINS.md` mention `XYTE_PLUGINS` env.                                                                                        |                                                                                                                         |
 
-Delivering on this checklist yields a clean, two-mode, production-ready MCP server that’s easy for any AI—or human—to extend and operate.
+---
+
+### 7  CI Matrix & Strict Typing
+
+| #   | File(s)                                                                   | Action                                                                                                           |                                           |
+| --- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| 7.1 | `.github/workflows/ci.yml` (CI)                                           | Add job strategy:  <br>• `env XYTE_API_KEY=dummy` (single)  <br>• no `XYTE_API_KEY` + tests send header (multi). |                                           |
+| 7.2 | Remove \`                                                                 |                                                                                                                  | true\` from MyPy step; fix typing errors. |
+| 7.3 | Add Bandit/Trivy fail-on-critical option; break build on vulnerabilities. |                                                                                                                  |                                           |
+
+---
+
+### 8  Minor Clean-ups
+
+| #   | Item                                                                                   | What                                        |
+| --- | -------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 8.1 | In-memory user-prefs demo                                                              | Comment header: “demo only, not persisted”. |
+| 8.2 | Remove or guard `/v1/device_logs` placeholder behind `enable_experimental_apis`.       |                                             |
+| 8.3 | Ensure `.env.example` lists `XYTE_ALLOW_ALL_CORS=false` default to nudge safe posture. |                                             |
+
+---
+
+## Acceptance Checklist (copy into PR description)
+
+* [ ] Per-request key auth enforced & tested.
+* [ ] Server boots with **no** `XYTE_API_KEY` and returns 401 on unauth’d calls.
+* [ ] Docker image runs HTTP server, probes green under Helm.
+* [ ] Helm `multiTenant=true` deploys without global secret.
+* [ ] Async toggle works: sync fallback when disabled; Celery worker job chart included.
+* [ ] CI matrix passes all tests, coverage ≥ 95 %.
+* [ ] No `Authorization` value appears in container logs (checked via test capture).
+* [ ] README / DEPLOYMENT docs list mode matrix & updated commands.
+
+Ship these fixes and the MCP repo will satisfy enterprise-grade deployment, local ad-hoc usage, and your bonus requirements.
