@@ -130,12 +130,20 @@ class RequestLoggingMiddleware:
         path = scope.get("path")
         start = time.monotonic()
 
+        auth_header = None
+        for k, v in scope.get("headers", []):
+            if k.decode().lower() == "authorization":
+                token = v.decode()
+                auth_header = (token[:4] + "****") if len(token) > 4 else "****"
+                break
+
         log_json(
             logging.INFO,
             event="request_start",
             method=method,
             path=path,
             request_id=request_id,
+            authorization=auth_header,
         )
 
         status_code: int | None = None

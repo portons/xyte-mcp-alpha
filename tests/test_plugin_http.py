@@ -3,7 +3,8 @@ import unittest
 from starlette.testclient import TestClient
 
 from xyte_mcp_alpha import plugin, events
-from xyte_mcp_alpha.http import app
+from xyte_mcp_alpha import http as http_mod
+import importlib
 from tests.dummy_redis import DummyRedis
 
 
@@ -13,8 +14,11 @@ class PluginHTTPIntegrationTestCase(unittest.TestCase):
         plugin._PLUGINS.clear()  # type: ignore[attr-defined]
         plugin.load_plugins()
         import tests.helper_plugin as helper
+
         helper.received_events.clear()
-        self.client = TestClient(app)
+        os.environ.setdefault("XYTE_API_KEY", "test")
+        importlib.reload(http_mod)
+        self.client = TestClient(http_mod.app)
         events.redis = DummyRedis()
 
     def test_webhook_triggers_plugin(self):
@@ -22,6 +26,7 @@ class PluginHTTPIntegrationTestCase(unittest.TestCase):
         resp = self.client.post("/v1/webhook", json=payload)
         self.assertEqual(resp.status_code, 200)
         import tests.helper_plugin as helper
+
         self.assertTrue(helper.received_events)
 
 

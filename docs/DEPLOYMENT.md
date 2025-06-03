@@ -6,7 +6,7 @@ MCP server.
 ## Installing with Helm
 
 1. Ensure you have `helm` installed and access to a Kubernetes cluster.
-2. Set the required API key and install the chart:
+2. If running single-tenant, set the API key and install the chart:
    ```bash
    helm install xyte ./helm \
      --set env.XYTE_API_KEY=YOUR_KEY

@@ -10,7 +10,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 1. Ensure Python 3.11+ is installed and clone the repo.
 2. Create a virtualenv and install the project: `pip install -e .`.
-3. Copy `.env.example` to `.env` and set `XYTE_API_KEY`.
+3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` if running in single-tenant mode (leave blank for hosted).
 4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
 ## Setup
 
@@ -20,7 +20,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 ### Production
 1. Build the Docker image or install the package on your host.
-2. Set environment variables such as `XYTE_API_KEY` and `XYTE_BASE_URL`.
+2. Set environment variables such as `XYTE_API_KEY` (optional in hosted mode) and `XYTE_BASE_URL`.
 3. Run `python -m xyte_mcp_alpha.http` under a process manager.
 
 
@@ -87,7 +87,7 @@ pip install -e .
 cp .env.example .env
 ```
 
-2. Edit `.env` and add your Xyte API key:
+2. Edit `.env` and add your Xyte API key (leave blank for hosted deployments):
 ```
 XYTE_API_KEY=your-actual-api-key-here
 ```
@@ -228,7 +228,7 @@ example dashboard).
 
 ### Environment Variables
 
-- `XYTE_API_KEY` (required) - Your Xyte organization API key
+- `XYTE_API_KEY` (optional) - Xyte organization API key. Leave empty for hosted deployments
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
