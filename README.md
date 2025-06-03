@@ -10,7 +10,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 1. Ensure Python 3.11+ is installed and clone the repo.
 2. Create a virtualenv and install the project: `pip install -e .`.
-3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` (and optional `XYTE_USER_TOKEN`).
+3. Copy `.env.example` to `.env` and set `XYTE_API_KEY`.
 4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
 ## Setup
 
@@ -94,7 +94,6 @@ XYTE_API_KEY=your-actual-api-key-here
 
 3. Configure optional variables as needed:
    - `XYTE_BASE_URL` - override the Xyte API base URL.
-   - `XYTE_USER_TOKEN` - user-scoped token if acting on behalf of a specific user.
    - `XYTE_RATE_LIMIT` - requests per minute limit (defaults to 60).
    - `XYTE_PLUGINS` - comma-separated list of plugin modules to load.
 
@@ -230,9 +229,7 @@ example dashboard).
 ### Environment Variables
 
 - `XYTE_API_KEY` (required) - Your Xyte organization API key
-- `XYTE_OAUTH_TOKEN` (optional) - OAuth2 access token instead of API key
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
-- `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
@@ -289,7 +286,7 @@ Destructive tools like `send_command` and `delete_device` now accept a `dry_run`
 
 ## Troubleshooting
 
-If you receive `unauthorized` errors, verify that `XYTE_API_KEY` is correct and has the required permissions. Use `XYTE_USER_TOKEN` when acting on behalf of a specific user. Increase `XYTE_RATE_LIMIT` if you hit rate limit errors during development.
+If you receive `unauthorized` errors, verify that `XYTE_API_KEY` is correct and has the required permissions. Increase `XYTE_RATE_LIMIT` if you hit rate limit errors during development.
 
 ## License
 

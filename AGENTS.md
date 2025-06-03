@@ -12,12 +12,11 @@ This guide explains how agents (human or AI) can interact with the Xyte MCP serv
 Before using any MCP capabilities, the agent (or the environment hosting the agent) must authenticate with Xyte’s API via the MCP server’s configuration:
 
 * **API Key:** Set the environment variable `XYTE_API_KEY` to your organization’s API key. This is required for all operations. The server uses this key to authorize requests to Xyte’s cloud API.
-* **User Token (Optional):** If you want the server to act on behalf of a specific user (for user-scoped data), provide a `XYTE_USER_TOKEN`. If this token is set, it will override the API key for relevant calls. In other words, the MCP server will use the user token instead of the org API key when making API requests if the token is available. (You can also pass a user token at runtime for specific calls as needed.)
 * **Base URL & Other Config:** By default, the server targets Xyte’s production API base URL. You can override `XYTE_BASE_URL` for testing, though typically not needed. Other optional settings include `XYTE_CACHE_TTL` (caching duration for certain lookups), `XYTE_RATE_LIMIT` (to tune the rate limit threshold), and `XYTE_ENV` (environment name). See the provided `.env.example` for reference.
 
 **Usage:** Typically, you will provide these credentials via a `.env` file or environment variables before launching the MCP server. The server reads them on startup. Once configured, agents do not need to send authentication headers on each request – the server handles auth with Xyte internally using the provided key/token.
 
-Ensure that the API key and token remain secure. They grant control over your organization’s devices and data. If using a user token, restrict its scope appropriately (e.g. read-only vs. full control depending on use case).
+Ensure that the API key remains secure, as it grants control over your organization’s devices and data.
 
 ## Tool Invocation
 

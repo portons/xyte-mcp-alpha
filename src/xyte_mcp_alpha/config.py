@@ -9,11 +9,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     xyte_api_key: str | None = Field(default=None, alias="XYTE_API_KEY")
-    xyte_oauth_token: str | None = Field(default=None, alias="XYTE_OAUTH_TOKEN")
     xyte_base_url: str = Field(
         default="https://hub.xyte.io/core/v1/organization", alias="XYTE_BASE_URL"
     )
-    xyte_user_token: str | None = Field(default=None, alias="XYTE_USER_TOKEN")
     xyte_cache_ttl: int = Field(default=60, alias="XYTE_CACHE_TTL")
     environment: str = Field(default="prod", alias="XYTE_ENV")
     rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
@@ -43,8 +41,8 @@ def reload_settings() -> None:
 
 def validate_settings(settings: Settings) -> None:
     """Validate critical configuration values and raise ``ValueError`` if invalid."""
-    if not (settings.xyte_api_key or settings.xyte_oauth_token or settings.xyte_user_token):
-        raise ValueError("XYTE_API_KEY, XYTE_OAUTH_TOKEN, or XYTE_USER_TOKEN must be set")
+    if not settings.xyte_api_key:
+        raise ValueError("XYTE_API_KEY must be set")
     if settings.rate_limit_per_minute <= 0:
         raise ValueError("XYTE_RATE_LIMIT must be positive")
     if settings.xyte_cache_ttl <= 0:
