@@ -19,16 +19,42 @@ spec:
       - name: xyte-mcp
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        {{- if not .Values.multiTenant }}
         env:
+        {{- if not .Values.multiTenant }}
         - name: XYTE_API_KEY
           valueFrom:
             secretKeyRef:
               name: xyte-secrets
               key: api_key
         {{- end }}
+        {{- if .Values.env.XYTE_USER_TOKEN }}
+        - name: XYTE_USER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: user_token
+        {{- end }}
+        {{- if .Values.env.XYTE_OAUTH_TOKEN }}
+        - name: XYTE_OAUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: oauth_token
+        {{- end }}
         envFrom:
         - configMapRef:
             name: xyte-config
         ports:
         - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
