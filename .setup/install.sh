@@ -1,3 +1,11 @@
+#!/usr/bin/env bash
+# Bootstrap a local development environment
+set -euo pipefail
+
+# Move to repo root (the parent directory of this script)
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_DIR"
+
 # 1. create & activate a Python 3.11 virtual-env
 python3.11 -m venv .venv
 source .venv/bin/activate
