@@ -38,9 +38,10 @@ settings = get_settings()
 internal_app.add_middleware(
     RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute
 )
+cors_origins = ["*"] if settings.allow_all_cors else []
 internal_app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -14,6 +14,7 @@ from ..utils import (
     handle_api,
     validate_device_id,
 )
+from ..logging_utils import log_json
 from .. import resources
 from ..client import (
     ClaimDeviceRequest,
@@ -45,7 +46,7 @@ async def claim_device(request: ClaimDeviceRequest, ctx: Context | None = None) 
 async def delete_device(data: DeleteDeviceArgs, ctx: Context | None = None) -> ToolResponse:
     """Delete an existing device by its identifier."""
     if data.dry_run:
-        logger.info("Dry run: would delete device", extra={"device_id": data.device_id})
+        log_json(logging.INFO, event="dry_run_delete_device", device_id=data.device_id)
         return ToolResponse(
             data={"dry_run": True},
             summary=f"Dry run: Would delete device {data.device_id}",
@@ -76,7 +77,7 @@ async def send_command(
         state = get_session_state(ctx)
         device_id = state.get("current_device_id")
         if device_id:
-            logger.info("Defaulting device_id from context", extra={"device_id": device_id})
+            log_json(logging.INFO, event="context_device_id_default", device_id=device_id)
     if not device_id:
         raise MCPError(code="missing_device_id", message="device_id is required")
 
@@ -95,9 +96,11 @@ async def send_command(
             await ctx.report_progress(0.0, 1.0, "sending")
 
         if data.dry_run:
-            logger.info(
-                "Dry run: would send command",
-                extra={"device_id": device_id, "command": data.name},
+            log_json(
+                logging.INFO,
+                event="dry_run_send_command",
+                device_id=device_id,
+                command=data.name,
             )
             result = {"dry_run": True}
         else:
@@ -243,7 +246,7 @@ async def log_automation_attempt(
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")
-    logger.info("automation_attempt", extra=entry)
+    log_json(logging.INFO, event="automation_attempt", **entry)
     if ctx:
         await ctx.info("Automation attempt logged")
     return ToolResponse(data=entry, summary="Attempt recorded")
@@ -252,7 +255,7 @@ async def log_automation_attempt(
 async def echo_command(device_id: str, message: str) -> ToolResponse:
     """Example command that echoes a message back."""
     validate_device_id(device_id)
-    logger.info("echo", extra={"device_id": device_id, "message": message})
+    log_json(logging.INFO, event="echo", device_id=device_id, message=message)
     return ToolResponse(data={"device_id": device_id, "echo": message})
 
 
