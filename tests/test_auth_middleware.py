@@ -1,7 +1,6 @@
 import os
 import pytest
 import httpx
-from unittest.mock import patch
 
 os.environ.pop("XYTE_API_KEY", None)
 
