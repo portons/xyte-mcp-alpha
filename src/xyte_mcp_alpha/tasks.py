@@ -12,7 +12,7 @@ from .models import SendCommandRequest, ToolResponse
 from .logging_utils import log_json
 
 
-class Task(SQLModel, table=True):  # pyright: ignore[reportGeneralTypeIssues,reportCallIssue]
+class Task(SQLModel, table=True):  # type: ignore[misc,call-arg]
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     status: str
     payload: dict | None = Field(default=None, sa_column=Column(JSON))

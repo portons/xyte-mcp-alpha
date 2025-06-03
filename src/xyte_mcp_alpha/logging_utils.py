@@ -125,10 +125,17 @@ class RequestLoggingMiddleware:
             return
 
         request_id = str(uuid.uuid4())
-        token = request_id_var.set(request_id)
+        token_ctx = request_id_var.set(request_id)
         method = scope.get("method")
         path = scope.get("path")
         start = time.monotonic()
+
+        auth_header = None
+        for k, v in scope.get("headers", []):
+            if k.decode().lower() == "authorization":
+                header_token = v.decode()
+                auth_header = (header_token[:4] + "****") if len(header_token) > 4 else "****"
+                break
 
         log_json(
             logging.INFO,
@@ -136,6 +143,7 @@ class RequestLoggingMiddleware:
             method=method,
             path=path,
             request_id=request_id,
+            authorization=auth_header,
         )
 
         status_code: int | None = None
@@ -168,7 +176,7 @@ class RequestLoggingMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            request_id_var.reset(token)
+            request_id_var.reset(token_ctx)
 
 
 def instrument(

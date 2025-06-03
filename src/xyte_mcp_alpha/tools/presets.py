@@ -1,5 +1,5 @@
 from pathlib import Path
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from ..models import CommandRequest, ToolResponse
 from ..deps import get_client

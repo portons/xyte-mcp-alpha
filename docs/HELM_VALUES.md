@@ -10,7 +10,7 @@ This document describes the configurable values available when deploying the MCP
 | `image.pullPolicy` | Kubernetes image pull policy | `IfNotPresent` |
 | `service.type` | Kubernetes service type | `ClusterIP` |
 | `service.port` | Service port exposed by the container | `80` |
-| `env.XYTE_API_KEY` | Xyte organization API key | `""` (must be set) |
+| `env.XYTE_API_KEY` | Xyte organization API key (leave empty for hosted mode) | `""` |
 | `env.XYTE_BASE_URL` | Base URL for the Xyte API | `https://hub.xyte.io/core/v1/organization` |
 | `env.XYTE_CACHE_TTL` | Cache TTL for API responses | `60` |
 | `env.XYTE_ENV` | Deployment environment label | `prod` |

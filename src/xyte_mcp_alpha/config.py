@@ -1,4 +1,5 @@
 from functools import lru_cache
+import logging
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,6 +26,11 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", alias="XYTE_LOG_LEVEL")
     enable_swagger: bool = Field(default=False, alias="XYTE_ENABLE_SWAGGER")
 
+    @property
+    def multi_tenant(self) -> bool:
+        """Return ``True`` when running without a baked-in API key."""
+        return not (self.xyte_api_key and self.xyte_api_key.strip())
+
 
 @lru_cache()
 def get_settings() -> Settings:
@@ -41,8 +47,11 @@ def reload_settings() -> None:
 
 def validate_settings(settings: Settings) -> None:
     """Validate critical configuration values and raise ``ValueError`` if invalid."""
-    if not settings.xyte_api_key:
-        raise ValueError("XYTE_API_KEY must be set")
+    logger = logging.getLogger(__name__)
+    if settings.multi_tenant:
+        logger.info("starting in multi-tenant mode")
+    else:
+        logger.info("starting in single-tenant mode")
     if settings.rate_limit_per_minute <= 0:
         raise ValueError("XYTE_RATE_LIMIT must be positive")
     if settings.xyte_cache_ttl <= 0:

@@ -1,5 +1,7 @@
 ### Detailed Work Plan — XYTE MCP Server “Local + Multi-Tenant” Upgrade
 
+**Sections 1 and 2 completed.**
+
 This roadmap breaks every change into **purpose → action → rationale** blocks, so an implementation agent always knows *what to do* and *why it matters*.
 No branch-flow instructions are included—just the work itself.
 
@@ -9,10 +11,10 @@ No branch-flow instructions are included—just the work itself.
 
 | Step | Action                                                                                                                                       | Rationale                                                                                     |
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 1.1  | Convert `Settings.xyte_api_key` from **required** → **optional** (`str \| None`).                                                            | Allows the service to run without a baked-in key when operating in hosted, multi-tenant mode. |
-| 1.2  | Add computed property `settings.multi_tenant = xyte_api_key is None`.                                                                        | Gives downstream code a single flag to switch behaviour.                                      |
-| 1.3  | In `validate_settings()`: remove the “API key must exist” hard-fail. Instead, log whether we boot in single- or multi-tenant mode.           | Keeps dev UX unchanged while removing the blocker for multi-tenant deployments.               |
-| 1.4  | Update `.env.example` & README configuration table so `XYTE_API_KEY` is blank by default and clearly labelled “leave empty for hosted mode”. | Prevents accidental single-tenant assumptions in production.                                  |
+| [x] 1.1 | Convert `Settings.xyte_api_key` from **required** → **optional** (`str \| None`).                                                            | Allows the service to run without a baked-in key when operating in hosted, multi-tenant mode. |
+| [x] 1.2 | Add computed property `settings.multi_tenant = xyte_api_key is None`.                                                                        | Gives downstream code a single flag to switch behaviour.                                      |
+| [x] 1.3 | In `validate_settings()`: remove the “API key must exist” hard-fail. Instead, log whether we boot in single- or multi-tenant mode.           | Keeps dev UX unchanged while removing the blocker for multi-tenant deployments.               |
+| [x] 1.4 | Update `.env.example` & README configuration table so `XYTE_API_KEY` is blank by default and clearly labelled “leave empty for hosted mode”. | Prevents accidental single-tenant assumptions in production.                                  |
 
 ---
 
@@ -20,9 +22,9 @@ No branch-flow instructions are included—just the work itself.
 
 | Step | Action                                                                                                                                                                                                                                           | Rationale                                                                                         |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| 2.1  | Implement `AuthHeaderMiddleware` (Starlette). Logic:  <br>• skip `/healthz`, `/readyz`, `/metrics`  <br>• if `settings.multi_tenant` **require** `Authorization` header (raw Xyte key) else 401  <br>• store header in `request.state.xyte_key`. | Enforces per-request credentials only when the build actually needs them—no duplicate code paths. |
-| 2.2  | Sanitize logs inside existing `RequestLoggingMiddleware`: mask `Authorization` values (e.g., `abcd****`).                                                                                                                                        | Prevents accidental secret disclosure in central logging.                                         |
-| 2.3  | Wire middleware into app in `http.py`.                                                                                                                                                                                                           | Central location keeps bootstrapping predictable.                                                 |
+| [x] 2.1 | Implement `AuthHeaderMiddleware` (Starlette). Logic:  <br>• skip `/healthz`, `/readyz`, `/metrics`  <br>• if `settings.multi_tenant` **require** `Authorization` header (raw Xyte key) else 401  <br>• store header in `request.state.xyte_key`. | Enforces per-request credentials only when the build actually needs them—no duplicate code paths. |
+| [x] 2.2 | Sanitize logs inside existing `RequestLoggingMiddleware`: mask `Authorization` values (e.g., `abcd****`).                                                                                                                                        | Prevents accidental secret disclosure in central logging.                                         |
+| [x] 2.3 | Wire middleware into app in `http.py`.                                                                                                                                                                                                           | Central location keeps bootstrapping predictable.                                                 |
 
 ---
 

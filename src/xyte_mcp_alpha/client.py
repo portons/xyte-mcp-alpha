@@ -4,7 +4,7 @@ import logging
 import httpx
 from types import TracebackType
 from typing import Any, Dict, Optional
-from cachetools import TTLCache
+from cachetools import TTLCache  # type: ignore[import-untyped]
 from datetime import datetime
 import anyio
 import time

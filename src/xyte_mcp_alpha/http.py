@@ -12,6 +12,7 @@ from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
 from .config import get_settings
 from .http_utils import RateLimitMiddleware
+from .auth_xyte import AuthHeaderMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
 
@@ -32,6 +33,7 @@ def build_openapi(app: Starlette) -> Dict[str, Any]:
 
 internal_app = get_server().streamable_http_app()
 internal_app.add_middleware(RequestLoggingMiddleware)
+internal_app.add_middleware(AuthHeaderMiddleware)
 settings = get_settings()
 internal_app.add_middleware(
     RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute
@@ -73,7 +75,9 @@ def main() -> None:
 
     settings = get_settings()
     uvicorn.run(
-        "xyte_mcp_alpha.http:app", host=settings.mcp_inspector_host, port=settings.mcp_inspector_port
+        "xyte_mcp_alpha.http:app",
+        host=settings.mcp_inspector_host,
+        port=settings.mcp_inspector_port,
     )
 
 
