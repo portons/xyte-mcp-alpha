@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     enable_async_tasks: bool = Field(
         default=False, alias="ENABLE_ASYNC_TASKS"
     )
+    allow_all_cors: bool = Field(
+        default=False, alias="XYTE_ALLOW_ALL_CORS"
+    )
 
     @property
     def multi_tenant(self) -> bool:
