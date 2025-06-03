@@ -16,12 +16,13 @@ class DummyClient:
 def anyio_backend():
     return "asyncio"
 
+
 @pytest.mark.anyio
 async def test_start_meeting_room_preset(monkeypatch):
     client = DummyClient()
 
     @asynccontextmanager
-    async def fake_get_client():
+    async def fake_get_client(request=None):
         yield client
 
     monkeypatch.setattr("xyte_mcp_alpha.tools.presets.get_client", fake_get_client)

@@ -16,7 +16,7 @@ import xyte_mcp_alpha.plugin as plugin
 from xyte_mcp_alpha.config import get_settings, validate_settings
 from xyte_mcp_alpha.events import push_event, pull_event
 from mcp.server.fastmcp.server import Context
-from xyte_mcp_alpha.logging_utils import configure_logging, instrument
+from xyte_mcp_alpha.logging_utils import configure_logging, instrument, request_var
 import xyte_mcp_alpha.resources as resources
 import xyte_mcp_alpha.tools as tools
 import xyte_mcp_alpha.tasks as tasks
@@ -125,9 +125,7 @@ async def list_tools(_: Request) -> JSONResponse:
             "name": t.name,
             "description": t.description,
             "readOnlyHint": t.annotations.readOnlyHint if t.annotations else True,
-            "destructiveHint": (
-                t.annotations.destructiveHint if t.annotations else False
-            ),
+            "destructiveHint": (t.annotations.destructiveHint if t.annotations else False),
         }
         for t in tool_infos
     ]
@@ -145,53 +143,101 @@ async def list_resources_route(_: Request) -> JSONResponse:
 
 
 @mcp.custom_route("/devices", methods=["GET"])
-async def list_devices_route(_: Request) -> JSONResponse:
+async def list_devices_route(request: Request) -> JSONResponse:
     """Compatibility endpoint returning all devices."""
-    devices = await resources.list_devices()
+    devices = await resources.list_devices(request)
     return JSONResponse(devices)
+
+
+def _req() -> Request | None:
+    return request_var.get()
+
+
+async def _list_devices_wrapper() -> Dict[str, Any]:
+    return await resources.list_devices(_req())
+
+
+async def _list_device_commands_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.list_device_commands(_req(), device_id)
+
+
+async def _list_device_histories_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.list_device_histories(_req(), device_id)
+
+
+async def _device_status_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.device_status(_req(), device_id)
+
+
+async def _device_logs_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.device_logs(_req(), device_id)
+
+
+async def _organization_info_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.organization_info(_req(), device_id)
+
+
+async def _list_incidents_wrapper() -> Dict[str, Any]:
+    return await resources.list_incidents(_req())
+
+
+async def _list_tickets_wrapper() -> Dict[str, Any]:
+    return await resources.list_tickets(_req())
+
+
+async def _get_ticket_wrapper(ticket_id: str) -> Dict[str, Any]:
+    return await resources.get_ticket(_req(), ticket_id)
+
+
+async def _get_prefs_wrapper(user_token: str) -> Dict[str, Any]:
+    return await resources.get_user_preferences(_req(), user_token)
+
+
+async def _list_user_devices_wrapper(user_token: str) -> Any:
+    return await resources.list_user_devices(_req(), user_token)
 
 
 # Resource registrations
 mcp.resource("devices://", description="List all devices")(
-    instrument("resource", "list_devices")(resources.list_devices)
+    instrument("resource", "list_devices")(_list_devices_wrapper)
 )
 mcp.resource(
     "device://{device_id}/commands",
     description="Commands issued to a device",
-)(instrument("resource", "list_device_commands")(resources.list_device_commands))
+)(instrument("resource", "list_device_commands")(_list_device_commands_wrapper))
 mcp.resource(
     "device://{device_id}/histories",
     description="History records for a device",
-)(instrument("resource", "list_device_histories")(resources.list_device_histories))
+)(instrument("resource", "list_device_histories")(_list_device_histories_wrapper))
 mcp.resource(
     "device://{device_id}/status",
     description="Current status of a device",
-)(instrument("resource", "device_status")(resources.device_status))
+)(instrument("resource", "device_status")(_device_status_wrapper))
 mcp.resource(
     "device://{device_id}/logs",
     description="Recent logs for a device",
-)(instrument("resource", "device_logs")(resources.device_logs))
+)(instrument("resource", "device_logs")(_device_logs_wrapper))
 mcp.resource(
     "organization://info/{device_id}",
     description="Organization info for a device",
-)(instrument("resource", "organization_info")(resources.organization_info))
+)(instrument("resource", "organization_info")(_organization_info_wrapper))
 mcp.resource("incidents://", description="Current incidents")(
-    instrument("resource", "list_incidents")(resources.list_incidents)
+    instrument("resource", "list_incidents")(_list_incidents_wrapper)
 )
 mcp.resource("tickets://", description="All support tickets")(
-    instrument("resource", "list_tickets")(resources.list_tickets)
+    instrument("resource", "list_tickets")(_list_tickets_wrapper)
 )
 mcp.resource("ticket://{ticket_id}", description="Single support ticket")(
-    instrument("resource", "get_ticket")(resources.get_ticket)
+    instrument("resource", "get_ticket")(_get_ticket_wrapper)
 )
 mcp.resource(
     "user://{user_token}/preferences",
     description="Preferences for a user",
-)(resources.get_user_preferences)
+)(_get_prefs_wrapper)
 mcp.resource(
     "user://{user_token}/devices",
     description="Devices filtered by user",
-)(resources.list_user_devices)
+)(_list_user_devices_wrapper)
 
 # Tool registrations
 mcp.tool(
