@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  mcp:
+    image: ghcr.io/xyte/mcp:latest
+    ports: ["8000:8000"]
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      LOG_LEVEL: "INFO"
+    depends_on: [redis, pg]
+    restart: always
+
+  redis:
+    image: redis:7
+    command: ["--save","60","1","--loglevel","warning"]
+    volumes: ["redis:/data"]
+
+  pg:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: mcp
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: pass
+    volumes: ["pg:/var/lib/postgresql/data"]
+
+  worker:
+    image: ghcr.io/xyte/mcp:latest
+    command: celery -A xyte_mcp_alpha.celery_app worker -Q long -c 2
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+    depends_on: [redis, pg]
+    restart: always
+
+volumes:
+  redis:
+  pg:

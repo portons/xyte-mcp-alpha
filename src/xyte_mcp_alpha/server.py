@@ -5,6 +5,8 @@ import sys
 import os
 import json
 from typing import Any, Dict
+from starlette.applications import Starlette
+from xyte_mcp_alpha.auth_xyte import RequireXyteKey
 
 # Fix import paths for mcp dev
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
@@ -12,12 +14,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 # Import everything using absolute imports
 import xyte_mcp_alpha.plugin as plugin
 from xyte_mcp_alpha.config import get_settings, validate_settings
-from xyte_mcp_alpha.events import GetNextEventRequest
-from xyte_mcp_alpha.logging_utils import configure_logging, instrument
+from xyte_mcp_alpha.events import push_event, pull_event
+from mcp.server.fastmcp.server import Context
+from xyte_mcp_alpha.logging_utils import configure_logging, instrument, request_var
 import xyte_mcp_alpha.resources as resources
 import xyte_mcp_alpha.tools as tools
 import xyte_mcp_alpha.tasks as tasks
-import xyte_mcp_alpha.events as events
 import xyte_mcp_alpha.prompts as prompts
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -32,6 +34,22 @@ configure_logging()
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("audit")
 audit_logger.setLevel(logging.INFO)
+
+# Starlette application with per-request Xyte key middleware
+app = Starlette()
+app.add_middleware(RequireXyteKey)
+
+# Optional Swagger UI using FastAPI
+settings = get_settings()
+if settings.enable_swagger:
+    try:
+        from fastapi import FastAPI
+    except ModuleNotFoundError:  # pragma: no cover - optional dependency
+        logging.getLogger(__name__).warning("FastAPI not installed; Swagger disabled")
+    else:
+        fast = FastAPI(openapi_url="/openapi.json", docs_url="/docs")
+        fast.mount("", app)
+        app = fast
 
 # Initialize MCP server
 mcp = FastMCP("Xyte Organization MCP Server")
@@ -61,13 +79,11 @@ async def config_endpoint(request: Request) -> JSONResponse:
     """Return sanitized configuration for debugging purposes."""
     settings = get_settings()
     api_key = request.headers.get("X-API-Key")
-    if api_key != settings.xyte_api_key:
+    if settings.multi_tenant or api_key != settings.xyte_api_key:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
 
     cfg = settings.model_dump()
     cfg["xyte_api_key"] = "***"
-    if cfg.get("xyte_user_token"):
-        cfg["xyte_user_token"] = "***"
     return JSONResponse({"config": cfg})
 
 
@@ -75,10 +91,12 @@ async def config_endpoint(request: Request) -> JSONResponse:
 async def webhook(req: Request) -> JSONResponse:
     """Receive external events and enqueue them for streaming."""
     payload = await req.json()
-    event = events.Event(
-        type=payload.get("type", "unknown"), data=payload.get("data", {})
+    await push_event(
+        {
+            "type": payload.get("type", "unknown"),
+            "data": payload.get("data", {}),
+        }
     )
-    await events.push_event(event)
     return JSONResponse({"queued": True})
 
 
@@ -86,10 +104,14 @@ async def webhook(req: Request) -> JSONResponse:
 async def stream_events(_: Request) -> Response:
     """Stream events to clients using Server-Sent Events."""
 
+    import uuid
+
     async def event_gen():
+        consumer = str(uuid.uuid4())
         while True:
-            ev = await events.get_next_event(events.GetNextEventRequest())
-            yield f"event: {ev['type']}\ndata: {json.dumps(ev['data'])}\n\n"
+            ev = await pull_event(consumer)
+            if ev:
+                yield f"event: {ev['type']}\ndata: {json.dumps(ev['data'])}\n\n"
 
     return Response(event_gen(), media_type="text/event-stream")
 
@@ -103,9 +125,7 @@ async def list_tools(_: Request) -> JSONResponse:
             "name": t.name,
             "description": t.description,
             "readOnlyHint": t.annotations.readOnlyHint if t.annotations else True,
-            "destructiveHint": (
-                t.annotations.destructiveHint if t.annotations else False
-            ),
+            "destructiveHint": (t.annotations.destructiveHint if t.annotations else False),
         }
         for t in tool_infos
     ]
@@ -122,47 +142,105 @@ async def list_resources_route(_: Request) -> JSONResponse:
     return JSONResponse(resources_list)
 
 
+@mcp.custom_route("/devices", methods=["GET"])
+async def list_devices_route(request: Request) -> JSONResponse:
+    """Compatibility endpoint returning all devices."""
+    devices = await resources.list_devices(request)
+    return JSONResponse(devices)
+
+
+def _req() -> Request | None:
+    return request_var.get()
+
+
+async def _list_devices_wrapper() -> Dict[str, Any]:
+    return await resources.list_devices(_req())
+
+
+async def _list_device_commands_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.list_device_commands(_req(), device_id)
+
+
+async def _list_device_histories_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.list_device_histories(_req(), device_id)
+
+
+async def _device_status_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.device_status(_req(), device_id)
+
+
+async def _device_logs_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.device_logs(_req(), device_id)
+
+
+async def _organization_info_wrapper(device_id: str) -> Dict[str, Any]:
+    return await resources.organization_info(_req(), device_id)
+
+
+async def _list_incidents_wrapper() -> Dict[str, Any]:
+    return await resources.list_incidents(_req())
+
+
+async def _list_tickets_wrapper() -> Dict[str, Any]:
+    return await resources.list_tickets(_req())
+
+
+async def _get_ticket_wrapper(ticket_id: str) -> Dict[str, Any]:
+    return await resources.get_ticket(_req(), ticket_id)
+
+
+async def _get_prefs_wrapper(user_token: str) -> Dict[str, Any]:
+    return await resources.get_user_preferences(_req(), user_token)
+
+
+async def _list_user_devices_wrapper(user_token: str) -> Any:
+    return await resources.list_user_devices(_req(), user_token)
+
+
 # Resource registrations
 mcp.resource("devices://", description="List all devices")(
-    instrument("resource", "list_devices")(resources.list_devices)
+    instrument("resource", "list_devices")(_list_devices_wrapper)
 )
 mcp.resource(
     "device://{device_id}/commands",
     description="Commands issued to a device",
-)(instrument("resource", "list_device_commands")(resources.list_device_commands))
+)(instrument("resource", "list_device_commands")(_list_device_commands_wrapper))
 mcp.resource(
     "device://{device_id}/histories",
     description="History records for a device",
-)(instrument("resource", "list_device_histories")(resources.list_device_histories))
+)(instrument("resource", "list_device_histories")(_list_device_histories_wrapper))
 mcp.resource(
     "device://{device_id}/status",
     description="Current status of a device",
-)(instrument("resource", "device_status")(resources.device_status))
-mcp.resource(
-    "device://{device_id}/logs",
-    description="Recent logs for a device",
-)(instrument("resource", "device_logs")(resources.device_logs))
+)(instrument("resource", "device_status")(_device_status_wrapper))
+if get_settings().enable_experimental_apis:
+    mcp.resource(
+        "device://{device_id}/logs",
+        description="Recent logs for a device",
+    )(
+        instrument("resource", "device_logs")(_device_logs_wrapper)
+    )
 mcp.resource(
     "organization://info/{device_id}",
     description="Organization info for a device",
-)(instrument("resource", "organization_info")(resources.organization_info))
+)(instrument("resource", "organization_info")(_organization_info_wrapper))
 mcp.resource("incidents://", description="Current incidents")(
-    instrument("resource", "list_incidents")(resources.list_incidents)
+    instrument("resource", "list_incidents")(_list_incidents_wrapper)
 )
 mcp.resource("tickets://", description="All support tickets")(
-    instrument("resource", "list_tickets")(resources.list_tickets)
+    instrument("resource", "list_tickets")(_list_tickets_wrapper)
 )
 mcp.resource("ticket://{ticket_id}", description="Single support ticket")(
-    instrument("resource", "get_ticket")(resources.get_ticket)
+    instrument("resource", "get_ticket")(_get_ticket_wrapper)
 )
 mcp.resource(
     "user://{user_token}/preferences",
     description="Preferences for a user",
-)(resources.get_user_preferences)
+)(_get_prefs_wrapper)
 mcp.resource(
     "user://{user_token}/devices",
     description="Devices filtered by user",
-)(resources.list_user_devices)
+)(_list_user_devices_wrapper)
 
 # Tool registrations
 mcp.tool(
@@ -244,16 +322,18 @@ mcp.tool(
 
 
 @mcp.custom_route("/task/{task_id}", methods=["GET"])
-async def task_status(task_id: str) -> JSONResponse:
+async def task_status(request: Request) -> JSONResponse:
     """Expose async task status via HTTP."""
-    result = await tasks.get_task_status(task_id)
+    tid = request.path_params.get("task_id", "")
+    result = await tasks.get_task_status(tid)
     return JSONResponse(result)
 
 
 # Create a wrapper function with explicit type annotation
-async def get_next_event_wrapper(params: GetNextEventRequest) -> Dict[str, Any]:
-    """Wrapper for get_next_event with explicit type annotation."""
-    return await events.get_next_event(params)
+async def get_next_event_wrapper(ctx: Context) -> Dict[str, Any]:
+    """Return the next queued event for this context."""
+    evt = await pull_event(ctx.request_id)
+    return evt or {}
 
 
 # Register the wrapper function as a tool

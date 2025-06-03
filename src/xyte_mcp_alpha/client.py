@@ -4,7 +4,7 @@ import logging
 import httpx
 from types import TracebackType
 from typing import Any, Dict, Optional
-from cachetools import TTLCache
+from cachetools import TTLCache  # type: ignore[import-untyped]
 from datetime import datetime
 import anyio
 import time
@@ -51,25 +51,23 @@ class XyteAPIClient:
         self.mapping = load_mapping()
 
         self.api_key = api_key or settings.xyte_api_key
-        self.oauth_token = settings.xyte_oauth_token
-        if not (self.api_key or self.oauth_token):
-            raise ValueError("XYTE_API_KEY or XYTE_OAUTH_TOKEN must be provided")
+        if not self.api_key:
+            raise ValueError("XYTE_API_KEY must be provided")
 
         self.base_url = base_url or settings.xyte_base_url
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
         transport = httpx.AsyncHTTPTransport(retries=3, limits=limits)
         headers = {"Content-Type": "application/json"}
-        if self.oauth_token:
-            headers["Authorization"] = f"Bearer {self.oauth_token}"
-        elif self.api_key:
-            headers["Authorization"] = self.api_key
+        headers["Authorization"] = self.api_key
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
             headers=headers,
             timeout=30.0,
             transport=transport,
         )
-        self.cache: TTLCache[str, Any] = TTLCache(maxsize=128, ttl=settings.xyte_cache_ttl)
+        self.cache: TTLCache[str, Any] = TTLCache(
+            maxsize=128, ttl=settings.xyte_cache_ttl
+        )
         self._failures: int = 0
         self._circuit_open_until: float = 0.0
 

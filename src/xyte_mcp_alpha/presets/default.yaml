@@ -1,0 +1,6 @@
+- device_id: proj-123
+  command: power_on
+- device_id: amp-555
+  command: unmute
+- device_id: switch-789
+  command: select_hdmi1

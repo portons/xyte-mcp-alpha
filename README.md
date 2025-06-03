@@ -10,8 +10,15 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 1. Ensure Python 3.11+ is installed and clone the repo.
 2. Create a virtualenv and install the project: `pip install -e .`.
-3. Copy `.env.example` to `.env` and set `XYTE_API_KEY` (and optional `XYTE_USER_TOKEN`).
-4. Run the server with `serve` or `python -m xyte_mcp_alpha`.
+3. Copy `.env.example` to `.env` and then decide which mode to run:
+
+|                     | Local (Single-tenant) | Hosted (Multi-tenant) |
+|---------------------|----------------------|-----------------------|
+| Env vars            | `XYTE_API_KEY=<key>` | *(leave blank)*       |
+| Optional async      | `ENABLE_ASYNC_TASKS=true` | `ENABLE_ASYNC_TASKS=true` |
+| Start server        | `python -m xyte_mcp_alpha.http` | `python -m xyte_mcp_alpha.http` |
+| Auth header         | none                 | `Authorization: <key>` |
+| Example curl        | `curl http://localhost:8080/v1/devices` | `curl -H "Authorization: $KEY" http://localhost:8080/v1/devices` |
 ## Setup
 
 ### Development
@@ -20,7 +27,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 ### Production
 1. Build the Docker image or install the package on your host.
-2. Set environment variables such as `XYTE_API_KEY` and `XYTE_BASE_URL`.
+2. Set environment variables such as `XYTE_API_KEY` (optional in hosted mode) and `XYTE_BASE_URL`.
 3. Run `python -m xyte_mcp_alpha.http` under a process manager.
 
 
@@ -55,6 +62,12 @@ All resources and tools return structured JSON objects rather than plain strings
 - `send_command_async` - Send a command asynchronously
 - `get_task_status` - Query async task status
 
+## For CODEX
+
+> **Important:** the setup commands live in `/.setup/install.txt`.  
+> **Open the file, read every line, then run the commands one-by-one** (or paste them into your shell).  
+> Nothing inside `install.txt` modifies code or touches the network after package installation.
+
 ## Installation
 
 1. Clone the repository:
@@ -81,14 +94,13 @@ pip install -e .
 cp .env.example .env
 ```
 
-2. Edit `.env` and add your Xyte API key:
+2. Edit `.env` and add your Xyte API key (leave blank for hosted deployments):
 ```
 XYTE_API_KEY=your-actual-api-key-here
 ```
 
 3. Configure optional variables as needed:
    - `XYTE_BASE_URL` - override the Xyte API base URL.
-   - `XYTE_USER_TOKEN` - user-scoped token if acting on behalf of a specific user.
    - `XYTE_RATE_LIMIT` - requests per minute limit (defaults to 60).
    - `XYTE_PLUGINS` - comma-separated list of plugin modules to load.
 
@@ -180,7 +192,9 @@ The plugin system loads modules listed in `XYTE_PLUGINS`, allowing hooks on even
 
 ### Running Tests
 
+Activate the provided virtual environment first:
 ```bash
+source venv/bin/activate
 pytest
 ```
 
@@ -214,17 +228,15 @@ plugins.
 
 Prometheus metrics are exposed at the `/metrics` endpoint. These include request
 counts and latency histograms for tools, resources and underlying API calls. You
-can visualize them using Grafana (see `docs/grafana_dashboard.json` for an
+can visualize them using Grafana (see `grafana/xyte_mcp_dashboard.json` for an
 example dashboard).
 
 ## API Reference
 
 ### Environment Variables
 
-- `XYTE_API_KEY` (required) - Your Xyte organization API key
-- `XYTE_OAUTH_TOKEN` (optional) - OAuth2 access token instead of API key
+- `XYTE_API_KEY` (optional) - Xyte organization API key. Leave empty for hosted deployments
 - `XYTE_BASE_URL` (optional) - Override the API base URL (defaults to production)
-- `XYTE_USER_TOKEN` (optional) - Per-user token to override the global API key
 - `XYTE_CACHE_TTL` (optional) - TTL in seconds for cached API responses (default 60)
 - `XYTE_ENV` (optional) - Deployment environment name (`dev`, `staging`, `prod`)
 - `XYTE_RATE_LIMIT` (optional) - Maximum MCP requests per minute (default 60)
@@ -281,7 +293,7 @@ Destructive tools like `send_command` and `delete_device` now accept a `dry_run`
 
 ## Troubleshooting
 
-If you receive `unauthorized` errors, verify that `XYTE_API_KEY` is correct and has the required permissions. Use `XYTE_USER_TOKEN` when acting on behalf of a specific user. Increase `XYTE_RATE_LIMIT` if you hit rate limit errors during development.
+If you receive `unauthorized` errors, verify that `XYTE_API_KEY` is correct and has the required permissions. Increase `XYTE_RATE_LIMIT` if you hit rate limit errors during development.
 
 ## License
 

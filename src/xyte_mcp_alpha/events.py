@@ -1,15 +1,19 @@
-"""Event handling utilities for asynchronous automation."""
-
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Dict, Optional
+import os
+import json
+import logging
+from typing import Any, Dict
+
+from redis.asyncio import Redis
 
 from . import plugin
 from .logging_utils import log_json
-import logging
-
 from pydantic import BaseModel, Field
+
+redis = Redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+STREAM = "mcp_events"
+GROUP = "mcp_consumers"
 
 
 class Event(BaseModel):
@@ -19,32 +23,34 @@ class Event(BaseModel):
     data: Dict[str, Any] = Field(default_factory=dict, description="Event payload")
 
 
-# Global queue storing incoming events
-_event_queue: asyncio.Queue[Event] = asyncio.Queue()
-
-
-async def push_event(event: Event) -> None:
-    """Add an event to the queue."""
-    await _event_queue.put(event)
-    log_json(logging.INFO, event="push_event", event_type=event.type)
-    # Notify plugins about the new event
-    plugin.fire_event(event.model_dump())
-
-
-class GetNextEventRequest(BaseModel):
-    """Arguments for ``get_next_event`` tool."""
-
-    event_type: Optional[str] = Field(
-        None, description="Only return events matching this type if provided"
+async def push_event(evt: Event | Dict[str, Any]) -> None:
+    """Publish an event to the Redis stream and plugins."""
+    if isinstance(evt, Event):
+        payload = evt.model_dump()
+    else:
+        payload = evt
+    await redis.xadd(
+        STREAM,
+        {k: json.dumps(v) for k, v in payload.items()},
+        maxlen=10000,
+        approximate=True,
     )
+    log_json(logging.INFO, event="push_event", event_type=payload.get("type"))
+    plugin.fire_event(payload)
 
 
-async def get_next_event(params: GetNextEventRequest) -> Dict[str, Any]:
-    """Return the next queued event matching the optional type."""
-    while True:
-        event = await _event_queue.get()
-        if params.event_type is None or event.type == params.event_type:
-            log_json(logging.INFO, event="get_next_event", event_type=event.type)
-            return event.model_dump()
-        # Otherwise, put it back at the end of the queue and continue searching
-        await _event_queue.put(event)
+async def pull_event(consumer: str, block: int = 5000) -> Dict[str, Any] | None:
+    """Retrieve the next event for a consumer from the Redis stream."""
+    try:
+        await redis.xgroup_create(STREAM, GROUP, id="$", mkstream=True)
+    except Exception:
+        pass
+    resp = await redis.xreadgroup(GROUP, consumer, {STREAM: ">"}, 1, block)
+    if not resp:
+        return None
+    _, evts = resp[0]
+    eid, raw = evts[0]
+    await redis.xack(STREAM, GROUP, eid)
+    result = {k.decode(): json.loads(v) for k, v in raw.items()}
+    log_json(logging.INFO, event="pull_event", event_type=result.get("type"))
+    return result

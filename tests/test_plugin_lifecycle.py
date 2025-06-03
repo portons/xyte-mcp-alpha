@@ -5,6 +5,7 @@ import logging
 
 from xyte_mcp_alpha import plugin, events
 from xyte_mcp_alpha.logging_utils import log_json
+from tests.dummy_redis import DummyRedis
 
 
 class PluginLifecycleTestCase(unittest.IsolatedAsyncioTestCase):
@@ -13,6 +14,7 @@ class PluginLifecycleTestCase(unittest.IsolatedAsyncioTestCase):
         import tests.helper_plugin as helper
         helper.received_events.clear()
         helper.received_logs.clear()
+        events.redis = DummyRedis()
 
     async def test_reload_and_entrypoint_discovery(self):
         os.environ["XYTE_PLUGINS"] = ""

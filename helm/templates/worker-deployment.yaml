@@ -1,0 +1,36 @@
+{{- if .Values.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyte-mcp-worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: xyte-mcp-worker
+  template:
+    metadata:
+      labels:
+        app: xyte-mcp-worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 1000
+      containers:
+      - name: worker
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        command: ["celery", "-A", "xyte_mcp_alpha.celery_app", "worker", "-Q", "long", "-c", "2"]
+        {{- if not .Values.multiTenant }}
+        env:
+        - name: XYTE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: api_key
+        {{- end }}
+        envFrom:
+        - configMapRef:
+            name: xyte-config
+        resources:
+{{ toYaml .Values.worker.resources | indent 10 }}
+{{- end }}

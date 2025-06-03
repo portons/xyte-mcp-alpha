@@ -1,4 +1,5 @@
 replicaCount: 1
+multiTenant: false
 image:
   repository: xyte-mcp
   tag: latest
@@ -10,8 +11,31 @@ service:
 env:
   XYTE_API_KEY: ""
   XYTE_BASE_URL: "https://hub.xyte.io/core/v1/organization"
-  XYTE_USER_TOKEN: ""
   XYTE_CACHE_TTL: "60"
   XYTE_ENV: "prod"
   XYTE_RATE_LIMIT: "60"
   MCP_INSPECTOR_PORT: "8080"
+  REDIS_URL: "redis://xyte-redis-master.data.svc:6379/0"
+  DATABASE_URL: "postgresql+asyncpg://mcp:pass@xyte-pg.data.svc/mcp"
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+
+worker:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+ingress:
+  enabled: true
+  hosts:
+    - mcp.example.com
+  tls:
+    - hosts:
+        - mcp.example.com
+      secretName: mcp-tls

@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyte-mcp-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: xyte-mcp-worker
+  template:
+    metadata:
+      labels:
+        app: xyte-mcp-worker
+    spec:
+      containers:
+      - name: worker
+        image: xyte-mcp:latest
+        command: ["celery", "-A", "xyte_mcp_alpha.celery_app", "worker", "-Q", "long", "-c", "2"]
+        env:
+        - name: XYTE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xyte-secrets
+              key: api_key
+        envFrom:
+        - configMapRef:
+            name: xyte-config
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi

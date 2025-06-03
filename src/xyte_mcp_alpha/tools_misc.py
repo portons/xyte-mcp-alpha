@@ -6,7 +6,6 @@ import anyio
 
 from .deps import get_client
 from .utils import handle_api, get_session_state, validate_device_id, MCPError
-from . import resources
 from mcp.server.fastmcp.server import Context
 from .client import (
     ClaimDeviceRequest,
@@ -340,6 +339,8 @@ async def find_and_control_device(
         device_id=device.get("id"),
         name=data.action,
         friendly_name=data.action.replace("_", " "),
+        file_id=None,
+        dry_run=False,
         extra_params={"input": data.input_source_hint} if data.input_source_hint else {},
     )
     result = await send_command(cmd, ctx=ctx)
@@ -370,9 +371,20 @@ async def diagnose_av_issue(
     if not device:
         raise MCPError(code="device_not_found", message="No device found for room")
 
-    status = await resources.device_status(device["id"])
+    async with get_client() as client:
+        status = await handle_api("get_device", client.get_device(device["id"]))
     histories = await search_device_histories(
-        SearchDeviceHistoriesRequest(device_id=device["id"]),
+        SearchDeviceHistoriesRequest(
+            status=None,
+            from_date=None,
+            to_date=None,
+            device_id=device["id"],
+            space_id=None,
+            name=None,
+            order=None,
+            page=None,
+            limit=None,
+        ),
         ctx=ctx,
     )
 

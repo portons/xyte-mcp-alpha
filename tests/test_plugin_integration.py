@@ -5,6 +5,7 @@ import unittest
 os.environ.setdefault("XYTE_API_KEY", "test")
 from xyte_mcp_alpha import plugin, events
 from xyte_mcp_alpha.logging_utils import log_json
+from tests.dummy_redis import DummyRedis
 
 class PluginHookTestCase(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -15,6 +16,7 @@ class PluginHookTestCase(unittest.IsolatedAsyncioTestCase):
         import tests.helper_plugin as helper
         helper.received_events.clear()
         helper.received_logs.clear()
+        events.redis = DummyRedis()
 
     async def test_event_and_log_hooks(self):
         await events.push_event(events.Event(type="test", data={"a": 1}))

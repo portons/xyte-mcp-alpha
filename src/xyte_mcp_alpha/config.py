@@ -1,4 +1,5 @@
 from functools import lru_cache
+import logging
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,11 +10,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     xyte_api_key: str | None = Field(default=None, alias="XYTE_API_KEY")
-    xyte_oauth_token: str | None = Field(default=None, alias="XYTE_OAUTH_TOKEN")
     xyte_base_url: str = Field(
         default="https://hub.xyte.io/core/v1/organization", alias="XYTE_BASE_URL"
     )
-    xyte_user_token: str | None = Field(default=None, alias="XYTE_USER_TOKEN")
     xyte_cache_ttl: int = Field(default=60, alias="XYTE_CACHE_TTL")
     environment: str = Field(default="prod", alias="XYTE_ENV")
     rate_limit_per_minute: int = Field(default=60, alias="XYTE_RATE_LIMIT")
@@ -25,6 +24,15 @@ class Settings(BaseSettings):
     xyte_api_mapping: str | None = Field(default=None, alias="XYTE_API_MAPPING")
     xyte_hooks_module: str | None = Field(default=None, alias="XYTE_HOOKS_MODULE")
     log_level: str = Field(default="INFO", alias="XYTE_LOG_LEVEL")
+    enable_swagger: bool = Field(default=False, alias="XYTE_ENABLE_SWAGGER")
+    enable_async_tasks: bool = Field(
+        default=False, alias="ENABLE_ASYNC_TASKS"
+    )
+
+    @property
+    def multi_tenant(self) -> bool:
+        """Return ``True`` when running without a baked-in API key."""
+        return not (self.xyte_api_key and self.xyte_api_key.strip())
 
 
 @lru_cache()
@@ -42,8 +50,11 @@ def reload_settings() -> None:
 
 def validate_settings(settings: Settings) -> None:
     """Validate critical configuration values and raise ``ValueError`` if invalid."""
-    if not (settings.xyte_api_key or settings.xyte_oauth_token or settings.xyte_user_token):
-        raise ValueError("XYTE_API_KEY, XYTE_OAUTH_TOKEN, or XYTE_USER_TOKEN must be set")
+    logger = logging.getLogger(__name__)
+    if settings.multi_tenant:
+        logger.info("starting in multi-tenant mode")
+    else:
+        logger.info("starting in single-tenant mode")
     if settings.rate_limit_per_minute <= 0:
         raise ValueError("XYTE_RATE_LIMIT must be positive")
     if settings.xyte_cache_ttl <= 0:

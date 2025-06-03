@@ -1,7 +1,14 @@
+import os
 import unittest
 import httpx
+import pytest
+
+os.environ.pop("XYTE_API_KEY", None)
+
+from xyte_mcp_alpha import http as http_mod
 
 from xyte_mcp_alpha.utils import handle_api, MCPError
+
 
 class ErrorMappingTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_http_status_error_mapping_invalid_params(self):
@@ -38,6 +45,39 @@ class ErrorMappingTestCase(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(MCPError) as cm:
             await handle_api("get_device", failing())
         self.assertEqual(cm.exception.code, "device_not_found")
+
+
+OK = {"Authorization": "X" * 40}
+
+
+transport = httpx.ASGITransport(app=http_mod.app)
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.mark.anyio
+async def test_missing_key():
+    async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
+        r = await c.get("/v1/devices")
+    assert r.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_rate_limit(monkeypatch):
+    from starlette.responses import Response
+
+    async def deny(self, scope, receive, send):
+        resp = Response("Rate limit", status_code=429)
+        await resp(scope, receive, send)
+
+    monkeypatch.setattr(http_mod.RateLimitMiddleware, "__call__", deny)
+    async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
+        r = await c.get("/v1/devices", headers=OK)
+    assert r.status_code == 429
+
 
 if __name__ == "__main__":
     unittest.main()

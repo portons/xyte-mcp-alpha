@@ -6,7 +6,7 @@ from mcp.client.stdio import stdio_client, StdioServerParameters
 
 
 async def main() -> None:
-    params = StdioServerParameters(command=["serve"])
+    params = StdioServerParameters(command="serve")
     async with stdio_client(params) as client:
         print("Interactive MCP API playground. Type 'quit' to exit.")
         while True:

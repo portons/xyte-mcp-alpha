@@ -12,6 +12,7 @@ from .server import get_server
 from .logging_utils import RequestLoggingMiddleware
 from .config import get_settings
 from .http_utils import RateLimitMiddleware
+from .auth_xyte import AuthHeaderMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
 
@@ -20,8 +21,9 @@ def build_openapi(app: Starlette) -> Dict[str, Any]:
 
     paths: Dict[str, Any] = {}
     for route in app.routes:
-        if hasattr(route, "path"):
-            paths["/v1" + route.path] = {}
+        path = getattr(route, "path", None)
+        if path:
+            paths["/v1" + path] = {}
     return {
         "openapi": "3.0.0",
         "info": {"title": "Xyte MCP API", "version": "1.0"},
@@ -31,6 +33,7 @@ def build_openapi(app: Starlette) -> Dict[str, Any]:
 
 internal_app = get_server().streamable_http_app()
 internal_app.add_middleware(RequestLoggingMiddleware)
+internal_app.add_middleware(AuthHeaderMiddleware)
 settings = get_settings()
 internal_app.add_middleware(
     RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute
@@ -47,13 +50,11 @@ routes = [Mount("/v1", app=internal_app)]
 app = Starlette(routes=routes)
 
 
-@app.route("/v1/openapi.json")
 async def openapi_spec(request) -> JSONResponse:
     schema = build_openapi(internal_app)
     return JSONResponse(schema)
 
 
-@app.route("/v1/docs")
 async def api_docs(request) -> HTMLResponse:
     html = """
     <html>
@@ -65,6 +66,9 @@ async def api_docs(request) -> HTMLResponse:
     """
     return HTMLResponse(html)
 
+app.add_route("/v1/openapi.json", openapi_spec, methods=["GET"])
+app.add_route("/v1/docs", api_docs, methods=["GET"])
+
 
 def main() -> None:
     """Run the HTTP server using Uvicorn."""
@@ -72,7 +76,9 @@ def main() -> None:
 
     settings = get_settings()
     uvicorn.run(
-        "xyte_mcp_alpha.http:app", host=settings.mcp_inspector_host, port=settings.mcp_inspector_port
+        "xyte_mcp_alpha.http:app",
+        host=settings.mcp_inspector_host,
+        port=settings.mcp_inspector_port,
     )
 
 

@@ -4,6 +4,7 @@ import sys
 import time
 import uuid
 from contextvars import ContextVar
+from starlette.requests import Request
 from typing import Any, Callable, Awaitable
 from functools import wraps
 from prometheus_client import Histogram, Counter
@@ -21,6 +22,8 @@ import xyte_mcp_alpha.plugin as plugin
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+# Store the active Request object so downstream functions can access it
+request_var: ContextVar[Request | None] = ContextVar("request", default=None)
 
 # Prometheus metrics for HTTP and tool/resource handling
 HTTP_REQUEST_LATENCY = Histogram(
@@ -33,9 +36,7 @@ HTTP_REQUEST_COUNT = Counter(
     "HTTP request count",
     ["method", "path", "status"],
 )
-TOOL_LATENCY = Histogram(
-    "xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"]
-)
+TOOL_LATENCY = Histogram("xyte_tool_latency_seconds", "Latency of tool handlers", ["tool"])
 RESOURCE_LATENCY = Histogram(
     "xyte_resource_latency_seconds",
     "Latency of resource handlers",
@@ -125,10 +126,19 @@ class RequestLoggingMiddleware:
             return
 
         request_id = str(uuid.uuid4())
-        token = request_id_var.set(request_id)
+        token_ctx = request_id_var.set(request_id)
+        req = Request(scope, receive)
+        token_req = request_var.set(req)
         method = scope.get("method")
         path = scope.get("path")
         start = time.monotonic()
+
+        auth_header = None
+        for k, v in scope.get("headers", []):
+            if k.decode().lower() == "authorization":
+                header_token = v.decode()
+                auth_header = (header_token[:4] + "****") if len(header_token) > 4 else "****"
+                break
 
         log_json(
             logging.INFO,
@@ -136,6 +146,7 @@ class RequestLoggingMiddleware:
             method=method,
             path=path,
             request_id=request_id,
+            authorization=auth_header,
         )
 
         status_code: int | None = None
@@ -150,9 +161,7 @@ class RequestLoggingMiddleware:
                     status=status_code,
                     request_id=request_id,
                 )
-            if message["type"] == "http.response.body" and not message.get(
-                "more_body", False
-            ):
+            if message["type"] == "http.response.body" and not message.get("more_body", False):
                 duration = time.monotonic() - start
                 duration_ms = duration * 1000
                 log_json(
@@ -168,7 +177,8 @@ class RequestLoggingMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            request_id_var.reset(token)
+            request_id_var.reset(token_ctx)
+            request_var.reset(token_req)
 
 
 def instrument(
