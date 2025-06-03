@@ -8,3 +8,5 @@ data:
   XYTE_ENV: "prod"
   XYTE_RATE_LIMIT: "60"
   MCP_INSPECTOR_PORT: "8080"
+  REDIS_URL: "redis://xyte-redis-master.data.svc:6379/0"
+  DATABASE_URL: "postgresql+asyncpg://mcp:pass@xyte-pg.data.svc/mcp"

@@ -1,0 +1,10 @@
+groups:
+- name: mcp
+  rules:
+  - alert: MCPHighErrorRate
+    expr: sum(rate(mcp_tool_errors_total[5m])) / sum(rate(mcp_tool_invocations_total[5m])) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MCP error rate >5%"
