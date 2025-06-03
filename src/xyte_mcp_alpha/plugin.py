@@ -69,7 +69,7 @@ def _load_from_entrypoints() -> None:
             group_eps = eps.select(group=ENTRYPOINT_GROUP)
         else:
             # Handle older API - just return empty list if not found
-            group_eps = eps.get(ENTRYPOINT_GROUP, [])  # type: ignore[arg-type]
+            group_eps = eps.get(ENTRYPOINT_GROUP, [])  # type: ignore[arg-type,attr-defined]
         for ep in group_eps:
             try:
                 candidate = cast(MCPPlugin, getattr(ep.load(), "plugin", ep.load()))
