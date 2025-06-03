@@ -52,9 +52,9 @@ def validate_settings(settings: Settings) -> None:
     """Validate critical configuration values and raise ``ValueError`` if invalid."""
     logger = logging.getLogger(__name__)
     if settings.multi_tenant:
-        logger.info("starting in multi-tenant mode")
+        logger.info("Running in multi-tenant mode")
     else:
-        logger.info("starting in single-tenant mode")
+        logger.info("Running in single-tenant mode")
     if settings.rate_limit_per_minute <= 0:
         raise ValueError("XYTE_RATE_LIMIT must be positive")
     if settings.xyte_cache_ttl <= 0:
