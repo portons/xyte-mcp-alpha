@@ -12,7 +12,8 @@ async def start_meeting_room_preset(
     """Power on and configure all devices for the given room preset."""
     f = Path(__file__).resolve().parent.parent / "presets" / f"{preset}.yaml"
     steps = yaml.safe_load(f.read_text())
-    async with get_client() as client:
+    req_obj = ctx.request_context.request if ctx else None
+    async with get_client(req_obj) as client:
         for step in steps:
             cmd = CommandRequest(
                 name=step["command"],

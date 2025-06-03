@@ -32,9 +32,9 @@ No branch-flow instructions are included—just the work itself.
 
 | Step | Action                                                                                                                                               | Rationale                                                                        |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 3.1  | Extend `deps.get_client()` signature to accept `Request`; resolve key:  <br>`key = request.state.xyte_key or settings.xyte_api_key`.                 | Single function now covers both modes—call-sites don’t need to think about auth. |
-| 3.2  | Refactor every resource/tool/task that currently calls `get_client()` to pass `request` (use dependency injection where FastAPI routes are defined). | Keeps call signatures explicit but lightweight; no hidden globals.               |
-| 3.3  | Delete any accidental use of `settings.xyte_api_key` elsewhere in code except as the single-tenant fallback.                                         | Guarantees header override always wins in multi-tenant mode.                     |
+| [x] 3.1 | Extend `deps.get_client()` signature to accept `Request`; resolve key:  <br>`key = request.state.xyte_key or settings.xyte_api_key`.                 | Single function now covers both modes—call-sites don’t need to think about auth. |
+| [x] 3.2 | Refactor every resource/tool/task that currently calls `get_client()` to pass `request` (use dependency injection where FastAPI routes are defined). | Keeps call signatures explicit but lightweight; no hidden globals.               |
+| [x] 3.3 | Delete any accidental use of `settings.xyte_api_key` elsewhere in code except as the single-tenant fallback.                                         | Guarantees header override always wins in multi-tenant mode.                     |
 
 ---
 
