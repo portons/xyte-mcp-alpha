@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from starlette.requests import Request
@@ -10,7 +12,7 @@ from .config import get_settings
 class AuthHeaderMiddleware(BaseHTTPMiddleware):
     """Validate Authorization header depending on deployment mode."""
 
-    def __init__(self, app: any) -> None:  # type: ignore[override]
+    def __init__(self, app: Any) -> None:  # type: ignore[override]
         super().__init__(app)
         self.settings = get_settings()
 
