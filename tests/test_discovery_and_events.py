@@ -34,6 +34,7 @@ class DiscoveryEventTestCase(unittest.TestCase):
             return await asyncio.wait_for(events.pull_event("test"), 1)
 
         event = asyncio.run(wait_event())
+        assert event is not None
         self.assertEqual(event['data']['id'], 'abc')
 
 

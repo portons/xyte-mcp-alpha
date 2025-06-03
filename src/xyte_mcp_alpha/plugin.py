@@ -6,7 +6,7 @@ import importlib
 import importlib.metadata
 import logging
 import os
-from typing import Iterable, List, Protocol
+from typing import Iterable, List, Protocol, cast
 from .logging_utils import log_json
 
 PLUGIN_API_VERSION = "1.0"
@@ -56,7 +56,8 @@ def _load_from_paths(paths: Iterable[str]) -> None:
     for path in paths:
         try:
             module = importlib.import_module(path)
-            register_plugin(getattr(module, "plugin", module))
+            candidate = cast(MCPPlugin, getattr(module, "plugin", module))
+            register_plugin(candidate)
         except Exception as exc:  # pragma: no cover - plugin loading should not fail tests
             log_json(logging.ERROR, event="plugin_load_error", plugin=path, error=str(exc))
 
@@ -71,7 +72,8 @@ def _load_from_entrypoints() -> None:
             group_eps = eps.get(ENTRYPOINT_GROUP, [])  # type: ignore[arg-type]
         for ep in group_eps:
             try:
-                register_plugin(getattr(ep.load(), "plugin", ep.load()))
+                candidate = cast(MCPPlugin, getattr(ep.load(), "plugin", ep.load()))
+                register_plugin(candidate)
             except Exception as exc:  # pragma: no cover - don't break on plugin errors
                 log_json(logging.ERROR, event="plugin_entry_point_error", plugin=ep.name, error=str(exc))
     except Exception as exc:  # pragma: no cover - optional feature

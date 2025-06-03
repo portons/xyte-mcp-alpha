@@ -30,6 +30,8 @@ ENV/
 virtual_env/
 .venv/
 
+# Environment
+.env
 # IDE
 .vscode/
 .idea/
