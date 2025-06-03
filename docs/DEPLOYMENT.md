@@ -3,6 +3,16 @@
 This project provides a Helm chart and raw Kubernetes manifests for deploying the
 MCP server.
 
+## Mode Matrix
+
+Use the chart in one of three modes depending on your deployment needs.
+
+| Mode | Purpose | Sample `values.yaml` snippet |
+|------|---------|-----------------------------|
+| **Single-tenant** | API key baked into the deployment. | `multiTenant: false`<br>`env:`<br>&nbsp;&nbsp;`XYTE_API_KEY: "YOUR_KEY"` |
+| **Multi-tenant** | Hosted environment where each request provides its own key. | `multiTenant: true`<br>`env:`<br>&nbsp;&nbsp;`XYTE_API_KEY: ""` |
+| **Multi-tenant + Celery** | Hosted mode with asynchronous commands enabled. | `multiTenant: true`<br>`env:`<br>&nbsp;&nbsp;`XYTE_API_KEY: ""`<br>&nbsp;&nbsp;`ENABLE_ASYNC_TASKS: "true"`<br>`worker:`<br>&nbsp;&nbsp;`enabled: true` |
+
 ## Installing with Helm
 
 1. Ensure you have `helm` installed and access to a Kubernetes cluster.

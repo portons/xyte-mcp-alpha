@@ -1,6 +1,8 @@
 # Plugin System
 
-This document explains how to extend the MCP server with Python plugins.
+This document explains how to extend the MCP server with Python plugins. Set
+the `XYTE_PLUGINS` environment variable (or add it to your `.env` file) with a
+comma separated list of modules to load.
 
 ## Installation
 
