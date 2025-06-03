@@ -1,6 +1,10 @@
+import os
 import unittest
 import httpx
 import pytest
+
+os.environ.pop("XYTE_API_KEY", None)
+
 from xyte_mcp_alpha import http as http_mod
 
 from xyte_mcp_alpha.utils import handle_api, MCPError
