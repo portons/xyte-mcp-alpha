@@ -2,51 +2,58 @@
 name = "xyte-mcp-alpha"
 version = "1.1.0"
 description = "MCP server for Xyte organization API"
-authors = [{name = "Your Name", email = "your.email@example.com"}]
-license = {text = "MIT"}
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+license = { text = "MIT" }
 readme = "README.md"
 
-#  ── bump floor to match repo & Dockerfile ──
+# MCP code and Dockerfile both target 3.11
 requires-python = ">=3.11"
 
-#  ── FULL RUNTIME DEP LIST ──
+# ───────── FULL PACKAGE LIST (runtime + tooling) ─────────
 dependencies = [
-    # MCP core
+    # ── MCP core & HTTP stack ──
     "mcp[cli]>=1.1.0",
     "starlette>=0.36",
     "uvicorn[standard]>=0.29",
 
-    # Auth helpers
+    # ── Auth helpers ──
     "python-multipart>=0.0.9",
     "passlib[bcrypt]>=1.7",
 
-    # HTTP / client cache (already present)
+    # ── HTTP client & caching ──
     "httpx>=0.27.0",
     "cachetools>=5.3.0",
 
-    # Redis Streams, rate-limit, Celery broker
+    # ── Redis / Streams / Lua ──
     "redis[async]>=5.0",
 
-    # Postgres async ORM
+    # ── Postgres async ORM ──
     "sqlmodel>=0.0.12",
     "asyncpg>=0.29",
 
-    # Background tasks
+    # ── Background tasks ──
     "celery[redis]>=5.3",
 
-    # YAML & JWT utilities
+    # ── YAML & JWT utilities ──
     "pyyaml>=6.0",
     "pyjwt>=2.8",
 
-    # Observability
+    # ── Observability ──
     "prometheus-client>=0.19.0",
     "opentelemetry-sdk>=1.25.0",
 
-    # Config / env
+    # ── Config / env ──
     "python-dotenv>=1.0.0",
 
-    # Data validation
+    # ── Data validation ──
     "pydantic>=2.0.0",
+
+    # ── Tooling & QA (needed because install runs only once) ──
+    "pytest>=8.2",
+    "ruff>=0.4",
+    "pyright>=1.1",
+    "safety>=3.2",
+    "mkdocs-material>=9.5",
 ]
 
 [project.scripts]
@@ -55,7 +62,7 @@ serve = "xyte_mcp_alpha:serve"
 [project.urls]
 Homepage = "https://github.com/portons/xyte-mcp-alpha"
 
-#  ── DEV-ONLY EXTRAS (install via `pip install .[dev]`) ──
+# ── Optional-dependencies table can stay, but Codex won’t honor it ──
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2",
