@@ -17,6 +17,8 @@ jobs:
           python-version: '3.11'
       - run: pip install ruff
       - run: ruff check src tests
+      - run: pip install bandit
+      - run: bandit -r src -ll
 
   typecheck:
     runs-on: ubuntu-latest
@@ -68,4 +70,14 @@ jobs:
           docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           digest=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/${{ github.repository }}:${{ github.ref_name }})
           echo "digest=$digest" >> $GITHUB_OUTPUT
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: aquasecurity/trivy-action@v0.20.0
+        with:
+          scan-type: 'fs'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
