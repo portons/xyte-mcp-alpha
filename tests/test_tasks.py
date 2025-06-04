@@ -78,6 +78,17 @@ class TaskStatusTestCase(unittest.IsolatedAsyncioTestCase):
             os.environ["ENABLE_ASYNC_TASKS"] = "true"
             from xyte_mcp_alpha.config import reload_settings
             reload_settings()
+            
+            # Set up the request_var context
+            from xyte_mcp_alpha.logging_utils import request_var
+            
+            # Create a mock request object
+            class MockRequest:
+                state = type('MockState', (), {'xyte_key': 'X' * 40})()
+            
+            # Set the request context variable
+            request_var.set(MockRequest())
+            
             ctx = DummyCtx()
             req = SendCommandRequest(
                 device_id="1",
