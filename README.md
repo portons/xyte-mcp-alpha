@@ -23,6 +23,21 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
   }
 }
 ```
+* Not yet uploaded to PyPI, so use the local path
+
+```json
+{
+  "mcpServers": {
+    "xyte-mcp": {
+      "command": "/path/to/xyte-mcp-alpha/venv/bin/python",
+      "args": ["-m", "xyte_mcp_alpha"],
+      "env": {
+        "XYTE_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
 
 ### 2. Replace YOUR_API_KEY_HERE with your actual key
 
