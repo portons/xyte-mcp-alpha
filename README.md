@@ -15,7 +15,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 ### Local / single-tenant
 
 1. Edit `.env` and set `XYTE_API_KEY=<key>`.
-2. Start the server:
+2. Start the server (set `ENABLE_ASYNC_TASKS=true` if you plan to run a Celery worker):
    ```bash
    python -m xyte_mcp_alpha.http
    ```
@@ -27,7 +27,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 ### Cloud / multi-tenant
 
 1. Leave `XYTE_API_KEY` empty in `.env`.
-2. Start the server (same command as above).
+2. Start the server (same command as above; set `ENABLE_ASYNC_TASKS=true` if using Celery).
 3. Call the API with your key header:
    ```bash
    curl -H "Authorization: $KEY" http://localhost:8080/v1/devices
