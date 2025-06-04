@@ -13,6 +13,43 @@ MCP server.
    ```
 3. Override `image.repository` or `image.tag` if you push a custom image.
 
+## Deployment Modes
+
+The chart can run in three modes depending on your credentials and whether you
+use Celery for background tasks.
+
+| Mode | multiTenant | XYTE_API_KEY | ENABLE_ASYNC_TASKS | Notes |
+|------|-------------|--------------|--------------------|------|
+| Single-tenant | `false` | set | `false` | API key baked into the pod |
+| Multi-tenant | `true` | omit | `false` | Each request supplies the key |
+| Multi-tenant + Celery | `true` | omit | `true` | Requires worker and Redis |
+
+### Sample `values.yaml`
+
+Single-tenant:
+
+```yaml
+multiTenant: false
+env:
+  XYTE_API_KEY: "your-key"
+```
+
+Multi-tenant:
+
+```yaml
+multiTenant: true
+```
+
+Multi-tenant with Celery:
+
+```yaml
+multiTenant: true
+env:
+  ENABLE_ASYNC_TASKS: "true"
+worker:
+  enabled: true
+```
+
 ## Key Values
 
 - **image.repository** – Docker image to run.
@@ -78,17 +115,6 @@ executes the command synchronously and returns the result. Enabling the flag
 requires running Redis and a Celery worker (see sample `docker-compose.celery.yaml`)
 and tasks will persist across restarts.
 
-## Multi-tenant Helm Values
-
-To deploy in hosted (multi-tenant) mode, set `multiTenant=true` and omit the API key.
-Add `ENABLE_ASYNC_TASKS=true` and run a worker deployment if you need asynchronous commands:
-
-```yaml
-multiTenant: true
-env:
-  XYTE_API_KEY: ""
-  ENABLE_ASYNC_TASKS: "true"
-```
 
 ## Health Probes
 

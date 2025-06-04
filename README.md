@@ -10,15 +10,34 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 
 1. Ensure Python 3.11+ is installed and clone the repo.
 2. Create a virtualenv and install the project: `pip install -e .`.
-3. Copy `.env.example` to `.env` and then decide which mode to run:
+3. Copy `.env.example` to `.env`.
 
-|                     | Local (Single-tenant) | Hosted (Multi-tenant) |
-|---------------------|----------------------|-----------------------|
-| Env vars            | `XYTE_API_KEY=<key>` | *(leave blank)*       |
-| Optional async      | `ENABLE_ASYNC_TASKS=true` | `ENABLE_ASYNC_TASKS=true` |
-| Start server        | `python -m xyte_mcp_alpha.http` | `python -m xyte_mcp_alpha.http` |
-| Auth header         | none                 | `Authorization: <key>` |
-| Example curl        | `curl http://localhost:8080/v1/devices` | `curl -H "Authorization: $KEY" http://localhost:8080/v1/devices` |
+### Local / single-tenant
+
+Set the API key in `.env` and start the server:
+
+```bash
+XYTE_API_KEY=your-key
+python -m xyte_mcp_alpha.http
+```
+
+Query devices:
+
+```bash
+curl http://localhost:8080/v1/devices
+```
+
+### Cloud / multi-tenant
+
+Leave `XYTE_API_KEY` blank and supply it per-request:
+
+```bash
+python -m xyte_mcp_alpha.http
+```
+
+```bash
+curl -H "Authorization: $KEY" http://localhost:8080/v1/devices
+```
 
 ### Async Tasks
 
