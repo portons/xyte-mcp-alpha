@@ -50,6 +50,16 @@ routes = [Mount("/v1", app=internal_app)]
 
 app = Starlette(routes=routes)
 
+# Optional Swagger UI using FastAPI
+if settings.enable_swagger:
+    try:
+        from .swagger_setup import create_documented_app
+    except ImportError:
+        import logging
+        logging.getLogger(__name__).warning("FastAPI not installed; Swagger disabled")
+    else:
+        app = create_documented_app(app)
+
 
 async def openapi_spec(request) -> JSONResponse:
     schema = build_openapi(internal_app)
