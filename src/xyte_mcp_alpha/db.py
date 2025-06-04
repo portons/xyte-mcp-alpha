@@ -28,6 +28,8 @@ def _get_engine():
 @asynccontextmanager
 async def get_session() -> AsyncIterator[AsyncSession]:
     _get_engine()  # Ensure engine is initialized
+    if _SessionLocal is None:
+        raise RuntimeError("Database not initialized")
     async with _SessionLocal() as session:
         yield session
 
