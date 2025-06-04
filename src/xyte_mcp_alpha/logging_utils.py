@@ -93,9 +93,11 @@ def configure_logging(level: int | None = None) -> None:
         level = getattr(logging, level_name, logging.INFO)
 
     # Configure logging to stderr to avoid interfering with MCP protocol
-    logging.basicConfig(
-        level=level, format="%(message)s", handlers=[logging.StreamHandler(sys.stderr)]
-    )
+    # Check if we're already configured to avoid overriding
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=level, format="%(message)s", handlers=[logging.StreamHandler(sys.stderr)]
+        )
     provider = TracerProvider()
     # Use our custom stderr exporter instead of the default ConsoleSpanExporter
     provider.add_span_processor(SimpleSpanProcessor(StderrConsoleSpanExporter()))

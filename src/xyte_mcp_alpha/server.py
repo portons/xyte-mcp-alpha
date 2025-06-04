@@ -59,13 +59,16 @@ if TYPE_CHECKING:  # pragma: no cover - optional dependency typing
 else:  # pragma: no cover - fallback when fastapi is absent
     FastAPI = Any  # type: ignore
 
-# Configure structured logging
-configure_logging()
+# Delay logging configuration until runtime
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("audit")
-audit_logger.setLevel(logging.INFO)
 
 # Starlette application with per-request Xyte key middleware
+# Disable access logging
+import logging
+logging.getLogger("uvicorn.access").disabled = True
+logging.getLogger("uvicorn").disabled = True
+
 app = Starlette()
 app.add_middleware(RequireXyteKey)
 
@@ -343,6 +346,56 @@ mcp.tool(
     description="Echo a message back",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
 )(instrument("tool", "echo_command")(tools.echo_command))
+
+# Tool wrappers for common resources
+async def list_all_devices_tool(ctx: Context) -> Dict[str, Any]:
+    """List all devices in the organization."""
+    return await resources.list_devices(_req())
+
+async def list_incidents_tool(ctx: Context) -> Dict[str, Any]:
+    """Get current incidents in the system."""
+    return await resources.list_incidents(_req())
+
+async def list_tickets_tool(ctx: Context) -> Dict[str, Any]:
+    """List all support tickets."""
+    return await resources.list_tickets(_req())
+
+async def get_device_status_tool(ctx: Context, device_id: str) -> Dict[str, Any]:
+    """Get current status of a specific device."""
+    return await resources.device_status(_req(), device_id)
+
+async def get_device_commands_tool(ctx: Context, device_id: str) -> Dict[str, Any]:
+    """Get commands issued to a specific device."""
+    return await resources.list_device_commands(_req(), device_id)
+
+async def get_device_histories_tool(ctx: Context, device_id: str) -> Dict[str, Any]:
+    """Get history records for a specific device."""
+    return await resources.list_device_histories(_req(), device_id)
+
+mcp.tool(
+    description="List all devices in the organization",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "list_devices")(list_all_devices_tool))
+mcp.tool(
+    description="Get current incidents",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "get_incidents")(list_incidents_tool))
+mcp.tool(
+    description="List all support tickets",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "list_tickets")(list_tickets_tool))
+mcp.tool(
+    description="Get device status by ID",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "get_device_status")(get_device_status_tool))
+mcp.tool(
+    description="Get device command history",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "get_device_commands")(get_device_commands_tool))
+mcp.tool(
+    description="Get device history records",
+    annotations=ToolAnnotations(readOnlyHint=True),
+)(instrument("tool", "get_device_histories")(get_device_histories_tool))
 mcp.tool(
     description="Send a command asynchronously",
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
@@ -398,9 +451,23 @@ def get_server() -> Any:
     return mcp
 
 
+def main() -> None:
+    """Main entry point for MCP server."""
+    # Suppress all stdout output during initialization
+    import sys
+    original_stdout = sys.stdout
+    sys.stdout = sys.stderr
+    
+    try:
+        server = get_server()
+        # Restore stdout only for MCP protocol
+        sys.stdout = original_stdout
+        server.run(transport="stdio")
+    except Exception as e:
+        sys.stderr.write(f"Server error: {e}\n")
+        sys.exit(1)
+
+
 # Allow direct execution for development
 if __name__ == "__main__":
-    from .logging_utils import log_json
-
-    log_json(logging.INFO, event="server_start", mode="development")
-    mcp.run(transport="stdio")
+    main()
