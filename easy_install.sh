@@ -34,7 +34,7 @@ cat > "$CLAUDE_CONFIG_DIR/claude_desktop_config.json" << EOF
         "xyte-mcp"
       ],
       "env": {
-        "XYTE_API_KEY": "312209247d1720fdb4b5620178ae5b72"
+        "XYTE_API_KEY": "XYTE_API_KEY"
       }
     }
   }
