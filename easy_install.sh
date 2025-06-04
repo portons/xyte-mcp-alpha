@@ -5,11 +5,22 @@ echo "🚀 Setting up Xyte MCP for Claude Desktop..."
 
 # Check if uv is installed
 if ! command -v uv &> /dev/null; then
-    echo "📦 Installing uv package manager..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    # Add uv to PATH for this script
-    export PATH="$HOME/.local/bin:$PATH"
+    echo "📦 uv package manager not found. Installing..."
+    
+    # Check if homebrew is available (preferred method)
+    if command -v brew &> /dev/null; then
+        echo "🍺 Installing uv via Homebrew..."
+        brew install uv
+    else
+        echo "📥 Installing uv via installer script..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        # Add uv to PATH for this script
+        export PATH="$HOME/.local/bin:$PATH"
+    fi
 fi
+
+# Get the full path to uv
+UV_PATH=$(which uv)
 
 # Install dependencies
 echo "📚 Installing dependencies..."
@@ -40,7 +51,7 @@ cat > "$CLAUDE_CONFIG_DIR/claude_desktop_config.json" << EOF
 {
   "mcpServers": {
     "xyte": {
-      "command": "uv",
+      "command": "$UV_PATH",
       "args": [
         "--directory",
         "$CURRENT_DIR",
