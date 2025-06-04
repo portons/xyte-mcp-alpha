@@ -7,7 +7,8 @@ echo "🚀 Setting up Xyte MCP for Claude Desktop..."
 if ! command -v uv &> /dev/null; then
     echo "📦 Installing uv package manager..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    source $HOME/.cargo/env
+    # Add uv to PATH for this script
+    export PATH="$HOME/.local/bin:$PATH"
 fi
 
 # Install dependencies
@@ -16,6 +17,19 @@ uv sync
 
 # Get current directory
 CURRENT_DIR=$(pwd)
+
+# Check if API key is provided as argument, otherwise prompt
+if [ -z "$1" ]; then
+    echo ""
+    echo "🔑 Enter your Xyte API key:"
+    read -r API_KEY
+    if [ -z "$API_KEY" ]; then
+        echo "❌ API key is required. Please run again and provide your API key."
+        exit 1
+    fi
+else
+    API_KEY="$1"
+fi
 
 # Create Claude config
 echo "⚙️  Configuring Claude Desktop..."
@@ -34,7 +48,7 @@ cat > "$CLAUDE_CONFIG_DIR/claude_desktop_config.json" << EOF
         "xyte-mcp"
       ],
       "env": {
-        "XYTE_API_KEY": "XYTE_API_KEY"
+        "XYTE_API_KEY": "$API_KEY"
       }
     }
   }
@@ -47,4 +61,5 @@ echo "📝 Next steps:"
 echo "1. Restart Claude Desktop"
 echo "2. In Claude, type: 'List all my Xyte devices'"
 echo ""
+echo "🔐 Your API key has been securely saved to Claude's config"
 echo "🎉 That's it! You're ready to use Xyte with Claude."
