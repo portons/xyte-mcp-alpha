@@ -10,7 +10,7 @@ if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
 # Import the server
-from xyte_mcp_alpha.server import get_server  # noqa: E402
+from xyte_mcp.server import get_server  # noqa: E402
 
 # Export the server to be used by mcp dev
 server = get_server()

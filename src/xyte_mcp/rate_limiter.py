@@ -6,7 +6,7 @@ import redis.asyncio as aioredis
 redis_client: aioredis.Redis = aioredis.from_url(
     os.getenv("REDIS_URL", "redis://localhost:6379/0")
 )
-lua = (importlib.resources.files("xyte_mcp_alpha") / "bucket.lua").read_text()
+lua = (importlib.resources.files("xyte_mcp") / "bucket.lua").read_text()
 SHA: Awaitable[str] = redis_client.script_load(lua)
 
 async def consume(key_id: str, limit: int = 60) -> bool:

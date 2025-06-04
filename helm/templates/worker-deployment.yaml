@@ -19,7 +19,7 @@ spec:
       containers:
       - name: worker
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        command: ["celery", "-A", "xyte_mcp_alpha.celery_app", "worker", "-Q", "long", "-c", "2"]
+        command: ["celery", "-A", "xyte_mcp.celery_app", "worker", "-Q", "long", "-c", "2"]
         env:
         {{- if not .Values.multiTenant }}
         - name: XYTE_API_KEY

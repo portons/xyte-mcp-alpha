@@ -5,7 +5,7 @@ import asyncio
 import json
 from mcp.server.lowlevel.server import NotificationOptions
 
-from xyte_mcp_alpha.server import get_server
+from xyte_mcp.server import get_server
 
 
 async def main() -> None:

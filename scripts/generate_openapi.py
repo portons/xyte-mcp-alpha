@@ -2,7 +2,7 @@
 """Generate OpenAPI specification for the MCP server."""
 from pathlib import Path
 import json
-from xyte_mcp_alpha.http import build_openapi, internal_app
+from xyte_mcp.http import build_openapi, internal_app
 
 
 def main() -> None:

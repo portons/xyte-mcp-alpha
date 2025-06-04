@@ -3,8 +3,8 @@ import unittest
 from unittest import mock
 import logging
 
-from xyte_mcp_alpha import plugin, events
-from xyte_mcp_alpha.logging_utils import log_json
+from xyte_mcp import plugin, events
+from xyte_mcp.logging_utils import log_json
 from tests.dummy_redis import DummyRedis
 
 

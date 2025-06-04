@@ -33,7 +33,7 @@ Plugins can be registered in two ways:
    import paths. Each path should point to a module containing a `plugin`
    object or a module implementing the callbacks directly.
 2. **Entry points** – packages may declare an entry point in the group
-   `xyte_mcp_alpha.plugins`. The loader will automatically discover and
+   `xyte_mcp.plugins`. The loader will automatically discover and
    register these plugins on startup.
 
 The server calls `plugin.load_plugins()` during boot which collects plugins from
@@ -67,7 +67,7 @@ Invalid plugins are skipped and a warning is logged.
 
 ```python
 # my_plugin.py
-from xyte_mcp_alpha import plugin
+from xyte_mcp import plugin
 
 class Logger:
     API_VERSION = 1
@@ -89,7 +89,7 @@ export XYTE_PLUGINS=my_plugin:plugin_instance
 Or in `pyproject.toml`:
 
 ```toml
-[project.entry-points."xyte_mcp_alpha.plugins"]
+[project.entry-points."xyte_mcp.plugins"]
 logger = "my_plugin:plugin_instance"
 ```
 

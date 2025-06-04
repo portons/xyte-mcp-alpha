@@ -1,4 +1,4 @@
-"""Main entry point for xyte-mcp-alpha."""
+"""Main entry point for xyte-mcp."""
 # ruff: noqa: E402
 
 from __future__ import annotations
@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 
 
-from xyte_mcp_alpha.server import get_server
+from xyte_mcp.server import get_server
 
 
 

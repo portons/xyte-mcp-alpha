@@ -4,7 +4,7 @@ import httpx
 
 os.environ.pop("XYTE_API_KEY", None)
 
-from xyte_mcp_alpha import http as http_mod
+from xyte_mcp import http as http_mod
 
 transport = httpx.ASGITransport(app=http_mod.app)
 OK = {"Authorization": "X" * 40}
@@ -23,7 +23,7 @@ def no_network(monkeypatch):
         return {}
 
     monkeypatch.setattr(
-        "xyte_mcp_alpha.client.XyteAPIClient.get_devices", noop
+        "xyte_mcp.client.XyteAPIClient.get_devices", noop
     )
 
 
@@ -43,7 +43,7 @@ async def test_multi_tenant_auth(header, expected):
 async def test_single_tenant_no_header(monkeypatch):
     os.environ["XYTE_API_KEY"] = "envkey"
     from importlib import reload
-    from xyte_mcp_alpha.config import reload_settings
+    from xyte_mcp.config import reload_settings
 
     reload_settings()
     reload(http_mod)
@@ -67,7 +67,7 @@ async def test_header_forwarding(monkeypatch):
         async def get_devices(self):
             return {}
 
-    monkeypatch.setattr("xyte_mcp_alpha.deps.XyteAPIClient", Dummy)
+    monkeypatch.setattr("xyte_mcp.deps.XyteAPIClient", Dummy)
 
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
         await c.get("/v1/devices", headers=OK)
@@ -77,7 +77,7 @@ async def test_header_forwarding(monkeypatch):
 async def test_forwarding_single_tenant(monkeypatch):
     os.environ["XYTE_API_KEY"] = "envkey"
     from importlib import reload
-    from xyte_mcp_alpha.config import reload_settings
+    from xyte_mcp.config import reload_settings
 
     reload_settings()
     reload(http_mod)
@@ -95,7 +95,7 @@ async def test_forwarding_single_tenant(monkeypatch):
         async def get_devices(self):
             return {}
 
-    monkeypatch.setattr("xyte_mcp_alpha.deps.XyteAPIClient", Dummy)
+    monkeypatch.setattr("xyte_mcp.deps.XyteAPIClient", Dummy)
 
     async with httpx.AsyncClient(transport=transport2, base_url="http://t") as c:
         await c.get("/v1/devices")

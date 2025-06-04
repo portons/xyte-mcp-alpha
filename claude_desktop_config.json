@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "xyte": {
+      "command": "uvx",
+      "args": ["xyte-mcp"],
+      "env": {
+        "XYTE_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}

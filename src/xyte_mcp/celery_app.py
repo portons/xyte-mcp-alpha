@@ -12,5 +12,5 @@ celery_app = Celery(
 celery_app.conf.update(
     task_acks_late=True,
     task_reject_on_worker_lost=True,
-    task_routes={"xyte_mcp_alpha.worker.long.*": {"queue": "long"}},
+    task_routes={"xyte_mcp.worker.long.*": {"queue": "long"}},
 )

@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from xyte_mcp_alpha.config import Settings, get_settings, validate_settings
+from xyte_mcp.config import Settings, get_settings, validate_settings
 from pydantic_settings import SettingsConfigDict
 
 

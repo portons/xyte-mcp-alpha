@@ -23,7 +23,7 @@ class MCPPlugin(Protocol):
 
 API_VERSION = 1
 
-ENTRYPOINT_GROUP = "xyte_mcp_alpha.plugins"
+ENTRYPOINT_GROUP = "xyte_mcp.plugins"
 
 _PLUGINS: List[MCPPlugin] = []
 

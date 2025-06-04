@@ -25,7 +25,7 @@ services:
 
   worker:
     image: ghcr.io/xyte/mcp:latest
-    command: celery -A xyte_mcp_alpha.celery_app worker -Q long -c 2
+    command: celery -A xyte_mcp.celery_app worker -Q long -c 2
     environment:
       REDIS_URL: "redis://redis:6379/0"
       DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"

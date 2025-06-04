@@ -7,7 +7,7 @@ User=mcp
 WorkingDirectory=/opt/mcp
 Environment="REDIS_URL=redis://127.0.0.1:6379/0"
 Environment="DATABASE_URL=postgresql+asyncpg://mcp:pass@127.0.0.1/mcp"
-ExecStart=/opt/mcp-venv/bin/uvicorn xyte_mcp_alpha.server:app --host 0.0.0.0 --port 8000
+ExecStart=/opt/mcp-venv/bin/uvicorn xyte_mcp.server:app --host 0.0.0.0 --port 8000
 Restart=always
 LimitNOFILE=65536
 

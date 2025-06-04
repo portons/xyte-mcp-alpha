@@ -7,21 +7,21 @@ import json
 from typing import Any, Dict, TYPE_CHECKING
 import inspect
 from starlette.applications import Starlette
-from xyte_mcp_alpha.auth_xyte import RequireXyteKey
+from xyte_mcp.auth_xyte import RequireXyteKey
 
 # Fix import paths for mcp dev
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 # Import everything using absolute imports
-import xyte_mcp_alpha.plugin as plugin
-from xyte_mcp_alpha.config import get_settings, validate_settings
-from xyte_mcp_alpha.events import push_event, pull_event
+import xyte_mcp.plugin as plugin
+from xyte_mcp.config import get_settings, validate_settings
+from xyte_mcp.events import push_event, pull_event
 from mcp.server.fastmcp.server import Context
-from xyte_mcp_alpha.logging_utils import instrument, request_var
-import xyte_mcp_alpha.resources as resources
-import xyte_mcp_alpha.tools as tools
-import xyte_mcp_alpha.tasks as tasks
-import xyte_mcp_alpha.prompts as prompts
+from xyte_mcp.logging_utils import instrument, request_var
+import xyte_mcp.resources as resources
+import xyte_mcp.tools as tools
+import xyte_mcp.tasks as tasks
+import xyte_mcp.prompts as prompts
 
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.requests import Request

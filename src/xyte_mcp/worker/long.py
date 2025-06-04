@@ -1,10 +1,10 @@
 import asyncio
-from xyte_mcp_alpha.celery_app import celery_app
-from xyte_mcp_alpha.tasks import save, Task
-from xyte_mcp_alpha.client import XyteAPIClient
+from xyte_mcp.celery_app import celery_app
+from xyte_mcp.tasks import save, Task
+from xyte_mcp.client import XyteAPIClient
 
 
-@celery_app.task(name="xyte_mcp_alpha.worker.long.send_command")
+@celery_app.task(name="xyte_mcp.worker.long.send_command")
 def send_command_long(task_id: str, payload: dict, xyte_key: str) -> None:
     async def _run() -> None:
         await save(Task(id=task_id, status="running"))

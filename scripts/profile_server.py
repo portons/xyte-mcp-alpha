@@ -5,7 +5,7 @@ import cProfile
 import pstats
 import asyncio
 
-from xyte_mcp_alpha import get_server
+from xyte_mcp import get_server
 from mcp.server.stdio import stdio_server
 
 

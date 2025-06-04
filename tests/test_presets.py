@@ -1,7 +1,7 @@
 import pytest
 from contextlib import asynccontextmanager
 
-from xyte_mcp_alpha.tools.presets import start_meeting_room_preset
+from xyte_mcp.tools.presets import start_meeting_room_preset
 
 
 class DummyClient:
@@ -25,7 +25,7 @@ async def test_start_meeting_room_preset(monkeypatch):
     async def fake_get_client(request=None):
         yield client
 
-    monkeypatch.setattr("xyte_mcp_alpha.tools.presets.get_client", fake_get_client)
+    monkeypatch.setattr("xyte_mcp.tools.presets.get_client", fake_get_client)
     monkeypatch.setattr(
         "yaml.safe_load",
         lambda _: [

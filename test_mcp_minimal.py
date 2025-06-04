@@ -15,7 +15,7 @@ if not os.environ.get('XYTE_API_KEY'):
 sys.stdout = sys.__stdout__
 
 # Import and run
-from xyte_mcp_alpha.server import get_server
+from xyte_mcp.server import get_server
 
 if __name__ == "__main__":
     server = get_server()

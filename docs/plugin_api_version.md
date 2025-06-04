@@ -1,6 +1,6 @@
 # Plugin API Versioning
 
-The plugin system exposes optional hooks like `on_event` and `on_log`. The server currently implements **version 1.0** of this API, exported as `PLUGIN_API_VERSION` from `xyte_mcp_alpha.plugin`.
+The plugin system exposes optional hooks like `on_event` and `on_log`. The server currently implements **version 1.0** of this API, exported as `PLUGIN_API_VERSION` from `xyte_mcp.plugin`.
 
 Plugins should define a `PLUGIN_API_VERSION` constant matching the server's version to indicate compatibility. When loading a plugin, the server logs a warning if the versions differ. This helps catch breaking changes when the API evolves.
 

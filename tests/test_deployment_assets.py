@@ -43,7 +43,7 @@ async def test_swagger_docs(monkeypatch):
     if importlib.util.find_spec("fastapi") is None:
         pytest.skip("fastapi not installed")
     monkeypatch.setenv('XYTE_ENABLE_SWAGGER', '1')
-    import xyte_mcp_alpha.server as server
+    import xyte_mcp.server as server
     importlib.reload(server)
     transport = httpx.ASGITransport(app=server.app)
     async with httpx.AsyncClient(transport=transport, base_url='http://t') as c:

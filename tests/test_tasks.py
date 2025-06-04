@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 from sqlmodel import SQLModel, Session, create_engine
 
-from xyte_mcp_alpha import tasks
-from xyte_mcp_alpha.models import SendCommandRequest
+from xyte_mcp import tasks
+from xyte_mcp.models import SendCommandRequest
 
 
 class DummyCtx:
@@ -54,7 +54,7 @@ class TaskStatusTestCase(unittest.IsolatedAsyncioTestCase):
             finally:
                 await s.close()
 
-        self.get_session_patch = patch("xyte_mcp_alpha.tasks.get_session", get_session)
+        self.get_session_patch = patch("xyte_mcp.tasks.get_session", get_session)
         self.get_session_patch.start()
 
     async def asyncTearDown(self) -> None:
@@ -74,13 +74,13 @@ class TaskStatusTestCase(unittest.IsolatedAsyncioTestCase):
                 tasks.save(tasks.Task(id=tid, status="done", result={"ok": True}))
             )
 
-        with patch("xyte_mcp_alpha.worker.long.send_command_long.delay", side_effect=fake_delay):
+        with patch("xyte_mcp.worker.long.send_command_long.delay", side_effect=fake_delay):
             os.environ["ENABLE_ASYNC_TASKS"] = "true"
-            from xyte_mcp_alpha.config import reload_settings
+            from xyte_mcp.config import reload_settings
             reload_settings()
             
             # Set up the request_var context
-            from xyte_mcp_alpha.logging_utils import request_var
+            from xyte_mcp.logging_utils import request_var
             
             # Create a mock request object
             class MockRequest:

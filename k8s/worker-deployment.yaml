@@ -15,7 +15,7 @@ spec:
       containers:
       - name: worker
         image: xyte-mcp:latest
-        command: ["celery", "-A", "xyte_mcp_alpha.celery_app", "worker", "-Q", "long", "-c", "2"]
+        command: ["celery", "-A", "xyte_mcp.celery_app", "worker", "-Q", "long", "-c", "2"]
         env:
         - name: XYTE_API_KEY
           valueFrom:

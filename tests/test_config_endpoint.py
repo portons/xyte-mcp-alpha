@@ -3,8 +3,8 @@ import unittest
 from starlette.testclient import TestClient
 
 os.environ.setdefault("XYTE_API_KEY", "secret")
-from xyte_mcp_alpha import http as http_mod
-from xyte_mcp_alpha.config import get_settings
+from xyte_mcp import http as http_mod
+from xyte_mcp.config import get_settings
 
 class ConfigEndpointTestCase(unittest.TestCase):
     def setUp(self):

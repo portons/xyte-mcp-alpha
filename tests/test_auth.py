@@ -6,8 +6,8 @@ import pytest
 
 os.environ.pop("XYTE_API_KEY", None)
 
-from xyte_mcp_alpha import http as http_mod
-from xyte_mcp_alpha.config import reload_settings
+from xyte_mcp import http as http_mod
+from xyte_mcp.config import reload_settings
 
 transport = httpx.ASGITransport(app=http_mod.app)
 
@@ -25,7 +25,7 @@ def no_network(monkeypatch):
         return {}
 
     monkeypatch.setattr(
-        "xyte_mcp_alpha.client.XyteAPIClient.get_devices", noop
+        "xyte_mcp.client.XyteAPIClient.get_devices", noop
     )
 
 

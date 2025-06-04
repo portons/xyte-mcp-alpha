@@ -1,8 +1,8 @@
 # Xyte MCP Server
 ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 
-![CI](https://github.com/portons/xyte-mcp-alpha/actions/workflows/ci.yml/badge.svg)
-[![Coverage](https://codecov.io/gh/portons/xyte-mcp-alpha/branch/main/graph/badge.svg)](https://codecov.io/gh/portons/xyte-mcp-alpha)
+![CI](https://github.com/portons/xyte-mcp/actions/workflows/ci.yml/badge.svg)
+[![Coverage](https://codecov.io/gh/portons/xyte-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/portons/xyte-mcp)
 
 An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
 
@@ -15,7 +15,7 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
   "mcpServers": {
     "xyte-mcp": {
       "command": "uvx",
-      "args": ["xyte-mcp-alpha"],
+      "args": ["xyte-mcp"],
       "env": {
         "XYTE_API_KEY": "YOUR_API_KEY_HERE"
       }
@@ -29,8 +29,8 @@ An MCP (Model Context Protocol) server that provides access to the Xyte Organiza
 {
   "mcpServers": {
     "xyte-mcp": {
-      "command": "/path/to/xyte-mcp-alpha/venv/bin/python",
-      "args": ["-m", "xyte_mcp_alpha"],
+      "command": "/path/to/xyte-mcp/venv/bin/python",
+      "args": ["-m", "xyte_mcp"],
       "env": {
         "XYTE_API_KEY": "YOUR_API_KEY_HERE"
       }
@@ -57,7 +57,7 @@ Set the API key in `.env` and start the server:
 
 ```bash
 XYTE_API_KEY=your-key
-python -m xyte_mcp_alpha.http
+python -m xyte_mcp.http
 ```
 
 Query devices:
@@ -71,7 +71,7 @@ curl http://localhost:8080/v1/devices
 Leave `XYTE_API_KEY` blank and supply it per-request:
 
 ```bash
-python -m xyte_mcp_alpha.http
+python -m xyte_mcp.http
 ```
 
 ```bash
@@ -89,12 +89,12 @@ independently.
 
 ### Development
 1. Install extra dev dependencies with `pip install -e .[dev]`.
-2. Start the server using `mcp dev src/xyte_mcp_alpha/server.py` to get the interactive inspector.
+2. Start the server using `mcp dev src/xyte_mcp/server.py` to get the interactive inspector.
 
 ### Production
 1. Build the Docker image or install the package on your host.
 2. Set environment variables such as `XYTE_API_KEY` (optional in hosted mode) and `XYTE_BASE_URL`.
-3. Run `python -m xyte_mcp_alpha.http` under a process manager.
+3. Run `python -m xyte_mcp.http` under a process manager.
 
 
 ## Features
@@ -138,8 +138,8 @@ All resources and tools return structured JSON objects rather than plain strings
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/portons/xyte-mcp-alpha.git
-cd xyte-mcp-alpha
+git clone https://github.com/portons/xyte-mcp.git
+cd xyte-mcp
 ```
 
 2. Create a virtual environment:
@@ -183,17 +183,17 @@ serve
 
 2. Using Python module:
 ```bash
-python -m xyte_mcp_alpha
+python -m xyte_mcp
 ```
 
 3. Using MCP CLI for development:
 ```bash
-mcp dev src/xyte_mcp_alpha/server.py
+mcp dev src/xyte_mcp/server.py
 ```
 
 4. Running over HTTP with Uvicorn:
 ```bash
-python -m xyte_mcp_alpha.http
+python -m xyte_mcp.http
 ```
 
 ### Connecting to Claude Desktop
@@ -222,8 +222,8 @@ Alternatively, with a Python virtual environment:
 {
   "mcpServers": {
     "xyte": {
-      "command": "/path/to/xyte-mcp-alpha/venv/bin/python",
-      "args": ["-m", "xyte_mcp_alpha"],
+      "command": "/path/to/xyte-mcp/venv/bin/python",
+      "args": ["-m", "xyte_mcp"],
       "env": {
         "XYTE_API_KEY": "your-api-key-here"
       }
@@ -269,13 +269,13 @@ pytest
 For development and debugging:
 
 ```bash
-mcp dev src/xyte_mcp_alpha/server.py
+mcp dev src/xyte_mcp/server.py
 ```
 
 If port 6277 is already in use, you can specify a different port:
 
 ```bash
-MCP_INSPECTOR_PORT=6278 mcp dev src/xyte_mcp_alpha/server.py
+MCP_INSPECTOR_PORT=6278 mcp dev src/xyte_mcp/server.py
 ```
 
 This opens an interactive UI where you can test tools and resources.

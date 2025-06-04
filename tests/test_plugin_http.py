@@ -2,8 +2,8 @@ import os
 import unittest
 from starlette.testclient import TestClient
 
-from xyte_mcp_alpha import plugin, events
-from xyte_mcp_alpha import http as http_mod
+from xyte_mcp import plugin, events
+from xyte_mcp import http as http_mod
 import importlib
 from tests.dummy_redis import DummyRedis
 

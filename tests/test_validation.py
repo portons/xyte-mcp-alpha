@@ -1,8 +1,8 @@
 import unittest
 
 from starlette.requests import Request
-from xyte_mcp_alpha import resources
-from xyte_mcp_alpha.utils import MCPError
+from xyte_mcp import resources
+from xyte_mcp.utils import MCPError
 
 
 class ValidationTestCase(unittest.IsolatedAsyncioTestCase):

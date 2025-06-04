@@ -3,8 +3,8 @@ import logging
 import unittest
 
 os.environ.setdefault("XYTE_API_KEY", "test")
-from xyte_mcp_alpha import plugin, events
-from xyte_mcp_alpha.logging_utils import log_json
+from xyte_mcp import plugin, events
+from xyte_mcp.logging_utils import log_json
 from tests.dummy_redis import DummyRedis
 
 class PluginHookTestCase(unittest.IsolatedAsyncioTestCase):

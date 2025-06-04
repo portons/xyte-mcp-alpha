@@ -3,7 +3,7 @@ import sys
 import asyncio
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from xyte_mcp_alpha.server import get_server
+from xyte_mcp.server import get_server
 
 
 def extract_fields(schema: dict) -> str:

@@ -15,7 +15,7 @@ spec:
       containers:
       - name: worker
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        command: ["celery","-A","xyte_mcp_alpha.celery_app","worker","-Q","long","-c","2"]
+        command: ["celery","-A","xyte_mcp.celery_app","worker","-Q","long","-c","2"]
         env:
         - name: REDIS_URL
           value: "{{ .Values.redis.url | default \"redis://mcp-redis:6379/0\" }}"

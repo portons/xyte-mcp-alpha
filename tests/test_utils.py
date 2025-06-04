@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from xyte_mcp_alpha.utils import (
+from xyte_mcp.utils import (
     enforce_rate_limit,
     MCPError,
     _REQUEST_TIMESTAMPS,
@@ -13,7 +13,7 @@ class RateLimitTestCase(unittest.TestCase):
     def setUp(self):
         _REQUEST_TIMESTAMPS.clear()
         os.environ["XYTE_RATE_LIMIT"] = "1"
-        from xyte_mcp_alpha.config import get_settings
+        from xyte_mcp.config import get_settings
         get_settings.cache_clear()
 
     def test_enforce_rate_limit(self):

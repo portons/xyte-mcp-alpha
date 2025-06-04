@@ -18,7 +18,7 @@ from opentelemetry.sdk.trace.export import (
 from opentelemetry.sdk.trace import ReadableSpan
 from typing import Sequence
 
-import xyte_mcp_alpha.plugin as plugin
+import xyte_mcp.plugin as plugin
 
 # Context variable to store request ID for each incoming request
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
@@ -110,7 +110,7 @@ def log_json(level: int, **fields: Any) -> None:
     if request_id is not None:
         fields.setdefault("request_id", request_id)
     # Get the logger and ensure it logs to stderr
-    logger = logging.getLogger("xyte_mcp_alpha")
+    logger = logging.getLogger("xyte_mcp")
     message = json.dumps(fields)
     logger.log(level, message)
     plugin.fire_log(message, level)
