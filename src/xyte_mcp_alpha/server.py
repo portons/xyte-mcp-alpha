@@ -178,8 +178,6 @@ async def _device_status_wrapper(device_id: str) -> Dict[str, Any]:
     return await resources.device_status(_req(), device_id)
 
 
-async def _device_logs_wrapper(device_id: str) -> Dict[str, Any]:
-    return await resources.device_logs(_req(), device_id)
 
 
 async def _organization_info_wrapper(device_id: str) -> Dict[str, Any]:
@@ -223,6 +221,9 @@ mcp.resource(
     description="Current status of a device",
 )(instrument("resource", "device_status")(_device_status_wrapper))
 if get_settings().enable_experimental_apis:
+    async def _device_logs_wrapper(device_id: str) -> Dict[str, Any]:
+        return await resources.device_logs(_req(), device_id)
+
     mcp.resource(
         "device://{device_id}/logs",
         description="Recent logs for a device",
