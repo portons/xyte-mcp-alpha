@@ -5,6 +5,7 @@ import sys
 import os
 import json
 from typing import Any, Dict, TYPE_CHECKING
+import inspect
 from starlette.applications import Starlette
 from xyte_mcp_alpha.auth_xyte import RequireXyteKey
 
@@ -28,6 +29,30 @@ from starlette.responses import Response, JSONResponse
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from mcp.server.fastmcp.resources.types import FunctionResource, Resource
+import pydantic_core
+
+# ---------------------------------------------------------------------------
+# Patch FunctionResource.read
+# ---------------------------------------------------------------------------
+
+async def _patched_function_resource_read(self: FunctionResource) -> str | bytes:
+    """Patched version that awaits decorated coroutine functions."""
+    try:
+        result = self.fn()
+        if inspect.isawaitable(result):
+            result = await result
+        if isinstance(result, Resource):
+            return await result.read()
+        if isinstance(result, bytes):
+            return result
+        if isinstance(result, str):
+            return result
+        return pydantic_core.to_json(result, fallback=str, indent=2).decode()
+    except Exception as exc:  # pragma: no cover - passthrough errors
+        raise ValueError(f"Error reading resource {self.uri}: {exc}")
+
+FunctionResource.read = _patched_function_resource_read  # type: ignore[assignment]
 
 if TYPE_CHECKING:  # pragma: no cover - optional dependency typing
     from fastapi import FastAPI  # type: ignore
