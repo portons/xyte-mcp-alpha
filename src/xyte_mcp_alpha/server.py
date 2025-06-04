@@ -4,7 +4,7 @@ import logging
 import sys
 import os
 import json
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
 from starlette.applications import Starlette
 from xyte_mcp_alpha.auth_xyte import RequireXyteKey
 
@@ -29,6 +29,11 @@ from starlette.responses import Response, JSONResponse
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
+if TYPE_CHECKING:  # pragma: no cover - optional dependency typing
+    from fastapi import FastAPI  # type: ignore
+else:  # pragma: no cover - fallback when fastapi is absent
+    FastAPI = Any  # type: ignore
+
 # Configure structured logging
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -43,7 +48,7 @@ app.add_middleware(RequireXyteKey)
 settings = get_settings()
 if settings.enable_swagger:
     try:
-        from fastapi import FastAPI
+        from fastapi import FastAPI  # type: ignore
     except ModuleNotFoundError:  # pragma: no cover - optional dependency
         logging.getLogger(__name__).warning("FastAPI not installed; Swagger disabled")
     else:
@@ -149,8 +154,12 @@ async def list_devices_route(request: Request) -> JSONResponse:
     return JSONResponse(devices)
 
 
-def _req() -> Request | None:
-    return request_var.get()
+def _req() -> Request:
+    """Return the current request or raise if not within a request context."""
+    req = request_var.get()
+    if req is None:
+        raise RuntimeError("request context not available")
+    return req
 
 
 async def _list_devices_wrapper() -> Dict[str, Any]:

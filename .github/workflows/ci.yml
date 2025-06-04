@@ -17,6 +17,8 @@ jobs:
           python-version: '3.11'
       - run: pip install ruff
       - run: ruff check src tests
+      - run: pip install bandit
+      - run: bandit -r src -ll
 
   typecheck:
     runs-on: ubuntu-latest
@@ -25,7 +27,10 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - run: pip install mypy
+      - name: Install deps
+        run: |
+          pip install .
+          pip install mypy
       - run: mypy src
 
   test:
@@ -68,4 +73,14 @@ jobs:
           docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           digest=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/${{ github.repository }}:${{ github.ref_name }})
           echo "digest=$digest" >> $GITHUB_OUTPUT
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: 'fs'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
