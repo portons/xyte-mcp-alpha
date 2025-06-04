@@ -179,12 +179,9 @@ async def list_devices_route(request: Request) -> JSONResponse:
     return JSONResponse(devices)
 
 
-def _req() -> Request:
-    """Return the current request or raise if not within a request context."""
-    req = request_var.get()
-    if req is None:
-        raise RuntimeError("request context not available")
-    return req
+def _req() -> Request | None:
+    """Return the current request if available, otherwise ``None``."""
+    return request_var.get()
 
 
 async def _list_devices_wrapper() -> Dict[str, Any]:
