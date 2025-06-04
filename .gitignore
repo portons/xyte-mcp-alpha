@@ -60,3 +60,12 @@ dmypy.json
 
 # Logs
 *.log
+
+# SSL Certificates
+certs/
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx

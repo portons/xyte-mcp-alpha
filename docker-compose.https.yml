@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx-https.conf:/etc/nginx/conf.d/default.conf
+      - ./certs:/etc/nginx/certs
+    depends_on:
+      - mcp
+    networks:
+      - mcp-network
+
+  mcp:
+    build: .
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://mcp:mcp@postgres:5432/mcp
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - mcp-network
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - mcp-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=mcp
+      - POSTGRES_PASSWORD=mcp
+      - POSTGRES_DB=mcp
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
