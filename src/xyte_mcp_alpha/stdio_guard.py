@@ -2,7 +2,6 @@
 
 import sys
 import os
-import io
 from contextlib import contextmanager
 from typing import Iterator
 

@@ -35,7 +35,6 @@ __all__ = ["get_server", "get_settings", "__version__"]
 def serve() -> None:
     """Entry point for serving the MCP server."""
     import sys
-    import logging
     import io
     
     # Capture ALL stdout to find what's polluting it

@@ -17,7 +17,7 @@ import xyte_mcp_alpha.plugin as plugin
 from xyte_mcp_alpha.config import get_settings, validate_settings
 from xyte_mcp_alpha.events import push_event, pull_event
 from mcp.server.fastmcp.server import Context
-from xyte_mcp_alpha.logging_utils import configure_logging, instrument, request_var
+from xyte_mcp_alpha.logging_utils import instrument, request_var
 import xyte_mcp_alpha.resources as resources
 import xyte_mcp_alpha.tools as tools
 import xyte_mcp_alpha.tasks as tasks
@@ -65,7 +65,6 @@ audit_logger = logging.getLogger("audit")
 
 # Starlette application with per-request Xyte key middleware
 # Disable access logging
-import logging
 logging.getLogger("uvicorn.access").disabled = True
 logging.getLogger("uvicorn").disabled = True
 
