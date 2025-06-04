@@ -14,7 +14,7 @@ from ..utils import (
     handle_api,
     validate_device_id,
 )
-from ..logging_utils import log_json
+from ..logging_utils import log_json, request_var
 from .. import resources
 from ..client import (
     ClaimDeviceRequest,
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 async def claim_device(request: ClaimDeviceRequest, ctx: Context | None = None) -> Dict[str, Any]:
     """Claim a new device and assign it to the organization."""
-    req = ctx.request_context.request if ctx else None
+    req = request_var.get() if ctx else None
     async with get_client(req) as client:
         return await handle_api("claim_device", client.claim_device(request))
 
@@ -51,7 +51,7 @@ async def delete_device(data: DeleteDeviceArgs, ctx: Context | None = None) -> T
             data={"dry_run": True},
             summary=f"Dry run: Would delete device {data.device_id}",
         )
-    req = ctx.request_context.request if ctx else None
+    req = request_var.get() if ctx else None
     async with get_client(req) as client:
         result = await handle_api("delete_device", client.delete_device(data.device_id))
         return ToolResponse(
@@ -61,7 +61,7 @@ async def delete_device(data: DeleteDeviceArgs, ctx: Context | None = None) -> T
 
 async def update_device(data: UpdateDeviceArgs, ctx: Context | None = None) -> Dict[str, Any]:
     """Apply configuration updates to a device."""
-    req_obj = ctx.request_context.request if ctx else None
+    req_obj = request_var.get() if ctx else None
     async with get_client(req_obj) as client:
         req = UpdateDeviceRequest(configuration=data.configuration)
         return await handle_api("update_device", client.update_device(data.device_id, req))
@@ -81,7 +81,7 @@ async def send_command(
     if not device_id:
         raise MCPError(code="missing_device_id", message="device_id is required")
 
-    req_obj = ctx.request_context.request if ctx else None
+    req_obj = request_var.get() if ctx else None
     async with get_client(req_obj) as client:
         req = CommandRequest(
             name=data.name,
@@ -122,7 +122,7 @@ async def send_command(
 
 async def cancel_command(data: CancelCommandRequest, ctx: Context | None = None) -> Dict[str, Any]:
     """Cancel a previously sent command."""
-    req_obj = ctx.request_context.request if ctx else None
+    req_obj = request_var.get() if ctx else None
     async with get_client(req_obj) as client:
         req = CommandRequest(
             name=data.name,
@@ -141,7 +141,7 @@ async def search_device_histories(
     ctx: Context | None = None,
 ) -> Dict[str, Any]:
     """Search device history records with optional filters."""
-    req_obj = ctx.request_context.request if ctx else None
+    req_obj = request_var.get() if ctx else None
     async with get_client(req_obj) as client:
         from datetime import datetime
 
@@ -178,7 +178,7 @@ async def get_device_analytics_report(
 ) -> ToolResponse:
     """Retrieve usage analytics for a device."""
     device_id = validate_device_id(device_id)
-    req_obj = ctx.request_context.request if ctx else None
+    req_obj = request_var.get() if ctx else None
     async with get_client(req_obj) as client:
         if ctx:
             await ctx.info("Fetching analytics")
@@ -264,7 +264,7 @@ async def find_and_control_device(
     ctx: Context | None = None,
 ) -> ToolResponse:
     """Find a device by room/name hints and perform an action."""
-    req_obj = ctx.request_context.request if ctx else None
+    req_obj = request_var.get() if ctx else None
     async with get_client(req_obj) as client:
         devices = await handle_api("get_devices", client.get_devices())
 
@@ -316,7 +316,7 @@ async def diagnose_av_issue(
     ctx: Context | None = None,
 ) -> ToolResponse:
     """Run basic diagnostics for a room based on an issue description."""
-    req_obj = ctx.request_context.request if ctx else None
+    req_obj = request_var.get() if ctx else None
     async with get_client(req_obj) as client:
         devices = await handle_api("get_devices", client.get_devices())
 

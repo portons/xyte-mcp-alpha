@@ -9,7 +9,7 @@ from mcp.server.fastmcp import Context
 
 from .db import get_session
 from .models import SendCommandRequest, ToolResponse
-from .logging_utils import log_json
+from .logging_utils import log_json, request_var
 
 
 class Task(SQLModel, table=True):  # type: ignore[misc,call-arg]
@@ -52,7 +52,7 @@ async def send_command_async(
         result = await send_command(SendCommandArgs(**data.model_dump()), ctx)
         return ToolResponse(summary="done", data={"status": "done", "result": result.data})
 
-    req = ctx.request_context.request
+    req = request_var.get()
     if req is None:
         raise ValueError("Request object missing")
 

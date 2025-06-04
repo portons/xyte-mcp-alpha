@@ -42,7 +42,6 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return a cached Settings instance."""
     settings = Settings()
-    validate_settings(settings)
     return settings
 
 
@@ -54,10 +53,12 @@ def reload_settings() -> None:
 def validate_settings(settings: Settings) -> None:
     """Validate critical configuration values and raise ``ValueError`` if invalid."""
     logger = logging.getLogger(__name__)
-    if settings.multi_tenant:
-        logger.info("Running in multi-tenant mode")
-    else:
-        logger.info("Running in single-tenant mode")
+    # Only log in debug mode to avoid stdout pollution in MCP mode
+    if logger.isEnabledFor(logging.DEBUG):
+        if settings.multi_tenant:
+            logger.debug("Running in multi-tenant mode")
+        else:
+            logger.debug("Running in single-tenant mode")
     if settings.rate_limit_per_minute <= 0:
         raise ValueError("XYTE_RATE_LIMIT must be positive")
     if settings.xyte_cache_ttl <= 0:

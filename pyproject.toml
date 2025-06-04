@@ -58,6 +58,7 @@ dependencies = [
 
 [project.scripts]
 serve = "xyte_mcp_alpha:serve"
+xyte-mcp = "xyte_mcp_alpha.server:main"
 
 [project.urls]
 Homepage = "https://github.com/portons/xyte-mcp-alpha"
