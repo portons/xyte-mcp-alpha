@@ -6,6 +6,30 @@
 
 An MCP (Model Context Protocol) server that provides access to the Xyte Organization API, enabling AI assistants to interact with Xyte devices, commands, tickets, and more.
 
+## 🚀 Quick Start
+
+### 1. Add to Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "xyte-mcp": {
+      "command": "uvx",
+      "args": ["xyte-mcp-alpha"],
+      "env": {
+        "XYTE_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+### 2. Replace YOUR_API_KEY_HERE with your actual key
+
+### 3. Restart Claude Desktop
+
+Done! The server auto-installs on first use. No Python knowledge required.
+
 ## Quickstart
 
 1. Ensure Python 3.11+ is installed and clone the repo.
