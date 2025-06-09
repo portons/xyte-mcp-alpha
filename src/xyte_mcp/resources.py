@@ -1,6 +1,7 @@
 """Resource handlers providing read-only data to MCP clients."""
 
 from typing import Any, Dict
+import json
 
 from .deps import get_client
 from .utils import handle_api, validate_device_id, validate_ticket_id
@@ -56,8 +57,13 @@ async def organization_info(request: Optional[Request], device_id: str) -> Dict[
 
 async def list_incidents(request: Optional[Request]) -> Dict[str, Any]:
     """List current incidents."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     async with get_client(request) as client:
-        return await handle_api("get_incidents", client.get_incidents())
+        result = await handle_api("get_incidents", client.get_incidents())
+        logger.info(f"[RESOURCES] list_incidents returning: {json.dumps(result, default=str)[:1000]}")
+        return result
 
 
 async def list_tickets(request: Optional[Request]) -> Dict[str, Any]:

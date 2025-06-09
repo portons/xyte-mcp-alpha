@@ -1,0 +1,340 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Xyte Device Management API",
+    "description": "API for managing Xyte devices, tickets, and automation through ChatGPT",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://fe.ngrok.io",
+      "description": "Xyte MCP REST API via ngrok"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/tools": {
+      "get": {
+        "summary": "List available tools",
+        "operationId": "listTools",
+        "responses": {
+          "200": {
+            "description": "List of available tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {"type": "string"},
+                      "description": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources": {
+      "get": {
+        "summary": "List available resources",
+        "operationId": "listResources",
+        "responses": {
+          "200": {
+            "description": "List of available resources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "uri": {"type": "string"},
+                      "name": {"type": "string"},
+                      "description": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources/devices": {
+      "get": {
+        "summary": "List all devices",
+        "operationId": "listDevices",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {"type": "string"},
+            "description": "Filter by device status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of devices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "string"},
+                          "name": {"type": "string"},
+                          "status": {"type": "string"},
+                          "model": {"type": "object"},
+                          "space": {"type": "object"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources/device/{deviceId}": {
+      "get": {
+        "summary": "Get device details",
+        "operationId": "getDevice",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "status": {"type": "string"},
+                    "model": {"type": "object"},
+                    "space": {"type": "object"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/send_command": {
+      "post": {
+        "summary": "Send command to device",
+        "operationId": "sendCommand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "device_id": {
+                    "type": "string",
+                    "description": "Device ID to send command to"
+                  },
+                  "command": {
+                    "type": "string",
+                    "description": "Command to execute"
+                  },
+                  "args": {
+                    "type": "object",
+                    "description": "Command arguments"
+                  }
+                },
+                "required": ["device_id", "command"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Command sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "command_id": {"type": "string"},
+                    "status": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/update_device": {
+      "post": {
+        "summary": "Update device configuration",
+        "operationId": "updateDevice",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "device_id": {
+                    "type": "string",
+                    "description": "Device ID to update"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "New device name"
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "New device location"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Device metadata"
+                  }
+                },
+                "required": ["device_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Device updated successfully"
+          }
+        }
+      }
+    },
+    "/resources/tickets": {
+      "get": {
+        "summary": "List tickets",
+        "operationId": "listTickets",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {"type": "string"},
+            "description": "Filter by ticket status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tickets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "string"},
+                          "title": {"type": "string"},
+                          "status": {"type": "string"},
+                          "priority": {"type": "string"},
+                          "created_at": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/update_ticket": {
+      "post": {
+        "summary": "Update ticket",
+        "operationId": "updateTicket",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ticket_id": {
+                    "type": "string",
+                    "description": "Ticket ID"
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "New status"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Comment to add"
+                  }
+                },
+                "required": ["ticket_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ticket updated successfully"
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Health check",
+        "operationId": "healthCheck",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Xyte API key for authentication"
+      }
+    }
+  }
+}

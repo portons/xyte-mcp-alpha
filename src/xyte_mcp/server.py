@@ -84,7 +84,10 @@ if settings.enable_swagger:
         app = fast
 
 # Initialize MCP server
-mcp = FastMCP("Xyte Organization MCP Server")
+mcp = FastMCP(
+    name="Xyte MCP",
+    instructions="Live Xyte API (devices/tickets/incidents). Use search tool. ALWAYS start queries with type:<devices|tickets|incidents>."
+)
 
 
 @mcp.custom_route("/healthz", methods=["GET"])
@@ -110,7 +113,7 @@ async def metrics(_: Request) -> Response:
 async def config_endpoint(request: Request) -> JSONResponse:
     """Return sanitized configuration for debugging purposes."""
     settings = get_settings()
-    api_key = request.headers.get("X-API-Key")
+    api_key = request.headers.get("Authorization") or request.headers.get("X-API-Key")
     if settings.multi_tenant or api_key != settings.xyte_api_key:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
 
@@ -278,73 +281,551 @@ mcp.resource(
 
 # Tool registrations
 mcp.tool(
-    description="Register a new device",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "claim_device")(tools.claim_device))
+        description="Register a new device",
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "claim_device")(tools.claim_device))
 mcp.tool(
     description="Remove a device from the organization",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "delete_device")(tools.delete_device))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "delete_device")(tools.delete_device))
 mcp.tool(
     description="Update configuration for a device",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "update_device")(tools.update_device))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "update_device")(tools.update_device))
 mcp.tool(
     description="Send a command to a device",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "send_command")(tools.send_command))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "send_command")(tools.send_command))
 mcp.tool(
     description="Cancel a previously sent command",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
-)(instrument("tool", "cancel_command")(tools.cancel_command))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+    )(instrument("tool", "cancel_command")(tools.cancel_command))
 mcp.tool(
     description="Update ticket details",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "update_ticket")(tools.update_ticket))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "update_ticket")(tools.update_ticket))
 mcp.tool(
     description="Resolve a ticket",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "mark_ticket_resolved")(tools.mark_ticket_resolved))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "mark_ticket_resolved")(tools.mark_ticket_resolved))
 mcp.tool(
     description="Send a message to a ticket",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
-)(instrument("tool", "send_ticket_message")(tools.send_ticket_message))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+    )(instrument("tool", "send_ticket_message")(tools.send_ticket_message))
 mcp.tool(
     description="Search device history records",
-    annotations=ToolAnnotations(readOnlyHint=True),
-)(instrument("tool", "search_device_histories")(tools.search_device_histories))
+        annotations=ToolAnnotations(readOnlyHint=True),
+    )(instrument("tool", "search_device_histories")(tools.search_device_histories))
 mcp.tool(
     description="Retrieve usage analytics for a device",
-    annotations=ToolAnnotations(readOnlyHint=True),
-)(instrument("tool", "get_device_analytics_report")(tools.get_device_analytics_report))
+        annotations=ToolAnnotations(readOnlyHint=True),
+    )(instrument("tool", "get_device_analytics_report")(tools.get_device_analytics_report))
 mcp.tool(
     description="Set context defaults",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
-)(instrument("tool", "set_context")(tools.set_context))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+    )(instrument("tool", "set_context")(tools.set_context))
 mcp.tool(
     description="Find and control a device with natural language hints",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "find_and_control_device")(tools.find_and_control_device))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "find_and_control_device")(tools.find_and_control_device))
 mcp.tool(
     description="Diagnose an AV issue in a room",
-    annotations=ToolAnnotations(readOnlyHint=True),
-)(instrument("tool", "diagnose_av_issue")(tools.diagnose_av_issue))
+        annotations=ToolAnnotations(readOnlyHint=True),
+    )(instrument("tool", "diagnose_av_issue")(tools.diagnose_av_issue))
 mcp.tool(
     description="Start meeting room preset",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "start_meeting_room_preset")(tools.start_meeting_room_preset))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "start_meeting_room_preset")(tools.start_meeting_room_preset))
 mcp.tool(
     description="Shutdown meeting room",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
-)(instrument("tool", "shutdown_meeting_room")(tools.shutdown_meeting_room))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+    )(instrument("tool", "shutdown_meeting_room")(tools.shutdown_meeting_room))
 mcp.tool(
     description="Log automation attempt",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
-)(instrument("tool", "log_automation_attempt")(tools.log_automation_attempt))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+    )(instrument("tool", "log_automation_attempt")(tools.log_automation_attempt))
 mcp.tool(
     description="Echo a message back",
-    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
-)(instrument("tool", "echo_command")(tools.echo_command))
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False),
+    )(instrument("tool", "echo_command")(tools.echo_command))
+
+# Store for fetch tool - maps IDs to full objects
+_search_cache: Dict[str, Dict[str, Any]] = {}
+
+# Search tool required by ChatGPT
+async def search(ctx: Context, query: str) -> Dict[str, Any]:
+    """
+    Search Xyte's API for devices, tickets, and incidents using structured queries.
+    
+    CRITICAL: This is an API, NOT a file system. Do NOT search for files like .json or .csv.
+    
+    Query DSL Specification:
+    • Tokens separated by spaces
+    • Each token: key[:op]:value
+      - key ∈ { type, q|query, status, severity, priority, model, name, id }
+      - op (optional; default "eq") ∈ { eq, neq, contains }
+      - value: unquoted or quoted (for spaces)
+    
+    • Semantics:
+      - type (MANDATORY) → resource type: devices, tickets, or incidents
+      - q/query → free-text search across all fields
+      - status → filter by status (online/offline for devices, open/closed for tickets)
+      - severity → filter by severity (critical/major/minor - incidents only)
+      - priority → filter by priority (high/medium/low - tickets only)
+      - model → filter by device model (devices only)
+      - name → filter by name field
+      - id → filter by exact ID
+    
+    EXAMPLES:
+    
+    user: analyze all incidents
+    query: type:incidents
+    
+    user: show me critical incidents
+    query: type:incidents severity:critical
+    
+    user: find offline devices
+    query: type:devices status:offline
+    
+    user: search tickets mentioning password reset
+    query: type:tickets q:"password reset"
+    
+    user: list all devices with model XY-100
+    query: type:devices model:XY-100
+    
+    user: show high priority open tickets
+    query: type:tickets status:open priority:high
+    
+    user: find major incidents
+    query: type:incidents severity:major
+    
+    user: search for conference room devices
+    query: type:devices name:contains:"Conference Room"
+    
+    INVALID queries (DO NOT USE):
+    - incidents.json
+    - incident records  
+    - XYTE incident
+    - 2023 incident
+    
+    Returns array of results with id, title, text, and url for each matching resource.
+    """
+    # Check ChatGPT mode at runtime
+    CHATGPT_MODE = os.environ.get("CHATGPT_MODE", "false").lower() == "true"
+    logger.info(f"[SEARCH] CHATGPT_MODE={CHATGPT_MODE}, Received query: '{query}' (type: {type(query)})")
+    
+    # In ChatGPT mode, fail immediately if query doesn't start with type:
+    if CHATGPT_MODE:
+        if not query or query is None:
+            raise ValueError("query MUST be: type:incidents OR type:devices OR type:tickets")
+        
+        query = str(query).strip()
+        if not query.startswith('type:'):
+            raise ValueError(f"INVALID QUERY '{query}'. MUST be: type:incidents OR type:devices OR type:tickets")
+    
+    try:
+        # Handle null/empty queries
+        if not query or query is None:
+            logger.warning("[SEARCH] Received null/empty query")
+            return {
+                "results": [{
+                    "id": "error_empty_query",
+                    "title": "Empty Query",
+                    "text": "Query cannot be empty. Use format: type:incidents, type:devices, or type:tickets",
+                    "url": None
+                }]
+            }
+        
+        # Convert to string if needed
+        query = str(query).strip()
+        logger.info(f"[SEARCH] Processed query: '{query}'")
+        
+        results = []
+        
+        # Validate query format
+        if 'type:' not in query:
+            return {
+                "results": [{
+                    "id": "error_invalid_query",
+                    "title": "Invalid Query Format",
+                    "text": f"Query must start with type:<resource>. You sent: '{query}'. Valid examples: type:incidents, type:devices status:offline, type:tickets q:password",
+                    "url": None
+                }]
+            }
+        
+        # Clear previous cache
+        _search_cache.clear()
+        
+        # Parse query DSL
+        tokens = query.split()
+        filters = {}
+        resource_type = None
+        free_text = None
+        
+        for token in tokens:
+            if ':' in token:
+                parts = token.split(':', 2)
+                if len(parts) >= 2:
+                    key = parts[0]
+                    op = 'eq'
+                    value = parts[1]
+                    
+                    # Handle operator
+                    if len(parts) == 3:
+                        op = parts[1]
+                        value = parts[2]
+                    
+                    # Remove quotes if present
+                    if value.startswith('"') and value.endswith('"'):
+                        value = value[1:-1]
+                    elif value.startswith("'") and value.endswith("'"):
+                        value = value[1:-1]
+                    
+                    if key == 'type':
+                        resource_type = value.lower()
+                    elif key in ['q', 'query']:
+                        free_text = value.lower()
+                    else:
+                        filters[key] = {'op': op, 'value': value.lower()}
+        
+        # Validate resource type
+        if not resource_type:
+            if CHATGPT_MODE:
+                raise ValueError("MANDATORY: query must specify type. Use: type:devices, type:tickets, or type:incidents")
+            return {
+                "results": [{
+                    "id": "error_missing_type",
+                    "title": "Missing Resource Type",
+                    "text": "Query must specify type. Valid types: devices, tickets, incidents. Example: type:incidents",
+                    "url": None
+                }]
+            }
+        
+        if resource_type not in ['devices', 'tickets', 'incidents', 'all']:
+            if CHATGPT_MODE:
+                raise ValueError(f"Invalid type '{resource_type}'. MANDATORY: Use type:devices, type:tickets, or type:incidents")
+            return {
+                "results": [{
+                    "id": "error_invalid_type",
+                    "title": "Invalid Resource Type",
+                    "text": f"Invalid type '{resource_type}'. Valid types: devices, tickets, incidents",
+                    "url": None
+                }]
+            }
+        
+        # Search devices
+        if resource_type in ['all', 'devices']:
+            devices = await resources.list_devices(_req())
+            logger.info(f"[SEARCH] Devices API response: {json.dumps(devices, default=str)[:500]}")
+            
+            # Handle both wrapped and unwrapped responses
+            device_list = []
+            if isinstance(devices, dict):
+                if "items" in devices:
+                    device_list = devices["items"]
+                elif "devices" in devices:
+                    device_list = devices["devices"]
+                elif "data" in devices:
+                    # Check if data contains devices
+                    if isinstance(devices["data"], list):
+                        device_list = devices["data"]
+                    elif isinstance(devices["data"], dict) and "devices" in devices["data"]:
+                        device_list = devices["data"]["devices"]
+                    elif isinstance(devices["data"], dict) and "items" in devices["data"]:
+                        device_list = devices["data"]["items"]
+                elif isinstance(devices.get("data"), list):
+                    device_list = devices["data"]
+            elif isinstance(devices, list):
+                device_list = devices
+            
+            logger.info(f"[SEARCH] Processing {len(device_list)} devices")
+            
+            for device in device_list:
+                    # Apply filters
+                    match = True
+                    
+                    # Free text search
+                    if free_text:
+                        searchable_text = " ".join([
+                            str(device.get("id", "")),
+                            str(device.get("name", "")),
+                            str(device.get("model", "")),
+                            str(device.get("serial_number", "")),
+                        ]).lower()
+                        if free_text not in searchable_text:
+                            match = False
+                    
+                    # Apply specific filters
+                    for field, filter_info in filters.items():
+                        field_value = str(device.get(field, "")).lower()
+                        filter_value = filter_info['value']
+                        op = filter_info['op']
+                        
+                        if op == 'eq' and field_value != filter_value:
+                            match = False
+                        elif op == 'neq' and field_value == filter_value:
+                            match = False
+                        elif op == 'contains' and filter_value not in field_value:
+                            match = False
+                    
+                    if match:
+                        result_id = f"device_{device.get('id')}"
+                        _search_cache[result_id] = device
+                        results.append({
+                            "id": result_id,
+                            "title": f"Device: {device.get('name', 'Unknown')}",
+                            "text": f"Model: {device.get('model', 'N/A')}, Serial: {device.get('serial_number', 'N/A')}, Status: {device.get('status', 'Unknown')}",
+                            "url": f"/devices/{device.get('id')}" if device.get('id') else None
+                        })
+        
+        # Search tickets
+        if resource_type in ['all', 'tickets']:
+            tickets = await resources.list_tickets(_req())
+            logger.info(f"[SEARCH] Tickets API response: {json.dumps(tickets, default=str)[:500]}")
+            
+            # Handle both wrapped and unwrapped responses
+            ticket_list = []
+            if isinstance(tickets, dict):
+                if "items" in tickets:
+                    ticket_list = tickets["items"]
+                elif "tickets" in tickets:
+                    ticket_list = tickets["tickets"]
+                elif "data" in tickets:
+                    # Check if data contains tickets
+                    if isinstance(tickets["data"], list):
+                        ticket_list = tickets["data"]
+                    elif isinstance(tickets["data"], dict) and "tickets" in tickets["data"]:
+                        ticket_list = tickets["data"]["tickets"]
+                    elif isinstance(tickets["data"], dict) and "items" in tickets["data"]:
+                        ticket_list = tickets["data"]["items"]
+                elif isinstance(tickets.get("data"), list):
+                    ticket_list = tickets["data"]
+            elif isinstance(tickets, list):
+                ticket_list = tickets
+            
+            logger.info(f"[SEARCH] Processing {len(ticket_list)} tickets")
+            
+            for ticket in ticket_list:
+                    match = True
+                    
+                    if free_text:
+                        searchable_text = " ".join([
+                            str(ticket.get("id", "")),
+                            str(ticket.get("title", "")),
+                            str(ticket.get("description", "")),
+                        ]).lower()
+                        if free_text not in searchable_text:
+                            match = False
+                    
+                    for field, filter_info in filters.items():
+                        field_value = str(ticket.get(field, "")).lower()
+                        filter_value = filter_info['value']
+                        op = filter_info['op']
+                        
+                        if op == 'eq' and field_value != filter_value:
+                            match = False
+                        elif op == 'neq' and field_value == filter_value:
+                            match = False
+                        elif op == 'contains' and filter_value not in field_value:
+                            match = False
+                    
+                    if match:
+                        result_id = f"ticket_{ticket.get('id')}"
+                        _search_cache[result_id] = ticket
+                        results.append({
+                            "id": result_id,
+                            "title": f"Ticket: {ticket.get('title', 'Unknown')}",
+                            "text": f"Status: {ticket.get('status', 'N/A')}, Priority: {ticket.get('priority', 'N/A')}, Description: {ticket.get('description', 'No description')[:100]}...",
+                            "url": f"/tickets/{ticket.get('id')}" if ticket.get('id') else None
+                        })
+        
+        # Search incidents
+        if resource_type in ['all', 'incidents']:
+            incidents = await resources.list_incidents(_req())
+            logger.info(f"[SEARCH] Incidents API response: {json.dumps(incidents, default=str)[:500]}")
+            
+            # Handle both wrapped and unwrapped responses
+            incident_list = []
+            if isinstance(incidents, dict):
+                logger.info(f"[SEARCH DEBUG] incidents is dict with keys: {list(incidents.keys())}")
+                if "items" in incidents:
+                    incident_list = incidents["items"]
+                    logger.info(f"[SEARCH DEBUG] Found 'items' key, extracted {len(incident_list)} incidents")
+                elif "incidents" in incidents:
+                    incident_list = incidents["incidents"]
+                    logger.info(f"[SEARCH DEBUG] Found 'incidents' key, extracted {len(incident_list)} incidents")
+                elif "data" in incidents:
+                    # Check if data contains incidents
+                    if isinstance(incidents["data"], list):
+                        incident_list = incidents["data"]
+                        logger.info(f"[SEARCH DEBUG] Found 'data' key with list, extracted {len(incident_list)} incidents")
+                    elif isinstance(incidents["data"], dict) and "incidents" in incidents["data"]:
+                        incident_list = incidents["data"]["incidents"]
+                        logger.info(f"[SEARCH DEBUG] Found 'data.incidents' key, extracted {len(incident_list)} incidents")
+                    elif isinstance(incidents["data"], dict) and "items" in incidents["data"]:
+                        incident_list = incidents["data"]["items"]
+                        logger.info(f"[SEARCH DEBUG] Found 'data.items' key, extracted {len(incident_list)} incidents")
+                elif isinstance(incidents.get("data"), list):
+                    incident_list = incidents["data"]
+                    logger.info(f"[SEARCH DEBUG] Found 'data' key with list (via get), extracted {len(incident_list)} incidents")
+                else:
+                    logger.warning(f"[SEARCH DEBUG] Dict but no recognized keys. Keys: {list(incidents.keys())}")
+            elif isinstance(incidents, list):
+                incident_list = incidents
+                logger.info(f"[SEARCH DEBUG] incidents is a list, extracted {len(incident_list)} incidents")
+            else:
+                logger.warning(f"[SEARCH DEBUG] incidents is neither dict nor list: {type(incidents)}")
+            
+            logger.info(f"[SEARCH] Processing {len(incident_list)} incidents")
+            
+            for idx, incident in enumerate(incident_list):
+                    logger.info(f"[SEARCH DEBUG] Processing incident {idx}: {json.dumps(incident, default=str)[:200]}")
+                    match = True
+                    
+                    if free_text:
+                        # Use uuid instead of id for incidents
+                        searchable_text = " ".join([
+                            str(incident.get("uuid", "")),
+                            str(incident.get("id", "")),
+                            str(incident.get("title", "")),
+                            str(incident.get("description", "")),
+                        ]).lower()
+                        if free_text not in searchable_text:
+                            match = False
+                    
+                    for field, filter_info in filters.items():
+                        field_value = str(incident.get(field, "")).lower()
+                        filter_value = filter_info['value']
+                        op = filter_info['op']
+                        
+                        if op == 'eq' and field_value != filter_value:
+                            match = False
+                        elif op == 'neq' and field_value == filter_value:
+                            match = False
+                        elif op == 'contains' and filter_value not in field_value:
+                            match = False
+                    
+                    if match:
+                        # Use uuid as the identifier for incidents
+                        incident_id = incident.get('uuid') or incident.get('id') or f"unknown_{idx}"
+                        result_id = f"incident_{incident_id}"
+                        _search_cache[result_id] = incident
+                        logger.info(f"[SEARCH DEBUG] Adding incident to results: {result_id}")
+                        # Handle None description properly
+                        description = incident.get('description') or 'No description'
+                        results.append({
+                            "id": result_id,
+                            "title": f"Incident: {incident.get('title', 'Unknown')}",
+                            "text": f"Priority: {incident.get('priority', 'N/A')}, Status: {incident.get('status', 'N/A')}, Description: {description[:100]}...",
+                            "url": f"/incidents/{incident_id}"
+                        })
+        
+        # Return full results for ChatGPT deep research
+        logger.info(f"[SEARCH] Returning {len(results)} results")
+        return {"results": results}
+    
+    except Exception as e:
+        logger.error(f"[SEARCH] Exception in search: {e}", exc_info=True)
+        if CHATGPT_MODE:
+            # Re-raise for ChatGPT to see the error
+            raise
+        return {
+            "results": [{
+                "id": "error_exception",
+                "title": "Search Error",
+                "text": f"An error occurred: {str(e)}. Please use format: type:incidents, type:devices, or type:tickets",
+                "url": None
+            }]
+        }
+
+# Fetch tool required by ChatGPT
+async def fetch(ctx: Context, id: str) -> Dict[str, Any]:
+    """
+    Retrieves detailed content for a specific resource identified by the given ID.
+    """
+    # Check cache first
+    if id not in _search_cache:
+        raise ValueError(f"Unknown id: {id}")
+    
+    obj = _search_cache[id]
+    
+    # Determine type and format response
+    if id.startswith("device_"):
+        return {
+            "id": id,
+            "title": f"Device: {obj.get('name', 'Unknown')}",
+            "text": json.dumps(obj, indent=2),
+            "url": f"/devices/{obj.get('id')}" if obj.get('id') else None,
+            "metadata": {
+                "type": "device",
+                "model": obj.get("model", ""),
+                "serial_number": obj.get("serial_number", ""),
+                "status": obj.get("status", ""),
+                "organization_id": str(obj.get("organization_id", ""))
+            }
+        }
+    elif id.startswith("ticket_"):
+        return {
+            "id": id,
+            "title": f"Ticket: {obj.get('title', 'Unknown')}",
+            "text": json.dumps(obj, indent=2),
+            "url": f"/tickets/{obj.get('id')}" if obj.get('id') else None,
+            "metadata": {
+                "type": "ticket",
+                "status": obj.get("status", ""),
+                "priority": obj.get("priority", ""),
+                "created_at": obj.get("created_at", "")
+            }
+        }
+    elif id.startswith("incident_"):
+        return {
+            "id": id,
+            "title": f"Incident: {obj.get('title', 'Unknown')}",
+            "text": json.dumps(obj, indent=2),
+            "url": f"/incidents/{obj.get('id')}" if obj.get('id') else None,
+            "metadata": {
+                "type": "incident",
+                "severity": obj.get("severity", ""),
+                "status": obj.get("status", ""),
+                "created_at": obj.get("created_at", "")
+            }
+        }
+    else:
+        raise ValueError(f"Unknown resource type for id: {id}")
+
+# Wrapper function to preserve the 'search' name
+async def search_wrapper(ctx: Context, query: str) -> Dict[str, Any]:
+    """Wrapper to ensure tool is named 'search'."""
+    return await search(ctx, query)
+
+# Wrapper function to preserve the 'fetch' name
+async def fetch_wrapper(ctx: Context, id: str) -> Dict[str, Any]:
+    """Wrapper to ensure tool is named 'fetch'."""
+    return await fetch(ctx, id)
+
+# Register search and fetch tools
+mcp.tool(
+    name="search",
+    description=(
+        "STRUCTURED SEARCH — NOT FILES.\n"
+        "ALWAYS start with type:<devices|tickets|incidents>\n\n"
+        "Examples:\n"
+        "• type:incidents\n"
+        "• type:incidents severity:critical\n"
+        "• type:devices status:offline\n"
+        "• type:tickets q:\"password reset\"\n\n"
+        "Syntax: type:<resource> [field[:op]:value ...]\n"
+        "Ops: eq (default), neq, contains\n"
+        "Fields: status, severity, priority, model, name, id, q (free text)"
+    ),
+    annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False)
+)(instrument("tool", "search")(search_wrapper))
+
+mcp.tool(
+    name="fetch",
+    description="Fetch full details for an object previously returned by search.",
+    annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False)
+)(instrument("tool", "fetch")(fetch_wrapper))
 
 # Tool wrappers for common resources
 async def list_all_devices_tool(ctx: Context) -> Dict[str, Any]:
@@ -438,6 +919,44 @@ def get_server() -> Any:
     settings = get_settings()
     validate_settings(settings)
 
+    # Check if we're in ChatGPT mode
+    CHATGPT_MODE = os.environ.get("CHATGPT_MODE", "false").lower() == "true"
+    
+    if CHATGPT_MODE:
+        logger.info(f"[CHATGPT_MODE] Starting in ChatGPT mode")
+        # In ChatGPT mode, create a minimal server with only search and fetch
+        chatgpt_mcp = FastMCP(
+            name="Xyte MCP",
+            instructions="ONLY use: type:incidents OR type:devices OR type:tickets"
+        )
+        
+        # Register only search and fetch for ChatGPT
+        chatgpt_mcp.tool(
+            name="search",
+            description="query MUST be: type:incidents OR type:devices OR type:tickets",
+            annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False)
+        )(instrument("tool", "search")(search_wrapper))
+        
+        chatgpt_mcp.tool(
+            name="fetch",
+            description="Fetch full details for an object returned by search.",
+            annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False)
+        )(instrument("tool", "fetch")(fetch_wrapper))
+        
+        # Add custom routes
+        chatgpt_mcp.custom_route("/healthz", methods=["GET"])(health)
+        chatgpt_mcp.custom_route("/readyz", methods=["GET"])(ready)
+        chatgpt_mcp.custom_route("/metrics", methods=["GET"])(metrics)
+        chatgpt_mcp.custom_route("/config", methods=["GET"])(config_endpoint)
+        chatgpt_mcp.custom_route("/webhook", methods=["POST"])(webhook)
+        chatgpt_mcp.custom_route("/events", methods=["GET"])(stream_events)
+        chatgpt_mcp.custom_route("/tools", methods=["GET"])(list_tools)
+        chatgpt_mcp.custom_route("/resources", methods=["GET"])(list_resources_route)
+        chatgpt_mcp.custom_route("/devices", methods=["GET"])(list_devices_route)
+        
+        return chatgpt_mcp
+    
+    # Normal mode - load all plugins and tools
     plugin.load_plugins()
     if get_settings().enable_experimental_apis:
         from .experimental import echo

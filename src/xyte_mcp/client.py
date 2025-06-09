@@ -1,6 +1,7 @@
 """Xyte Organization API client."""
 
 import logging
+import json
 import httpx
 from types import TracebackType
 from typing import Any, Dict, Optional
@@ -51,6 +52,12 @@ class XyteAPIClient:
         self.mapping = load_mapping()
 
         self.api_key = api_key or settings.xyte_api_key
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"XyteAPIClient init: provided api_key={api_key[:10] if api_key else None}, settings api_key={settings.xyte_api_key[:10] if settings.xyte_api_key else None}, final api_key={self.api_key[:10] if self.api_key else None}")
+        
         if not self.api_key:
             raise ValueError("XYTE_API_KEY must be provided")
 
@@ -308,7 +315,16 @@ class XyteAPIClient:
         CACHE_MISSES.labels(key="incidents").inc()
         response = await self._request("GET", self._endpoint("get_incidents"))
         response.raise_for_status()
-        data = transform_response("get_incidents", response.json())
+        
+        # Debug: Log raw response
+        import logging
+        logger = logging.getLogger(__name__)
+        raw_json = response.json()
+        logger.info(f"[CLIENT] Raw incidents response: {json.dumps(raw_json, default=str)[:1000]}")
+        
+        data = transform_response("get_incidents", raw_json)
+        logger.info(f"[CLIENT] After transform_response: {json.dumps(data, default=str)[:1000]}")
+        
         self.cache["incidents"] = data
         return data
 

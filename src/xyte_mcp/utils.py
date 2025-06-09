@@ -104,6 +104,9 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
     start_time = time.time()
     try:
         result = await coro
+        
+        # Debug logging
+        log_json(logging.INFO, event="handle_api_raw", endpoint=endpoint, result_type=type(result).__name__, result_preview=str(result)[:500])
 
         # Track latency
         REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.time() - start_time)
@@ -120,6 +123,8 @@ async def handle_api(endpoint: str, coro: Awaitable[Any]) -> Dict[str, Any]:
                 result = hook(result)
             except Exception as exc:  # pragma: no cover - custom hooks may fail
                 log_json(logging.ERROR, event="payload_transform_error", error=str(exc))
+        
+        log_json(logging.INFO, event="handle_api_final", endpoint=endpoint, result_preview=str(result)[:500])
         
         return result
 

@@ -30,6 +30,6 @@ curl http://localhost:8080/v1/events
 
 Fetch sanitized config:
 ```bash
-curl -H "X-API-Key: $XYTE_API_KEY" http://localhost:8080/v1/config
+curl -H "Authorization: $XYTE_API_KEY" http://localhost:8080/v1/config
 ```
 

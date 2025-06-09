@@ -86,10 +86,18 @@ def main() -> None:
     import uvicorn
 
     settings = get_settings()
+    import os
+    
+    # Use PORT env var if available (for Render), otherwise use settings
+    port = int(os.environ.get("PORT", settings.mcp_inspector_port))
+    
+    # Always bind to 0.0.0.0 in production environments like Render
+    host = "0.0.0.0" if os.environ.get("PORT") else settings.mcp_inspector_host
+    
     uvicorn.run(
         "xyte_mcp.http:app",
-        host=settings.mcp_inspector_host,
-        port=settings.mcp_inspector_port,
+        host=host,
+        port=port,
     )
 
 

@@ -1,0 +1,55 @@
+services:
+  mcp:
+    build: .
+    command: python -m xyte_mcp.sse_server
+    ports: ["8000:8080"]
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      LOG_LEVEL: "INFO"
+      MCP_INSPECTOR_HOST: "0.0.0.0"
+      MCP_INSPECTOR_PORT: "8080"
+      XYTE_API_KEY: "${XYTE_API_KEY}"
+      XYTE_ENABLE_SWAGGER: "true"
+      CHATGPT_MODE: "true"
+    depends_on: [redis, pg]
+    restart: always
+
+  redis:
+    image: redis:7
+    command: ["--save","60","1","--loglevel","warning"]
+    volumes: ["redis:/data"]
+
+  pg:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: mcp
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: pass
+    volumes: ["pg:/var/lib/postgresql/data"]
+
+  worker:
+    build: .
+    command: celery -A xyte_mcp.celery_app worker -Q long -c 2
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      RESULT_BACKEND_URL: "redis://redis:6379/1"
+    depends_on: [redis, pg]
+    restart: always
+
+  openai-wrapper:
+    build: .
+    command: python -m xyte_mcp.openai_wrapper
+    ports: ["8001:8081"]
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "postgresql+asyncpg://mcp:pass@pg/mcp"
+      LOG_LEVEL: "INFO"
+      XYTE_API_KEY: "${XYTE_API_KEY}"
+    depends_on: [redis, pg]
+    restart: always
+
+volumes:
+  redis:
+  pg:
